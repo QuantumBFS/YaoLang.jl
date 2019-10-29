@@ -1,0 +1,13 @@
+name = "YaoIR"
+uuid = "77e32715-2d53-453b-8330-e0520dba5551"
+authors = ["Roger-luo"]
+version = "0.1.0"
+
+[compat]
+julia = "1.3"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
