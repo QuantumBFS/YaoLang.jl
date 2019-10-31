@@ -11,6 +11,11 @@ is very simple:
 
 ### Semantics
 
+The semantic of YaoIR tries to make use of Julia semantic as much as possible so you don't feel this
+is not Julian. But since the quantum circuit has some
+special semantic that Julia expression cannot express
+directly, the semantic of Julia expression is extended in YaoIR.
+
 #### Gate Position
 gate positions are specific with `=>` at each line,
 the `=>` operator inside function calls will not be
