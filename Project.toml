@@ -3,6 +3,10 @@ uuid = "77e32715-2d53-453b-8330-e0520dba5551"
 authors = ["Roger-luo"]
 version = "0.1.0"
 
+[deps]
+MLStyle = "d8e11817-5142-5d16-987a-aa16d5891078"
+YaoArrayRegister = "e600142f-9330-5003-8abb-0ebd767abc51"
+
 [compat]
 julia = "1.3"
 
