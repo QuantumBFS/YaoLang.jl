@@ -18,6 +18,11 @@ is not Julian. But since the quantum circuit has some
 special semantic that Julia expression cannot express
 directly, the semantic of Julia expression is extended in YaoIR.
 
+The point of this new IR is it make use of Julia native
+control flow directly instead of unroll the loop and conditions into a Julia type, such as `Chain`, `Kron`,
+`ConditionBlock` in QBIR, which improves the performance and provide possibility of further compiler
+optimization by analysis done on quantum circuit and classical control flows.
+
 #### Gate Position
 gate positions are specific with `=>` at each line,
 the `=>` operator inside function calls will not be
