@@ -5,6 +5,8 @@
 
 ## Introduction
 
+**Warning: This package is still in early development, I make it public just to enable CI etc. don't use it**
+
 YaoIR is an Intermediate Representation built based on
 Julia builtin expression with extended semantic on quantum control, measure and position. Its syntax
 is very simple:
