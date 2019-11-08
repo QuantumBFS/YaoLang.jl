@@ -45,10 +45,10 @@ end
 function exec!(register, gate::Shift{T}, locs::Locations, ctrl_locs::Locations) where T
     M = Diagonal(Complex{T}[1.0, exp(im * gate.theta)])
     ctrl_locs, ctrl_config = decode_sign(to_tuple(ctrl_locs))
-    instruct!(register, M, locs, ctrl_locs, ctrl_config)
+    instruct!(register, M, to_tuple(locs), ctrl_locs, ctrl_config)
 end
 
 function exec!(register, gate::HGate, locs::Locations)
     M = ComplexF64[1 1;1 -1] / sqrt(2)
-    instruct!(register, M, locs)
+    instruct!(register, M, to_tuple(locs))
 end

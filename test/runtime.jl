@@ -1,8 +1,28 @@
-using Revise
 using YaoIR, YaoArrayRegister
+using LinearAlgebra
 using Test
 
-ex = :(function qft(n::Int)
+shift_m(theta::T) where T = M = Diagonal(Complex{T}[1.0, exp(im * theta)])
+
+function qft3!(r)
+    H = ComplexF64[1 1;1 -1] / sqrt(2)
+    instruct!(r, H, (1, ))
+
+    for k in 2:3
+        U = shift_m(2π/2^k)
+        instruct!(r, U, (1, ), (k, ), (1, ))
+    end
+
+    instruct!(r, H, (2, ))
+
+    U = shift_m(2π/2^2)
+    instruct!(r, U, (2, ), (3, ), (2, ))
+
+    instruct!(r, H, (3, ))
+    return nothing
+end
+
+@device function qft(n::Int)
     1 => H
     for k in 2:n
         control(k, 1=>Shift(2π/2^k))
@@ -11,20 +31,13 @@ ex = :(function qft(n::Int)
     if n > 1
         2:n => qft(n-1)
     end
-end)
+end
 
-ex = ignore_line_numbers(ex)
+@testset "test qft compilation" begin
+    r = rand_state(3)
+    r1 = copy(r); r2 = copy(r);
+    exec!(r1, qft(3))
+    qft3!(r2)
 
-YaoIR.create_closure(ex) |> ignore_line_numbers
-YaoIR.generate_instruct(ex)
-
-
-transform(:(1=>H))
-compile_to_jl(:r, ir, :locs)
-
-ir = transform(:(control(k, 1=>H))) == Control(:k, GateLocation(1, :H))
-
-transform(:(measure(1, 2)))
-transform(:(measure(1:4)))
-
-Measure(:(1:2))
+    @test isapprox(r1, r2)
+end

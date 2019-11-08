@@ -7,4 +7,5 @@ end
 
 @testset "test compiler" begin
     include("compile.jl")
+    include("runtime.jl")
 end
