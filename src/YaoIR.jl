@@ -1,11 +1,10 @@
 module YaoIR
 
 # include("match.jl")
+include("locations.jl")
+include("lib/primitives.jl")
 
-include("primitives.jl")
-include("ir.jl")
-include("compile.jl")
-
-include("lib/primitive.jl")
+include("compiler/ir.jl")
+include("compiler/compile.jl")
 
 end # module

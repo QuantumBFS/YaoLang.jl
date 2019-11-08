@@ -35,3 +35,5 @@ export Shift
 struct Shift{T} <: PrimitiveGate
     theta::T
 end
+
+include("instructions.jl")

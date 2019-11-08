@@ -1,4 +1,4 @@
-export transform, ignore_line_numbers, lowered_code, pack_arguements,
+export transform, ignore_line_numbers, compile_to_jl, pack_arguements,
     function_name, replace_function_name, create_closure, is_function,
     device_m, @device
 
@@ -28,60 +28,60 @@ function ignore_line_numbers(ex::Expr)
     end
 end
 
-lowered_code(register::Symbol, x) = x
+compile_to_jl(register::Symbol, x) = x
 
-function lowered_code(register::Symbol, ex::Expr)
-    Expr(ex.head, map(x->lowered_code(register, x), ex.args)...)
+function compile_to_jl(register::Symbol, ex::Expr)
+    Expr(ex.head, map(x->compile_to_jl(register, x), ex.args)...)
 end
 
-function lowered_code(register::Symbol, ex::GateLocation)
-    Expr(:call, :exec!, register, ex.gate, ex.location)
+function compile_to_jl(register::Symbol, ex::GateLocation)
+    Expr(:call, :exec!, register, ex.gate, ex.location.ex)
 end
 
-function lowered_code(register::Symbol, ex::Control)
-    Expr(:call, :exec!, register, ex.content.gate, ex.content.location, ex.ctrl_location)
+function compile_to_jl(register::Symbol, ex::Control)
+    Expr(:call, :exec!, register, ex.content.gate, ex.content.location.ex, ex.ctrl_location.ex)
 end
 
-function lowered_code(register::Symbol, ex::Measure)
-    Expr(:call, :measure!, register, ex.location)
+function compile_to_jl(register::Symbol, ex::Measure)
+    Expr(:call, :measure!, register, ex.location.ex)
 end
 
 # handle relative location
-lowered_code(register::Symbol, x, locs) = x
+compile_to_jl(register::Symbol, x, locs) = x
 
-function lowered_code(register::Symbol, ex::Expr, locs)
-    Expr(ex.head, map(x->lowered_code(register, x, locs), ex.args)...)
+function compile_to_jl(register::Symbol, ex::Expr, locs)
+    Expr(ex.head, map(x->compile_to_jl(register, x, locs), ex.args)...)
 end
 
-function lowered_code(register::Symbol, ex::GateLocation, locs)
-    location = :($locs[$(ex.location)])
+function compile_to_jl(register::Symbol, ex::GateLocation, locs)
+    location = :($locs[$(ex.location.ex)])
     Expr(:call, :(YaoIR.exec!), register, ex.gate, location)
 end
 
-function lowered_code(register::Symbol, ex::Control, locs)
-    location = :($locs[$(ex.content.location)])
-    ctrl_location = :($locs[$(ex.ctrl_location)])
+function compile_to_jl(register::Symbol, ex::Control, locs)
+    location = :($locs[$(ex.content.location.ex)])
+    ctrl_location = :($locs[$(ex.ctrl_location.ex)])
     Expr(:call, :(YaoIR.exec!), register, ex.content.gate, location, ctrl_location)
 end
 
-function lowered_code(register::Symbol, ex::Measure, locs)
-    location = :($locs[$(ex.location)])
+function compile_to_jl(register::Symbol, ex::Measure, locs)
+    location = :($locs[$(ex.location.ex)])
     Expr(:call, :(YaoIR.measure!), register, location)
 end
 
 # ignore same column when compiling to simulation code
-function lowered_code(register::Symbol, ex::SameColumn, locs)
+function compile_to_jl(register::Symbol, ex::SameColumn, locs)
     ex = Expr(:block)
     for each in ex.args
-        push!(ex.args, lowered_code(register, each, locs))
+        push!(ex.args, compile_to_jl(register, each, locs))
     end
     return ex
 end
 
-function lowered_code(register::Symbol, ex::SameColumn)
+function compile_to_jl(register::Symbol, ex::SameColumn)
     out = Expr(:block)
     for each in ex.args
-        push!(out.args, lowered_code(register, each))
+        push!(out.args, compile_to_jl(register, each))
     end
     return out
 end
@@ -198,7 +198,7 @@ function generate_instruct(ex::Expr)
     gate = gensym(:gate)
     name = function_name(ex)
     args = pack_arguements(ex)
-    body = lowered_code(register, transform(ex.args[2]), locs)
+    body = compile_to_jl(register, transform(ex.args[2]), locs)
     
     d = Dict()
     for (k, x) in enumerate(args.args)
