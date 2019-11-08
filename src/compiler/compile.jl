@@ -10,6 +10,7 @@ function transform(ex)
         :($location => $gate) => GateLocation(location, transform(gate))
         :(control($ctrl, $locs => $gate)) => Control(ctrl, GateLocation(locs, gate))
         :(measure($locs)) => Measure(locs)
+        :(measure($(locs...))) => Measure(locs...)
         Expr(:macrocall, name, line, body...) => SameColumn(map(transform, body))
         ::Expr => Expr(ex.head, map(transform, ex.args)...)
         _ => ex
@@ -35,15 +36,15 @@ function compile_to_jl(register::Symbol, ex::Expr)
 end
 
 function compile_to_jl(register::Symbol, ex::GateLocation)
-    Expr(:call, :exec!, register, ex.gate, ex.location.ex)
+    Expr(:call, :(YaoIR.exec!), register, ex.gate, ex.location.ex)
 end
 
 function compile_to_jl(register::Symbol, ex::Control)
-    Expr(:call, :exec!, register, ex.content.gate, ex.content.location.ex, ex.ctrl_location.ex)
+    Expr(:call, :(YaoIR.exec!), register, ex.content.gate, ex.content.location.ex, ex.ctrl_location.ex)
 end
 
 function compile_to_jl(register::Symbol, ex::Measure)
-    Expr(:call, :measure!, register, ex.location.ex)
+    Expr(:call, :(YaoIR.measure!), register, ex.location.ex)
 end
 
 # handle relative location
@@ -165,7 +166,7 @@ struct Circuit{name, Args <: Tuple}
 end
 
 function Base.show(io::IO, ::Type{Circuit{name}}) where name
-    print(io, "Circuit{$(QuoteNode(name))} (generic circuit with $(length(methods(Circuit{name}))-1) methods)")
+    print(io, "Circuit{$(QuoteNode(name))}")
 end
 
 """
@@ -211,7 +212,7 @@ function generate_instruct(ex::Expr)
             $body
         end
 
-        function YaoIR.exec!($register, $gate::$(Circuit{name}), $locs::Int)
+        function YaoIR.exec!($register, $gate::$(Circuit{name}), $locs::Locations{Int})
             exec!($register, $gate, $locs:nqubits($register))
         end        
     end

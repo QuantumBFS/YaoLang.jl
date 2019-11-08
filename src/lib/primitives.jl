@@ -31,7 +31,6 @@ struct Rz{T} <: PrimitiveGate
     theta::T
 end
 
-export Shift
 struct Shift{T} <: PrimitiveGate
     theta::T
 end
