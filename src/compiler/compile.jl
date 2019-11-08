@@ -208,7 +208,7 @@ function generate_instruct(ex::Expr)
 
     body = scan_replace(body, d)
     quote
-        function YaoIR.exec!($(register), $gate::$(Circuit{name}), $locs)
+        function YaoIR.exec!($(register), $gate::$(Circuit{name}), $locs::Locations)
             $body
         end
 

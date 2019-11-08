@@ -41,3 +41,18 @@ end
 
     @test isapprox(r1, r2)
 end
+
+@macroexpand @device function qft(l::Int, n::Int)
+    l => H
+
+    if n > l
+        for k in l:n
+            control(k, l=>Shift(2π/2^(k-l)))
+        end
+        l+1:n => qft(l+1, n)
+    end
+end
+
+@device qft(n::Int) = 1:n => qft(1, n)
+
+exec!(rand_state(3), qft(2, 3))
