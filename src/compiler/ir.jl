@@ -9,6 +9,8 @@ struct LocationExpr
     ex
 end
 
+LocationExpr(ex::LocationExpr) = ex
+create_locations(ex::LocationExpr) = ex
 function Base.show(io::IO, x::LocationExpr)
     if x.ex isa Locations
         m = x.ex

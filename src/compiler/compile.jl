@@ -1,5 +1,5 @@
 export transform, ignore_line_numbers, compile_to_jl, pack_arguements,
-    function_name, replace_function_name, create_closure, is_function,
+    function_name, replace_function_name, create_circuit, is_function,
     device_m, @device
 
 using MLStyle
@@ -36,49 +36,18 @@ function compile_to_jl(register::Symbol, ex::Expr)
 end
 
 function compile_to_jl(register::Symbol, ex::GateLocation)
-    Expr(:call, :(YaoIR.exec!), register, ex.gate, ex.location.ex)
+    Expr(:call, :(YaoIR.evaluate!), register, ex.gate, ex.location.ex)
 end
 
 function compile_to_jl(register::Symbol, ex::Control)
-    Expr(:call, :(YaoIR.exec!), register, ex.content.gate, ex.content.location.ex, ex.ctrl_location.ex)
+    Expr(:call, :(YaoIR.evaluate!), register, ex.content.gate, ex.content.location.ex, ex.ctrl_location.ex)
 end
 
 function compile_to_jl(register::Symbol, ex::Measure)
     Expr(:call, :(YaoIR.measure!), register, ex.location.ex)
 end
 
-# handle relative location
-compile_to_jl(register::Symbol, x, locs) = x
-
-function compile_to_jl(register::Symbol, ex::Expr, locs)
-    Expr(ex.head, map(x->compile_to_jl(register, x, locs), ex.args)...)
-end
-
-function compile_to_jl(register::Symbol, ex::GateLocation, locs)
-    location = :($locs[$(ex.location.ex)])
-    Expr(:call, :(YaoIR.exec!), register, ex.gate, location)
-end
-
-function compile_to_jl(register::Symbol, ex::Control, locs)
-    location = :($locs[$(ex.content.location.ex)])
-    ctrl_location = :($locs[$(ex.ctrl_location.ex)])
-    Expr(:call, :(YaoIR.exec!), register, ex.content.gate, location, ctrl_location)
-end
-
-function compile_to_jl(register::Symbol, ex::Measure, locs)
-    location = :($locs[$(ex.location.ex)])
-    Expr(:call, :(YaoIR.measure!), register, location)
-end
-
 # ignore same column when compiling to simulation code
-function compile_to_jl(register::Symbol, ex::SameColumn, locs)
-    ex = Expr(:block)
-    for each in ex.args
-        push!(ex.args, compile_to_jl(register, each, locs))
-    end
-    return ex
-end
-
 function compile_to_jl(register::Symbol, ex::SameColumn)
     out = Expr(:block)
     for each in ex.args
@@ -86,6 +55,57 @@ function compile_to_jl(register::Symbol, ex::SameColumn)
     end
     return out
 end
+
+# handle relative location
+flatten_position(ir, locs) = ir
+function flatten_position(ir::Expr, locs)
+    Expr(ir.head, map(x->flatten_position(x, locs), ir.args)...)
+end
+
+function flatten_position(ir::GateLocation, locs)
+    location = LocationExpr(:($locs[$(ir.location.ex)]))
+    return GateLocation(location, ir.gate)
+end
+
+function flatten_position(ir::Control, locs)
+    ctrl_location = LocationExpr(:($locs[$(ir.ctrl_location.ex)]))
+    return Control(
+        ctrl_location,
+        flatten_position(ir.content, locs)
+    )
+end
+
+function flatten_position(ir::Measure, locs)
+    location = :($locs[$(ir.location.ex)])
+    return Measure(location)
+end
+
+function is_quantum_controlable(ex::Expr)
+    flag = true
+    for each in ex.args
+        flag = flag && is_quantum_controlable(each)
+    end
+    return flag
+end
+
+is_quantum_controlable(x) = true
+is_quantum_controlable(x::Measure) = false
+
+ctrl_transform(ctrl_locs, x) = x
+
+function ctrl_transform(ctrl_locs, ex::Expr)
+    Expr(ex.head, map(x->ctrl_transform(ctrl_locs, x), ex.args)...)
+end
+
+function ctrl_transform(ctrl_locs, x::GateLocation)
+    Control(LocationExpr(ctrl_locs), x)
+end
+
+function ctrl_transform(ctrl_locs, x::Control)
+    ctrl_locs = :(YaoIR.merge_location($ctrl_locs, $(x.ctrl_location.ex)))
+    Control(LocationExpr(ctrl_locs), x.content)
+end
+
 
 """
     is_function(expr)
@@ -160,6 +180,21 @@ function _function_name(ex::Expr)
     end
 end
 
+function with_similar_signature(new_name, fn_head::Expr)
+    # if it has where
+    # iterate the function body part, keep the rest where statement
+    fn_head.head === :where && return Expr(:where, with_similar_signature(fn_head.args[1]), fn_head.args[2:end]...)
+
+    # if not
+    if fn_head.head === :call
+        fn_head.args[1] isa Symbol || throw(Meta.ParseError("expect a function name, got $(fn_head.args[1])"))
+        return Expr(:call, new_name, :(::YaoIR.Circuit{$(QuoteNode(fn_head.args[1]))}), fn_head.args[2:end]...)
+    else
+        throw(Meta.ParseError("invalid device function"))
+    end
+end
+
+
 struct Circuit{name, Args <: Tuple}
     args::Args
     Circuit{name}(args::Tuple) where name = new{name, typeof(args)}(args)
@@ -169,14 +204,69 @@ function Base.show(io::IO, ::Type{Circuit{name}}) where name
     print(io, "Circuit{$(QuoteNode(name))}")
 end
 
+circuit_method(circ::Circuit) = circuit_method(circ, circ.args...)
+ctrl_circuit_method(circ::Circuit) = ctrl_circuit_method(circ, circ.args...)
+
+function evaluate!(r::AbstractRegister, circ::Circuit, locs::Locations)
+    circuit_method(circ)(r, locs)
+    return r
+end
+
+function generate_methods(ex::Expr)
+    # kernel function should be a Julia function
+    is_function(ex) || throw(Meta.ParseError("expect function definition, got $ex"))
+    ir = transform(ex.args[2])
+
+    # create circuit method heads
+    circ_method_def = with_similar_signature(:(YaoIR.circuit_method), ex.args[1])
+    ctrl_circ_method_def = with_similar_signature(:(YaoIR.ctrl_circuit_method), ex.args[1])
+
+    quote
+        $(Expr(:function, circ_method_def, generate_circuit_method(ir)))
+        $(Expr(:function, ctrl_circ_method_def, generate_ctrl_circuit_method(ir)))
+    end
+end
+
+function generate_circuit_method(ir::Expr)
+    register = gensym(:register)
+    locs = gensym(:locs)
+
+    ir = flatten_position(ir, locs)
+    body = compile_to_jl(register, ir)
+    quote
+        return function routine!($register, $locs)
+            $body
+            return $register
+        end
+    end
+end
+
+function generate_ctrl_circuit_method(ir::Expr)
+    register = gensym(:register)
+    locs = gensym(:locs)
+    ctrl_locs = gensym(:ctrl_locs)
+
+    is_quantum_controlable(ir) || return :(error("cannot control this circuit"))
+
+    ir = flatten_position(ir, locs)
+    ir = ctrl_transform(ctrl_locs, ir)
+    body = compile_to_jl(register, ir)
+    quote
+        return function routine!($register, $locs, $ctrl_locs)
+            $body
+            return $register
+        end
+    end
+end
+
 """
-    create_closure(ex)
+    create_circuit(ex)
 
 Create a closure as `struct` according to the function definition.
 """
-function create_closure(ex::Expr)
+function create_circuit(ex::Expr)
     name = function_name(ex)
-    if name === nothing
+    if name === nothing # anonymous function
         name = gensym()
     end
     args = pack_arguements(ex)
@@ -187,55 +277,12 @@ function create_closure(ex::Expr)
     quote
         Core.@__doc__ const $(esc(name)) = $circ_name
         $mt
-        $(esc(generate_instruct(ex)))
-    end
-end
-
-function generate_instruct(ex::Expr)
-    is_function(ex) || throw(Meta.ParseError("expect function definition, got $ex"))
-
-    register = gensym(:register)
-    locs = gensym(:locs)
-    gate = gensym(:gate)
-    name = function_name(ex)
-    args = pack_arguements(ex)
-    body = compile_to_jl(register, transform(ex.args[2]), locs)
-    
-    d = Dict()
-    for (k, x) in enumerate(args.args)
-        d[x] = :($gate.args[$k])
-    end
-
-    body = scan_replace(body, d)
-    quote
-        function YaoIR.exec!($(register), $gate::$(Circuit{name}), $locs::Locations)
-            $body
-        end
-
-        function YaoIR.exec!($register, $gate::$(Circuit{name}), $locs::Locations{Int})
-            exec!($register, $gate, $locs:nqubits($register))
-        end        
-    end
-end
-
-function scan_replace(x, d::Dict)
-    if x in keys(d)
-        return d[x]
-    else
-        return x
-    end
-end
-
-function scan_replace(body::Expr, d::Dict)
-    if body in keys(d)
-        return d[body]
-    else
-        Expr(body.head, map(x->scan_replace(x, d), body.args)...)
+        $(esc(generate_methods(ex)))
     end
 end
 
 function device_m(ex::Expr)
-    return create_closure(ex)
+    return create_circuit(ex)
 end
 
 macro device(ex::Expr)

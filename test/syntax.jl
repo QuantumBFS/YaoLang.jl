@@ -68,3 +68,6 @@ ex = quote
         qft'(n)
     end
 end
+
+
+evaluate!(register, qft(3))

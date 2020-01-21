@@ -32,26 +32,6 @@ const Position = Locations{Int}
 
 Base.show(io::IO, x::Locations) = printstyled(io, x.locations, color=:light_blue)
 
-# we try to convert it to Locations in runtime by default
-# so this will give a nice error
-create_locations(x) = :(Locations($x))
-# if the location is specified by literals
-# we process it to Locations in compile time
-create_locations(x::Locations) = x
-create_locations(x::Int) = Position(x)
-create_locations(x::NTuple{N, Int}) where N = Locations(x)
-create_contiguous_locations(start::Int, stop::Int) = Locations(start:stop)
-
-create_locations(x::Symbol) = :(Locations($x))
-create_contiguous_locations(start, stop) = :(Locations($start:$stop))
-
-function create_locations(ex::Expr)
-    @match ex begin
-        :($start:$stop) => create_contiguous_locations(start, stop)
-        _ => :(Locations($ex))
-    end
-end
-
 ## comparision
 Base.:(==)(lhs::Locations{T}, rhs::Locations{T}) where T = lhs.locations == rhs.locations
 Base.:(==)(lhs::Locations, rhs::Locations) = false
@@ -79,3 +59,35 @@ end
 
 to_tuple(x::Locations) = Tuple(x.locations)
 to_tuple(x::Locations{<:Tuple}) = x.locations
+
+merge_location(x, y, xs...) = merge_location(merge_location(x, y), xs...)
+
+function merge_location(x::Locations{Int}, y::Locations{Int})
+    return Locations((x.locations, y.locations))
+end
+
+# fallback
+function merge_location(x::Locations, y::Locations)
+    return Locations((x.locations..., y.locations...))
+end
+
+## Compile time
+# we try to convert it to Locations in runtime by default
+# so this will give a nice error
+create_locations(x) = :(Locations($x))
+# if the location is specified by literals
+# we process it to Locations in compile time
+create_locations(x::Locations) = x
+create_locations(x::Int) = Position(x)
+create_locations(x::NTuple{N, Int}) where N = Locations(x)
+create_contiguous_locations(start::Int, stop::Int) = Locations(start:stop)
+
+create_locations(x::Symbol) = :(Locations($x))
+create_contiguous_locations(start, stop) = :(Locations($start:$stop))
+
+function create_locations(ex::Expr)
+    @match ex begin
+        :($start:$stop) => create_contiguous_locations(start, stop)
+        _ => :(Locations($ex))
+    end
+end
