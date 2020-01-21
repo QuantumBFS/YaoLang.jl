@@ -82,3 +82,31 @@ end
 
 note: all the quantum gates should be annotate with its corresponding locations, or the compiler will not
 treat it as a quantum gate but instead of the original Julia expression.
+
+## Why?
+
+There are a few reasons that we need a fully compiled DSL now.
+
+### 1. Extensibility
+
+Things in YaoBlocks like
+
+```
+function apply!(r::AbstractRegister, pb::PutBlock{N}) where {N}
+    _check_size(r, pb)
+    instruct!(r, mat_matchreg(r, pb.content), pb.locs)
+    return r
+end
+
+# specialization
+for G in [:X, :Y, :Z, :T, :S, :Sdag, :Tdag]
+    GT = Expr(:(.), :ConstGate, QuoteNode(Symbol(G, :Gate)))
+    @eval function apply!(r::AbstractRegister, pb::PutBlock{N,C,<:$GT}) where {N,C}
+        _check_size(r, pb)
+        instruct!(r, Val($(QuoteNode(G))), pb.locs)
+        return r
+    end
+end
+```
+
+cannot be easily extended without define new dispatch on specialized instruction. Similarly, as long as there is a new instruction in low level, one need to redefine the dispatch in `YaoBlocks` however this is not necessary!
