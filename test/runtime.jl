@@ -22,7 +22,7 @@ function qft3!(r)
     return nothing
 end
 
-@device function qft(n::Int)
+@macroexpand @device function qft(n::Int)
     1 => H
     for k in 2:n
         control(k, 1=>Shift(2π/2^k))
@@ -36,7 +36,7 @@ end
 @testset "test qft compilation" begin
     r = rand_state(3)
     r1 = copy(r); r2 = copy(r);
-    exec!(r1, qft(3))
+    evaluate!(r1, qft(3))
     qft3!(r2)
 
     @test isapprox(r1, r2)
