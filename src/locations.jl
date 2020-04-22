@@ -30,10 +30,10 @@ A single location marked by `Int`, it can be initialized with
 """
 const Position = Locations{Int}
 
-Base.show(io::IO, x::Locations) = printstyled(io, x.locations, color=:light_blue)
+Base.show(io::IO, x::Locations) = printstyled(io, x.locations, color = :light_blue)
 
 ## comparision
-Base.:(==)(lhs::Locations{T}, rhs::Locations{T}) where T = lhs.locations == rhs.locations
+Base.:(==)(lhs::Locations{T}, rhs::Locations{T}) where {T} = lhs.locations == rhs.locations
 Base.:(==)(lhs::Locations, rhs::Locations) = false
 
 Base.length(x::Position) = 1
@@ -79,7 +79,7 @@ create_locations(x) = :(Locations($x))
 # we process it to Locations in compile time
 create_locations(x::Locations) = x
 create_locations(x::Int) = Position(x)
-create_locations(x::NTuple{N, Int}) where N = Locations(x)
+create_locations(x::NTuple{N,Int}) where {N} = Locations(x)
 create_contiguous_locations(start::Int, stop::Int) = Locations(start:stop)
 
 create_locations(x::Symbol) = :(Locations($x))

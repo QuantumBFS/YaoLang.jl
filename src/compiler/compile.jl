@@ -1,6 +1,13 @@
-export transform, ignore_line_numbers, compile_to_jl, pack_arguements,
-    function_name, replace_function_name, create_circuit, is_function,
-    device_m, @device
+export transform,
+    ignore_line_numbers,
+    compile_to_jl,
+    pack_arguements,
+    function_name,
+    replace_function_name,
+    create_circuit,
+    is_function,
+    device_m,
+    @device
 
 using MLStyle
 
@@ -21,10 +28,10 @@ ignore_line_numbers(ex) = ex
 
 function ignore_line_numbers(ex::Expr)
     if ex.head === :macrocall
-        args = map(ignore_line_numbers, filter(x ->!(x isa LineNumberNode), ex.args[3:end]))
+        args = map(ignore_line_numbers, filter(x -> !(x isa LineNumberNode), ex.args[3:end]))
         return Expr(ex.head, ex.args[1], ex.args[2], args...)
     else
-        args = map(ignore_line_numbers, filter(x ->!(x isa LineNumberNode), ex.args))
+        args = map(ignore_line_numbers, filter(x -> !(x isa LineNumberNode), ex.args))
         Expr(ex.head, args...)
     end
 end
@@ -32,7 +39,7 @@ end
 compile_to_jl(register::Symbol, x) = x
 
 function compile_to_jl(register::Symbol, ex::Expr)
-    Expr(ex.head, map(x->compile_to_jl(register, x), ex.args)...)
+    Expr(ex.head, map(x -> compile_to_jl(register, x), ex.args)...)
 end
 
 function compile_to_jl(register::Symbol, ex::GateLocation)
@@ -40,7 +47,14 @@ function compile_to_jl(register::Symbol, ex::GateLocation)
 end
 
 function compile_to_jl(register::Symbol, ex::Control)
-    Expr(:call, :(YaoIR.evaluate!), register, ex.content.gate, ex.content.location.ex, ex.ctrl_location.ex)
+    Expr(
+        :call,
+        :(YaoIR.evaluate!),
+        register,
+        ex.content.gate,
+        ex.content.location.ex,
+        ex.ctrl_location.ex,
+    )
 end
 
 function compile_to_jl(register::Symbol, ex::Measure)
@@ -59,7 +73,7 @@ end
 # handle relative location
 flatten_position(ir, locs) = ir
 function flatten_position(ir::Expr, locs)
-    Expr(ir.head, map(x->flatten_position(x, locs), ir.args)...)
+    Expr(ir.head, map(x -> flatten_position(x, locs), ir.args)...)
 end
 
 function flatten_position(ir::GateLocation, locs)
@@ -69,10 +83,7 @@ end
 
 function flatten_position(ir::Control, locs)
     ctrl_location = LocationExpr(:($locs[$(ir.ctrl_location.ex)]))
-    return Control(
-        ctrl_location,
-        flatten_position(ir.content, locs)
-    )
+    return Control(ctrl_location, flatten_position(ir.content, locs))
 end
 
 function flatten_position(ir::Measure, locs)
@@ -94,7 +105,7 @@ is_quantum_controlable(x::Measure) = false
 ctrl_transform(ctrl_locs, x) = x
 
 function ctrl_transform(ctrl_locs, ex::Expr)
-    Expr(ex.head, map(x->ctrl_transform(ctrl_locs, x), ex.args)...)
+    Expr(ex.head, map(x -> ctrl_transform(ctrl_locs, x), ex.args)...)
 end
 
 function ctrl_transform(ctrl_locs, x::GateLocation)
@@ -114,7 +125,7 @@ Return `true` if given `expr` is a valid function definition.
 """
 function is_function(ex::Expr)
     ex.head === :function ||
-    ex.head === :(=) && (ex.args[1].head === :call || ex.args[1].head === :where)
+        ex.head === :(=) && (ex.args[1].head === :call || ex.args[1].head === :where)
 end
 
 """
@@ -183,24 +194,31 @@ end
 function with_similar_signature(new_name, fn_head::Expr)
     # if it has where
     # iterate the function body part, keep the rest where statement
-    fn_head.head === :where && return Expr(:where, with_similar_signature(fn_head.args[1]), fn_head.args[2:end]...)
+    fn_head.head === :where &&
+        return Expr(:where, with_similar_signature(fn_head.args[1]), fn_head.args[2:end]...)
 
     # if not
     if fn_head.head === :call
-        fn_head.args[1] isa Symbol || throw(Meta.ParseError("expect a function name, got $(fn_head.args[1])"))
-        return Expr(:call, new_name, :(::YaoIR.Circuit{$(QuoteNode(fn_head.args[1]))}), fn_head.args[2:end]...)
+        fn_head.args[1] isa Symbol ||
+            throw(Meta.ParseError("expect a function name, got $(fn_head.args[1])"))
+        return Expr(
+            :call,
+            new_name,
+            :(::YaoIR.Circuit{$(QuoteNode(fn_head.args[1]))}),
+            fn_head.args[2:end]...,
+        )
     else
         throw(Meta.ParseError("invalid device function"))
     end
 end
 
 
-struct Circuit{name, Args <: Tuple}
+struct Circuit{name,Args<:Tuple}
     args::Args
-    Circuit{name}(args::Tuple) where name = new{name, typeof(args)}(args)
+    Circuit{name}(args::Tuple) where {name} = new{name,typeof(args)}(args)
 end
 
-function Base.show(io::IO, ::Type{Circuit{name}}) where name
+function Base.show(io::IO, ::Type{Circuit{name}}) where {name}
     print(io, "Circuit{$(QuoteNode(name))}")
 end
 

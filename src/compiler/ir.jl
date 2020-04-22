@@ -6,7 +6,7 @@ export LocationExpr, GateLocation, Control, Measure, SameColumn
 Location expression.
 """
 struct LocationExpr
-    ex
+    ex::Any
 end
 
 LocationExpr(ex::LocationExpr) = ex
@@ -17,12 +17,12 @@ function Base.show(io::IO, x::LocationExpr)
     else
         m = x.ex.args[2]
     end
-    printstyled(io, m, color=:light_blue)
+    printstyled(io, m, color = :light_blue)
 end
 
 struct GateLocation
     location::LocationExpr
-    gate
+    gate::Any
 
     GateLocation(locations, gate) = new(LocationExpr(create_locations(locations)), gate)
 end
@@ -49,19 +49,19 @@ end
 
 function Base.show(io::IO, ex::GateLocation)
     print(io, ex.location)
-    printstyled(io, " => ", color=:light_magenta)
+    printstyled(io, " => ", color = :light_magenta)
     print(io, ex.gate)
-    printstyled(io, "  #=gate=#", color=:light_black)
+    printstyled(io, "  #=gate=#", color = :light_black)
 end
 
 function Base.show(io::IO, ctrl::Control)
-    printstyled(io, "control", color=:light_red)
+    printstyled(io, "control", color = :light_red)
     print(io, "(", ctrl.ctrl_location, ", ", ctrl.content, ")")
 end
 
 function Base.show(io::IO, ex::Measure)
-    printstyled(io, "measure", color=:light_cyan)
-    
+    printstyled(io, "measure", color = :light_cyan)
+
     if ex.location.ex.locations isa Tuple
         print(io, ex.location)
     else
@@ -70,7 +70,7 @@ function Base.show(io::IO, ex::Measure)
 end
 
 function Base.show_unquoted(io::IO, ex::SameColumn, indent::Int, prec::Int)
-    printstyled(io, "@column ", color=:magenta)
+    printstyled(io, "@column ", color = :magenta)
     for each in ex.args
         Base.show_unquoted(io, each, indent, prec)
     end

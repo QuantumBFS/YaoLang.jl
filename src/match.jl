@@ -9,7 +9,7 @@ struct ExactPattern <: AbstractPattern
 end
 
 struct Matches
-    p::Dict{Variable, Any}
+    p::Dict{Variable,Any}
 end
 
 function match(pattern::ExactPattern, ex::Expr, m)
