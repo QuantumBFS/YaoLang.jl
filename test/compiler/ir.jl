@@ -1,7 +1,6 @@
 using Test
 using YaoIR
 using YaoBase
-using YaoArrayRegister
 
 @testset "parsing" begin
     @testset "basic statement parsing" begin
