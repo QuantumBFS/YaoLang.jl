@@ -1,25 +1,15 @@
 module YaoIR
-export measure, control
 
-"""
-    measure(locations)
+using ExprTools
+using LinearAlgebra
+using YaoBase
 
-Reserved keyword in YaoIR scripts.
-"""
-function measure end
-
-"""
-    control(ctrl_locations, locations => gate)
-
-Reserved keyword in YaoIR scripts.
-"""
-function control end
-
-# include("match.jl")
-include("locations.jl")
-include("lib/primitives.jl")
+include("runtime/locations.jl")
+include("runtime/generic_circuit.jl")
+include("runtime/primitives.jl")
 
 include("compiler/ir.jl")
-include("compiler/compile.jl")
+include("compiler/compiler.jl")
+
 
 end # module

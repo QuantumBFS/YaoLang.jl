@@ -1,11 +1,10 @@
 using YaoIR
 using Test
 
-@testset "test locations" begin
-    include("locations.jl")
+@testset "runtime" begin
+    include("runtime/locations.jl")
 end
 
-@testset "test compiler" begin
-    include("compile.jl")
-    include("runtime.jl")
+@testset "compiler" begin
+    include("compiler/ir.jl")
 end

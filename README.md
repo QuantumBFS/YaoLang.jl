@@ -50,12 +50,12 @@ to represent repeated locations, e.g
 
 #### Control
 
-`control` is parsed as a special reserved function (means you cannot overload it) in each program, like QBIR, its first argument is the control
+`@ctrl` is parsed as a keyword (means you cannot overload it) in each program, like QBIR, its first argument is the control
 location with signs as control configurations and the second argument is a normal gate position argument introduce above.
 
 #### Measure
 
-`measure` is another reserved special function parsed that has specific semantic in the IR (measure the locations passed to it).
+`@measure` is another reserved special function parsed that has specific semantic in the IR (measure the locations passed to it).
 
 ### Usage
 
@@ -69,7 +69,7 @@ be overload with different Julia types, e.g
 @device function qft(l::Int, n::Int)
     l => H
     for k in l:n
-        control(k, l=>Shift(2π/2^(k-l)))
+        @ctrl k l=>Shift(2π/2^(k-l))
     end
 
     if n > l
