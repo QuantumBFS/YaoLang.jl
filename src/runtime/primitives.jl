@@ -57,8 +57,6 @@ end
 function primitive_m(ex::Expr)
     ex.head === :(=) || throw(Meta.ParseError("Invalid Syntax, expect <primitive gate name> = <matrix expr>, got $ex"))
     ex.args[1] isa Symbol || throw(Meta.ParseError("Invalid Syntax, expect Symbol got $(ex.args[1])"))
-    
-    generate_forward_stub(name, :(Val($(QuoteNode(x)))))
     name = ex.args[1]
     matrix_const = gensym(:matrix_const)
     
