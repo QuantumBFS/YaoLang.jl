@@ -8,9 +8,8 @@ include("runtime/locations.jl")
 include("runtime/generic_circuit.jl")
 include("runtime/primitives.jl")
 
-@nospecialize
 include("compiler/ir.jl")
 include("compiler/compiler.jl")
-@specialize
+
 
 end # module
