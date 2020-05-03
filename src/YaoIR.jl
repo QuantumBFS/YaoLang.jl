@@ -10,6 +10,6 @@ include("runtime/primitives.jl")
 
 include("compiler/ir.jl")
 include("compiler/compiler.jl")
-
+include("compiler/verify.jl")
 
 end # module
