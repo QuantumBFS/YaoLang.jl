@@ -1,3 +1,5 @@
+export GenericCircuit, Circuit
+
 struct GenericCircuit{name} end
 
 function Base.show(io::IO, x::GenericCircuit{name}) where name

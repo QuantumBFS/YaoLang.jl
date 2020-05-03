@@ -95,6 +95,8 @@ rm_annotations(x) = x
 function rm_annotations(x::Expr)
     if x.head == :(::)
         return x.args[1]
+    elseif x.head in [:(=), :kw] # default values
+        return rm_annotations(x.args[1])
     else
         return x
     end
@@ -111,7 +113,12 @@ function device_m(ex::Expr, strict=false)
     classical_def = deepcopy(def)
     classical_def[:name] = :(::$generic_circuit)
 
-    free_args = Expr(:tuple, map(rm_annotations, classical_def[:args])...)
+    if haskey(classical_def, :args)
+        free_args = Expr(:tuple, map(rm_annotations, classical_def[:args])...)
+    else
+        free_args = Expr(:tuple)
+    end
+
     classical_def[:body] = :($Circuit{$quote_name}($stub_name, $free_args))
 
     # generate kernel stub
@@ -153,7 +160,7 @@ function device_m(ex::Expr, strict=false)
         # ctrl stub def
         $(combinedef(ctrl_stub_def))
 
-        const $name = $generic_circuit()
+        Core.@__doc__ const $name = $generic_circuit()
     end
 end
 
