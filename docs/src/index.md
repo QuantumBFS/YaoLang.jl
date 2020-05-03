@@ -59,19 +59,20 @@ a generic circuit `Circuit` with the same name. A generic circuit is a generic q
 be overload with different Julia types, e.g
 
 ```jl
-@device function qft(l::Int, n::Int)
-    l => H
-    for k in l:n
-        @ctrl k l=>shift(2π/2^(k-l))
+@device function qft(n::Int)
+    1 => H
+    for k in 2:n
+        @ctrl k 1=>shift(2π/2^k)
     end
 
-    if n > l
-        l+1:n => qft(l+1, n)
+    if n > 1
+        2:n => qft(n-1)
     end
 end
-
-@device qft(n::Int) = 1:n => qft(1, n)
 ```
+
+**There is no need to worry about global position**: everything can be defined locally and we will infer the correct global location
+later either in compile time or runtime.
 
 note: all the quantum gates should be annotate with its corresponding locations, or the compiler will not
 treat it as a quantum gate but instead of the original Julia expression.
