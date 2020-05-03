@@ -4,9 +4,9 @@ authors = ["Roger-luo"]
 version = "0.1.0"
 
 [deps]
+ExprTools = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-MLStyle = "d8e11817-5142-5d16-987a-aa16d5891078"
-YaoArrayRegister = "e600142f-9330-5003-8abb-0ebd767abc51"
+YaoBase = "a8f54c17-34bc-5a9d-b050-f522fe3f755f"
 
 [compat]
 julia = "1"
