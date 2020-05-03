@@ -107,6 +107,36 @@ function assign_statement(ex::Expr)
     end
 end
 
+"""
+    @primitive ex
+
+Define a primitive quantum instruction. `ex` can be a Symbol, if the corresponding instruction
+interface of `YaoBase.instruct!` is implemented. Or `ex` can be an assignment statement for constant
+instructions. Or `ex` can be a function that returns corresponding matrix given a set of classical
+parameters.
+
+# Example
+
+Since the instructions interface `YaoBase.instruct!` of Pauli operators are defined, we can use
+
+```julia
+@primitive X
+```
+
+to declare a Pauli X primitive instruction.
+
+Or we can also define a Hadamard primitive instruction via its matrix form
+
+```julia
+@primitive H = [1 1;1 -1]/sqrt(2)
+```
+
+For parameterized gates, such as phase shift gate, we can define it as
+
+```julia
+@primitive shift(θ::Real) = Diagonal([1.0, exp(im * θ)])
+```
+"""
 macro primitive(ex)
     return esc(primitive_m(ex))
 end
