@@ -11,5 +11,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/QuantumBFS/YaoIR",
+    repo="github.com/QuantumBFS/YaoIR.jl",
 )
