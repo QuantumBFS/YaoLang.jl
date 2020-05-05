@@ -32,3 +32,10 @@ end
 
 is_pure_quantum(ex::Control) = is_pure_quantum(ex.gate)
 is_pure_quantum(::Measure) = true
+
+function hasmeasure(ex::Expr)
+    return any(hasmeasure, ex.args)
+end
+
+hasmeasure(x) = false
+hasmeasure(x::Measure) = true

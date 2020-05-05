@@ -35,7 +35,7 @@ Base.iterate(l::Locations, st) = iterate(l.storage, st)
 Base.eltype(::Type{T}) where {T <: Locations} = Int
 Base.eltype(x::Locations) = Int
 Base.show(io::IO, x::Locations) = print(io, x.storage)
-Base.Tuple(x::Locations) = Tuple(x.storage)
+Base.Tuple(x::Locations) = (x.storage..., )
 
 struct LocationError <: Exception
     msg::String
@@ -58,11 +58,11 @@ Decode signs into control sequence on control or inversed control.
 """
 decode_sign(ctrls::Int...) = decode_sign(ctrls)
 decode_sign(ctrls::NTuple{N,Int}) where {N} =
-    tuple(abs.(ctrls), ctrls .|> sign .|> (x -> (1 + x) ÷ 2))
+    tuple(Locations(abs.(ctrls)), ctrls .> 0)
 
 decode_sign(ctrl_locs::Locations) = decode_sign(ctrl_locs.storage)
 # maybe use a better way to implement this
-decode_sign(ctrl_locs::Locations{UnitRange{Int}}) = decode_sign(Tuple(ctrl_locs.storage))
+decode_sign(ctrl_locs::Locations{UnitRange{Int}}) = decode_sign(ctrl_locs.storage...)
 
 # location mapping
 # TODO: preserve sign when indexing

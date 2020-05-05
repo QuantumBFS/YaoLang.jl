@@ -118,7 +118,7 @@ parse_locations(x) = x
 function parse_locations(ex::Expr)
     if (ex.head === :call) && (ex.args[1] == :(=>))
         return GateLocation(ex.args[2], ex.args[3])
-    elseif ex.head in [:block, :if, :for]
+    elseif ex.head in [:block, :if, :for, :macrocall #= make @inbounds etc. work =#]
         return Expr(ex.head, map(parse_locations, ex.args)...)
     else
         return ex

@@ -129,9 +129,9 @@ function device_m(ex::Expr, strict=false)
 
     # splatting original classical arguments
     splat_args = Expr(:(=), free_args, :($stub_circ.free))
-    ex = parse_ast(def[:body])
+    ir = parse_ast(def[:body])
 
-    if strict && !(is_pure_quantum(ex))
+    if strict && !(is_pure_quantum(ir))
         throw(Meta.ParseError("statement is not a pure quantum program, move classical operations out of @device expression or use strict=false option"))
     end
 
@@ -140,17 +140,21 @@ function device_m(ex::Expr, strict=false)
     stub_def[:args] = Any[:($stub_circ::$Circuit), :($stub_register::$AbstractRegister), :($stub_location::Locations)]
     stub_def[:body] = quote
         $splat_args
-        $(compile(JuliaAST(stub_register, stub_location), ex))
+        $(compile(JuliaAST(stub_register, stub_location), ir))
         return $stub_register
     end
 
-    ctrl_stub_def = Dict{Symbol, Any}()
-    ctrl_stub_def[:name] = stub_name
-    ctrl_stub_def[:args] = Any[:($stub_circ::$Circuit), :($stub_register::$AbstractRegister), :($stub_location::Locations), :($stub_ctrl_location::Locations)]
-    ctrl_stub_def[:body] = quote
-        $splat_args
-        $(compile(CtrlJuliaAST(stub_register, stub_location, stub_ctrl_location), ex))
-        return $stub_register
+    if !hasmeasure(ir)
+        ctrl_stub_def = Dict{Symbol, Any}()
+        ctrl_stub_def[:name] = stub_name
+        ctrl_stub_def[:args] = Any[:($stub_circ::$Circuit), :($stub_register::$AbstractRegister), :($stub_location::Locations), :($stub_ctrl_location::Locations)]
+        ctrl_stub_def[:body] = quote
+            $splat_args
+            $(compile(CtrlJuliaAST(stub_register, stub_location, stub_ctrl_location), ir))
+            return $stub_register
+        end
+    else
+        ctrl_stub_def = nothing
     end
     
     return quote
@@ -158,7 +162,7 @@ function device_m(ex::Expr, strict=false)
         # stub def
         $(combinedef(stub_def))
         # ctrl stub def
-        $(combinedef(ctrl_stub_def))
+        $(ctrl_stub_def === nothing ? :() : combinedef(ctrl_stub_def))
 
         Core.@__doc__ const $name = $generic_circuit()
     end

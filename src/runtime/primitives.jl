@@ -17,13 +17,13 @@ function generate_forward_stub(name::Symbol, op)
 
     return quote
         function $stub(::$(Circuit){$quoted_name}, r::$(AbstractRegister), locs::$(Locations))
-            $(YaoBase).instruct!(r, $op, Tuple(locs))
+            $(YaoBase).instruct!(r, $op, locs)
             return r
         end
 
         function $stub(::$(Circuit){$quoted_name}, r::$(AbstractRegister), locs::$(Locations), ctrl_locs::$(Locations))
             raw_ctrl_locs, ctrl_cfg = decode_sign(ctrl_locs)
-            $(YaoBase).instruct!(r, $op, Tuple(locs), raw_ctrl_locs, ctrl_cfg)
+            $(YaoBase).instruct!(r, $op, locs, raw_ctrl_locs, ctrl_cfg)
             return r
         end
 
@@ -72,7 +72,7 @@ function primitive_m(ex::Expr)
     stub_def[:args] = Any[:($circ::Circuit{$quoted_name}), :($register::$AbstractRegister), :($locs::$Locations)]
     stub_def[:body] = quote
         $matrix = $circ.free[1]
-        YaoBase.instruct!($register, $matrix, Tuple($locs))
+        YaoBase.instruct!($register, $matrix, $locs)
         return $register
     end
 
@@ -82,7 +82,7 @@ function primitive_m(ex::Expr)
     ctrl_stub_def[:body] = quote
         $matrix = $circ.free[1]
         raw_ctrl_locs, ctrl_cfg = decode_sign($ctrl_locs)
-        YaoBase.instruct!($register, $matrix, Tuple($locs), raw_ctrl_locs, ctrl_cfg)
+        YaoBase.instruct!($register, $matrix, $locs, raw_ctrl_locs, ctrl_cfg)
         return $register
     end
 
@@ -266,3 +266,74 @@ end
 # end
 
 # const time_evolution = PrimitiveCircuit{:time_evolution}()
+
+using BitBasis
+using YaoArrayRegister: swaprows!
+
+function controller(cbits, cvals)
+    do_mask = bmask(cbits)
+    target = length(cvals) == 0 ? 0 :
+        mapreduce(xy -> (xy[2] == 1 ? 1 << (xy[1] - 1) : 0), |, zip(cbits, cvals))
+    return b -> ismatch(b, do_mask, target)
+end
+
+function YaoBase.instruct!(
+    state::AbstractVecOrMat{T},
+    ::Val{:X},
+    locs::Locations{Int},
+    control_locs::Locations,
+    control_bits::NTuple{N3,Bool},
+) where {T, N3}
+    do_mask = bmask(control_locs) + bmask(locs.storage)
+    target = 0
+    @inbounds for k in 1:N3
+        target = target | (control_bits[k] ? 1 << (control_locs[k] - 1) : 0)
+    end
+
+    mask2 = bmask(locs.storage)
+    @inbounds for b in basis(state)
+        if ismatch(b, do_mask, target)
+            i = b + 1
+            i_ = flip(b, mask2) + 1
+            swaprows!(state, i, i_)
+        end
+    end
+    return state
+end
+
+function YaoBase.instruct!(
+    state::AbstractVecOrMat{T},
+    ::Val{:X},
+    loc::Locations{Int},
+    control_locs::Locations{Int},
+    control_bits::Tuple{Bool},
+) where {T}
+    loc_x = loc.storage
+    control_locs_x = control_locs.storage
+    mask2 = bmask(loc_x)
+    mask = bmask(control_locs_x, loc_x)
+    step = 1 << (control_locs_x - 1)
+    step_2 = 1 << control_locs_x
+    start = control_bits[1] ? step : 0
+    for j in start:step_2:size(state, 1)-step+start
+        for b in j:j+step-1
+            @inbounds if allone(b, mask2)
+                i = b + 1
+                i_ = flip(b, mask2) + 1
+                swaprows!(state, i, i_)
+            end
+        end
+    end
+    return state
+end
+
+
+function YaoBase.instruct!(
+    state::AbstractVecOrMat{T1},
+    U1::AbstractMatrix{T2},
+    loc::Locations{Int},
+) where {T1,T2}
+    a, c, b, d = U1
+    YaoArrayRegister.instruct_kernel(state, loc, 1 << (loc.storage - 1), 1 << loc.storage, T1(a), T1(b), T1(c), T1(d))
+    return state
+end
