@@ -1,11 +1,10 @@
 export LocationExpr, GateLocation, Control, Measure, Column
 export parse_ast, parse_locations, parse_ctrl, parse_measure
 
-struct IRCode
-end
+struct IRCode end
 
 struct LocationExpr
-    ex
+    ex::Any
     LocationExpr(ex) = new(to_locations(ex))
 end
 
@@ -29,7 +28,7 @@ end
 
 struct GateLocation
     location::LocationExpr
-    gate
+    gate::Any
 
     GateLocation(loc, gate) = new(LocationExpr(loc), gate)
 end
@@ -43,8 +42,8 @@ end
 
 struct Measure
     location::LocationExpr
-    operator
-    config
+    operator::Any
+    config::Any
 
     Measure(locs, operator, config) = new(LocationExpr(locs), operator, config)
 end
@@ -53,7 +52,7 @@ Measure(locs) = Measure(locs, nothing, nothing)
 Measure(locs, operator) = Measure(locs, operator, nothing)
 
 struct Column
-    ex
+    ex::Any
 end
 
 function Base.show(io::IO, ex::LocationExpr)
@@ -62,23 +61,23 @@ function Base.show(io::IO, ex::LocationExpr)
     else
         m = ex.ex.args[2]
     end
-    printstyled(io, m, color=:light_blue)
+    printstyled(io, m, color = :light_blue)
 end
 
 function Base.show(io::IO, ex::GateLocation)
     print(io, ex.location)
-    printstyled(io, " => ", color=:light_magenta)
+    printstyled(io, " => ", color = :light_magenta)
     print(io, ex.gate)
 end
 
 function Base.show(io::IO, ex::Control)
-    printstyled(io, "@ctrl ", color=:light_cyan)
+    printstyled(io, "@ctrl ", color = :light_cyan)
     print(io, ex.ctrl_location, " ", ex.gate)
 end
 
 function Base.show(io::IO, ex::Measure)
-    printstyled(io, "@measure ", color=:light_cyan)
-    ex.config === nothing || printstyled(io, ex.config, " ", color=:yellow)
+    printstyled(io, "@measure ", color = :light_cyan)
+    ex.config === nothing || printstyled(io, ex.config, " ", color = :yellow)
     print(io, ex.location)
     ex.operator === nothing || print(io, " ", ex.operator)
 end
@@ -90,7 +89,7 @@ Base.:(==)(x::Measure, y::Measure) = (x.location == y.location) && (x.operator =
 Base.:(==)(x::Column, y::Column) = x.ex == y.ex
 
 parse_ast(x) = x
-function parse_ast(ex::Expr; pass=[parse_locations, parse_ctrl, parse_measure])
+function parse_ast(ex::Expr; pass = [parse_locations, parse_ctrl, parse_measure])
     for p in pass
         ex = p(ex)
     end
@@ -118,7 +117,7 @@ parse_locations(x) = x
 function parse_locations(ex::Expr)
     if (ex.head === :call) && (ex.args[1] == :(=>))
         return GateLocation(ex.args[2], ex.args[3])
-    elseif ex.head in [:block, :if, :for, :macrocall #= make @inbounds etc. work =#]
+    elseif ex.head in [:block, :if, :for, :macrocall] #= make @inbounds etc. work =#
         return Expr(ex.head, map(parse_locations, ex.args)...)
     else
         return ex
@@ -145,7 +144,8 @@ parse_ctrl(x) = x
 
 function parse_ctrl(ex::Expr)
     if (ex.head === :macrocall) && (ex.args[1] == Symbol("@ctrl"))
-        length(ex.args) == 4 || throw(Meta.ParseError("@ctrl expect 2 argument, got $(length(ex.args)-2)"))
+        length(ex.args) == 4 ||
+            throw(Meta.ParseError("@ctrl expect 2 argument, got $(length(ex.args)-2)"))
         return Control(ex.args[3], parse_locations(ex.args[4]))
     else
         return Expr(ex.head, map(parse_ctrl, ex.args)...)
@@ -173,18 +173,19 @@ parse_measure(x) = x
 
 function parse_measure(ex::Expr)
     if (ex.head === :macrocall) && (ex.args[1] == Symbol("@measure"))
-        length(ex.args) <= 5 || throw(Meta.ParseError("@measure expect 1, 2 or 3 arguments, got $(length(ex.args)-2)"))
+        length(ex.args) <= 5 ||
+            throw(Meta.ParseError("@measure expect 1, 2 or 3 arguments, got $(length(ex.args)-2)"))
         if length(ex.args) == 3
             return Measure(ex.args[3])
-        elseif length(ex.args) == 4 
+        elseif length(ex.args) == 4
             return is_measure_cfg(ex.args[3]) ? Measure(ex.args[4], nothing, ex.args[3]) :
-                is_measure_cfg(ex.args[4]) ? Measure(ex.args[3], nothing, ex.args[4]) :
-                Measure(ex.args[3], ex.args[4])
+                   is_measure_cfg(ex.args[4]) ? Measure(ex.args[3], nothing, ex.args[4]) :
+                   Measure(ex.args[3], ex.args[4])
         else
             return is_measure_cfg(ex.args[3]) ? Measure(ex.args[4], ex.args[5], ex.args[3]) :
-                is_measure_cfg(ex.args[4]) ? Measure(ex.args[3], ex.args[5], ex.args[4]) :
-                is_measure_cfg(ex.args[5]) ? Measure(ex.args[3], ex.args[4], ex.args[5]) :
-                throw(Meta.ParseError("Invalid Syntax: expect measurement configuration, got $ex"))
+                   is_measure_cfg(ex.args[4]) ? Measure(ex.args[3], ex.args[5], ex.args[4]) :
+                   is_measure_cfg(ex.args[5]) ? Measure(ex.args[3], ex.args[4], ex.args[5]) :
+                   throw(Meta.ParseError("Invalid Syntax: expect measurement configuration, got $ex"))
         end
     else
         return Expr(ex.head, map(parse_measure, ex.args)...)
@@ -193,6 +194,5 @@ end
 
 is_measure_cfg(x) = false
 function is_measure_cfg(ex::Expr)
-    ex.head == :(=) &&
-    ex.args[1] in [:reset_to, :remove]
+    ex.head == :(=) && ex.args[1] in [:reset_to, :remove]
 end

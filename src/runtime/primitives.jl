@@ -2,7 +2,7 @@ export @primitive, primitive_m
 export PrimitiveCircuit
 # Primitive Routines
 struct PrimitiveCircuit{name} end
-function Base.show(io::IO, x::PrimitiveCircuit{name}) where name
+function Base.show(io::IO, x::PrimitiveCircuit{name}) where {name}
     print(io, name, " (primitive circuit)")
 end
 
@@ -21,7 +21,12 @@ function generate_forward_stub(name::Symbol, op)
             return r
         end
 
-        function $stub(::$(Circuit){$quoted_name}, r::$(AbstractRegister), locs::$(Locations), ctrl_locs::$(Locations))
+        function $stub(
+            ::$(Circuit){$quoted_name},
+            r::$(AbstractRegister),
+            locs::$(Locations),
+            ctrl_locs::$(Locations),
+        )
             raw_ctrl_locs, ctrl_cfg = decode_sign(ctrl_locs)
             $(YaoBase).instruct!(r, $op, locs, raw_ctrl_locs, ctrl_cfg)
             return r
@@ -37,9 +42,9 @@ function primitive_m(x::Symbol)
 end
 
 function primitive_m(ex::Expr)
-    def = splitdef(ex; throw=false)
+    def = splitdef(ex; throw = false)
     def === nothing && return assign_statement(ex)
-    
+
     haskey(def, :name) || throw(Meta.ParseError("Invalid Syntax: expect a function name"))
     name = def[:name]
     quoted_name = QuoteNode(name)
@@ -58,7 +63,7 @@ function primitive_m(ex::Expr)
     primitive_def[:name] = :(::$(PrimitiveCircuit{name}))
     primitive_def[:body] = quote
         m = $(Expr(:call, mat_stub, args...))
-        return Circuit{$quoted_name}($stub, (m, ))
+        return Circuit{$quoted_name}($stub, (m,))
     end
 
     circ = gensym(:circ)
@@ -67,18 +72,24 @@ function primitive_m(ex::Expr)
     ctrl_locs = gensym(:ctrl_locs)
     matrix = gensym(:m)
 
-    stub_def = Dict{Symbol, Any}()
+    stub_def = Dict{Symbol,Any}()
     stub_def[:name] = stub
-    stub_def[:args] = Any[:($circ::Circuit{$quoted_name}), :($register::$AbstractRegister), :($locs::$Locations)]
+    stub_def[:args] =
+        Any[:($circ::Circuit{$quoted_name}), :($register::$AbstractRegister), :($locs::$Locations)]
     stub_def[:body] = quote
         $matrix = $circ.free[1]
         YaoBase.instruct!($register, $matrix, $locs)
         return $register
     end
 
-    ctrl_stub_def = Dict{Symbol, Any}()
+    ctrl_stub_def = Dict{Symbol,Any}()
     ctrl_stub_def[:name] = stub
-    ctrl_stub_def[:args] = Any[:($circ::Circuit{$quoted_name}), :($register::$AbstractRegister), :($locs::$Locations), :($ctrl_locs::$Locations)]
+    ctrl_stub_def[:args] = Any[
+        :($circ::Circuit{$quoted_name}),
+        :($register::$AbstractRegister),
+        :($locs::$Locations),
+        :($ctrl_locs::$Locations),
+    ]
     ctrl_stub_def[:body] = quote
         $matrix = $circ.free[1]
         raw_ctrl_locs, ctrl_cfg = decode_sign($ctrl_locs)
@@ -96,11 +107,12 @@ function primitive_m(ex::Expr)
 end
 
 function assign_statement(ex::Expr)
-    ex.head === :(=) || throw(Meta.ParseError("Invalid Syntax, expect <primitive gate name> = <matrix expr>, got $ex"))
+    ex.head === :(=) ||
+        throw(Meta.ParseError("Invalid Syntax, expect <primitive gate name> = <matrix expr>, got $ex"))
     ex.args[1] isa Symbol || throw(Meta.ParseError("Invalid Syntax, expect Symbol got $(ex.args[1])"))
     name = ex.args[1]
     matrix_const = gensym(:matrix_const)
-    
+
     return quote
         const $matrix_const = $(esc(ex.args[2]))
         $(generate_forward_stub(name, matrix_const))
@@ -208,7 +220,7 @@ Global phase gate.
 exp(iθ) \\mathbf{I}
 ```
 """
-@primitive phase(θ::T) where {T <: Real} = exp(im * θ) * IMatrix{2,T}()
+@primitive phase(θ::T) where {T<:Real} = exp(im * θ) * IMatrix{2,T}()
 @primitive Rx(θ::Real) = [cos(θ / 2) -im * sin(θ / 2); -im * sin(θ / 2) cos(θ / 2)]
 @primitive Ry(θ::Real) = [cos(θ / 2) -sin(θ / 2); sin(θ / 2) cos(θ / 2)]
 @primitive Rz(θ::Real) = Diagonal([-im * sin(θ / 2) + cos(θ / 2), im * sin(θ / 2) + cos(θ / 2)])
@@ -231,7 +243,7 @@ end
 General rotation gate, `axis` is the rotation axis, `θ` is the rotation angle. `m` is the size of rotation space, default
 is the size of rotation axis.
 """
-@primitive function rot(axis, θ::T, m::Int=size(axis, 1)) where {T <: Real}
+@primitive function rot(axis, θ::T, m::Int = size(axis, 1)) where {T<:Real}
     I = IMatrix{m,T}()
     return I * cos(θ / 2) - im * sin(θ / 2) * axis
 end
@@ -283,7 +295,7 @@ function YaoBase.instruct!(
     locs::Locations{Int},
     control_locs::Locations,
     control_bits::NTuple{N3,Bool},
-) where {T, N3}
+) where {T,N3}
     do_mask = bmask(control_locs) + bmask(locs.storage)
     target = 0
     @inbounds for k in 1:N3
@@ -334,6 +346,15 @@ function YaoBase.instruct!(
     loc::Locations{Int},
 ) where {T1,T2}
     a, c, b, d = U1
-    YaoArrayRegister.instruct_kernel(state, loc, 1 << (loc.storage - 1), 1 << loc.storage, T1(a), T1(b), T1(c), T1(d))
+    YaoArrayRegister.instruct_kernel(
+        state,
+        loc,
+        1 << (loc.storage - 1),
+        1 << loc.storage,
+        T1(a),
+        T1(b),
+        T1(c),
+        T1(d),
+    )
     return state
 end
