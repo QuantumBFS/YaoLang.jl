@@ -25,3 +25,7 @@ YaoIR is a &nbsp;
 ```julia
 pkg> add YaoIR
 ```
+
+## License
+
+YaoIR is released under the Apache 2 license.
