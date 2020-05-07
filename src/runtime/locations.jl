@@ -58,7 +58,7 @@ Decode signs into control sequence on control or inversed control.
 """
 decode_sign(ctrls::Int...) = decode_sign(ctrls)
 decode_sign(ctrls::NTuple{N,Int}) where {N} =
-    tuple(Locations(abs.(ctrls)), ctrls .> 0)
+    tuple(abs.(ctrls), Int.(ctrls .> 0))
 
 decode_sign(ctrl_locs::Locations) = decode_sign(ctrl_locs.storage)
 # maybe use a better way to implement this
