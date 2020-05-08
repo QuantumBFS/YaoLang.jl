@@ -136,7 +136,7 @@ function device_m(ex::Expr, strict=false)
     end
 
     stub_def = Dict{Symbol, Any}()
-    stub_def[:name] = stub_name    
+    stub_def[:name] = stub_name
     stub_def[:args] = Any[:($stub_circ::$Circuit), :($stub_register::$AbstractRegister), :($stub_location::Locations)]
     stub_def[:body] = quote
         $splat_args
@@ -156,7 +156,7 @@ function device_m(ex::Expr, strict=false)
     else
         ctrl_stub_def = nothing
     end
-    
+
     return quote
         $(combinedef(classical_def))
         # stub def
@@ -199,9 +199,9 @@ flatten_locations(parent_locs, x::LocationExpr) = flatten_locations(parent_locs,
 flatten_locations(parent_locs, x) = Expr(:ref, parent_locs, x)
 
 # merge location in runtime
-merge_location_ex(l1, l2) = :(merge_location($l1, $l2))
+merge_location_ex(l1, l2) = :(merge_locations($l1, $l2))
 # merge literal location in compile time
-merge_location_ex(l1::Locations, l2::Locations) = merge_location(l1, l2)
+merge_location_ex(l1::Locations, l2::Locations) = merge_locations(l1, l2)
 merge_location_ex(l1::LocationExpr, l2) = merge_location_ex(l1.ex, l2)
 merge_location_ex(l1, l2::LocationExpr) = merge_location_ex(l1, l2.ex)
 merge_location_ex(l1::LocationExpr, l2::LocationExpr) = merge_location_ex(l1.ex, l2.ex)
