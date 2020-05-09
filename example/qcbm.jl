@@ -13,7 +13,7 @@ using LinearAlgebra
 
     @inbounds for j in 1:depth-1
         for k in 1:n
-            @ctrl k mod1(k+1, n) => X
+            @ctrl k mod1(k + 1, n) => X
         end
 
         for k in 1:n
@@ -26,7 +26,7 @@ using LinearAlgebra
 
     # last layer
     for k in 1:n
-        @ctrl k mod1(k+1, n) => X
+        @ctrl k mod1(k + 1, n) => X
     end
 
     @inbounds for k in 1:n
@@ -37,7 +37,7 @@ using LinearAlgebra
 end
 
 function nparameters(n, depth)
-    2n + 3n * (depth-1) + 2n
+    2n + 3n * (depth - 1) + 2n
 end
 
 function shift_gradient(qcbm, n, depth, κ, ps::Vector, ptrain)
@@ -46,9 +46,9 @@ function shift_gradient(qcbm, n, depth, κ, ps::Vector, ptrain)
 
     @inbounds for k in eachindex(ps)
         x = ps[k]
-        ps[k] = x - π/2
+        ps[k] = x - π / 2
         prob_negative = probs(zero_state(n) |> qcbm(n, depth, ps))
-        ps[k] = x + π/2
+        ps[k] = x + π / 2
         prob_positive = probs(zero_state(n) |> qcbm(n, depth, ps))
         ps[k] = x
         grad_pos = kexpect(κ, prob, prob_positive) - kexpect(κ, prob, prob_negative)
@@ -64,8 +64,8 @@ struct RBFKernel
 end
 
 function RBFKernel(σ::Float64, space)
-    dx2 = (space .- space').^2
-    return RBFKernel(σ, exp.(-1/2σ * dx2))
+    dx2 = (space .- space') .^ 2
+    return RBFKernel(σ, exp.(-1 / 2σ * dx2))
 end
 
 kexpect(κ::RBFKernel, x, y) = x' * κ.m * y
@@ -90,7 +90,7 @@ function train(qcbm, n, depth, ps, κ, opt, target)
 end
 
 n, depth = 10, 10
-pg = gaussian_pdf(1:1<<n, 1<<(n-1)-0.5, 1<<4);
+pg = gaussian_pdf(1:1<<n, 1 << (n - 1) - 0.5, 1 << 4);
 κ = RBFKernel(0.25, 0:2^n-1)
 opt = ADAM()
 ps = rand(nparameters(n, depth))

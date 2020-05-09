@@ -6,11 +6,11 @@ using YaoBase
     @testset "basic statement parsing" begin
         ex = quote
             1 => H # gate location
-            [1=>H, 3=>X] # construct a list of pairs
+            [1 => H, 3 => X] # construct a list of pairs
             y = 1 => H # create a pair and assign it to variable y
 
-            @ctrl k 2=>H
-            @ctrl (i, j) m=>X
+            @ctrl k 2 => H
+            @ctrl (i, j) m => X
 
             ci = @measure k
             cj = @measure k H
@@ -37,7 +37,7 @@ using YaoBase
                     k => shift(θ[k])
                 end
             end
-        
+
             dst = parse_ast(ex)
             loop_body = dst.args[2].args[2]
             @test loop_body.args[2] == GateLocation(:k, :(shift(θ[k])))
@@ -46,13 +46,13 @@ using YaoBase
         @testset "ifelse" begin
             ex = quote
                 if n > 1
-                    2:n => qft(n-1)
+                    2:n => qft(n - 1)
                 end
             end
-            
+
             dst = parse_ast(ex)
             cond_body = dst.args[2].args[2]
-            @test cond_body.args[2] == GateLocation(:(2:n), :(qft(n-1)))
+            @test cond_body.args[2] == GateLocation(:(2:n), :(qft(n - 1)))
         end
     end
 end
@@ -61,12 +61,14 @@ end
     ex = :(1 => H)
     dst = parse_ast(ex)
     @test compile(JuliaAST(:r, :locs), dst) == :(H(r, locs[$(Locations(1))]))
-    @test compile(CtrlJuliaAST(:r, :locs, :ctrl_locs), dst) == :(H(r, locs[$(Locations(1))], ctrl_locs))
+    @test compile(CtrlJuliaAST(:r, :locs, :ctrl_locs), dst) ==
+          :(H(r, locs[$(Locations(1))], ctrl_locs))
 
-    ex = :(@ctrl 3 2=>H)
+    ex = :(@ctrl 3 2 => H)
     dst = parse_ast(ex)
     @test compile(JuliaAST(:r, :locs), dst) == :(H(r, locs[$(Locations(2))], locs[$(Locations(3))]))
-    @test compile(CtrlJuliaAST(:r, :locs, :ctrl_locs), dst) == :(H(r, locs[$(Locations(2))], merge_location(ctrl_locs, locs[$(Locations(3))])))
+    @test compile(CtrlJuliaAST(:r, :locs, :ctrl_locs), dst) ==
+          :(H(r, locs[$(Locations(2))], merge_location(ctrl_locs, locs[$(Locations(3))])))
 
     ex = :(@measure k)
     dst = parse_ast(ex)
@@ -75,14 +77,16 @@ end
     dst = parse_ast(ex)
     @test compile(JuliaAST(:r, :locs), dst) == :(measure!(operator, r, locs[Locations(k)]))
 
-    ex = :(@measure reset_to=1 k operator)
+    ex = :(@measure reset_to = 1 k operator)
     dst = parse_ast(ex)
-    @test compile(JuliaAST(:r, :locs), dst) == :(measure!(ResetTo(1), operator, r, locs[Locations(k)]))
-    
-    ex = :(@measure remove=true k operator)
+    @test compile(JuliaAST(:r, :locs), dst) ==
+          :(measure!(ResetTo(1), operator, r, locs[Locations(k)]))
+
+    ex = :(@measure remove = true k operator)
     dst = parse_ast(ex)
-    @test compile(JuliaAST(:r, :locs), dst) == :(measure!($(RemoveMeasured()), operator, r, locs[Locations(k)]))
-    
-    ex = :(@measure blabla=1 k operator)
+    @test compile(JuliaAST(:r, :locs), dst) ==
+          :(measure!($(RemoveMeasured()), operator, r, locs[Locations(k)]))
+
+    ex = :(@measure blabla = 1 k operator)
     @test_throws Meta.ParseError parse_ast(ex)
 end
