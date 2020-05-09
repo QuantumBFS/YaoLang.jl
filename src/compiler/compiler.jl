@@ -102,7 +102,7 @@ function rm_annotations(x::Expr)
     end
 end
 
-function device_m(ex::Expr, strict=false)
+function device_m(ex::Expr, strict = false)
     def = splitdef(ex)
     haskey(def, :name) || throw(Meta.ParseError("Invalid Syntax: generic circuit should have a name"))
 
@@ -135,9 +135,13 @@ function device_m(ex::Expr, strict=false)
         throw(Meta.ParseError("statement is not a pure quantum program, move classical operations out of @device expression or use strict=false option"))
     end
 
-    stub_def = Dict{Symbol, Any}()
+    stub_def = Dict{Symbol,Any}()
     stub_def[:name] = stub_name
-    stub_def[:args] = Any[:($stub_circ::$Circuit), :($stub_register::$AbstractRegister), :($stub_location::Locations)]
+    stub_def[:args] = Any[
+        :($stub_circ::$Circuit),
+        :($stub_register::$AbstractRegister),
+        :($stub_location::Locations),
+    ]
     stub_def[:body] = quote
         $splat_args
         $(compile(JuliaAST(stub_register, stub_location), ir))
@@ -145,9 +149,14 @@ function device_m(ex::Expr, strict=false)
     end
 
     if !hasmeasure(ir)
-        ctrl_stub_def = Dict{Symbol, Any}()
+        ctrl_stub_def = Dict{Symbol,Any}()
         ctrl_stub_def[:name] = stub_name
-        ctrl_stub_def[:args] = Any[:($stub_circ::$Circuit), :($stub_register::$AbstractRegister), :($stub_location::Locations), :($stub_ctrl_location::Locations)]
+        ctrl_stub_def[:args] = Any[
+            :($stub_circ::$Circuit),
+            :($stub_register::$AbstractRegister),
+            :($stub_location::Locations),
+            :($stub_ctrl_location::Locations),
+        ]
         ctrl_stub_def[:body] = quote
             $splat_args
             $(compile(CtrlJuliaAST(stub_register, stub_location, stub_ctrl_location), ir))
@@ -169,8 +178,7 @@ function device_m(ex::Expr, strict=false)
 end
 
 compile(ctx::CompileCtx, ex) = ex
-compile(ctx::CompileCtx, ex::Expr) =
-    Expr(ex.head, map(x->compile(ctx, x), ex.args)...)
+compile(ctx::CompileCtx, ex::Expr) = Expr(ex.head, map(x -> compile(ctx, x), ex.args)...)
 
 
 function evaluate_ex(stub, ex::GateLocation)
@@ -190,9 +198,13 @@ function compile(ctx::JuliaAST, ex::GateLocation)
 end
 
 function compile(ctx::JuliaAST, ex::Control)
-    return Expr(:call, ex.gate.gate, ctx.register,
+    return Expr(
+        :call,
+        ex.gate.gate,
+        ctx.register,
         flatten_locations(ctx.locations, ex.gate.location),
-        flatten_locations(ctx.locations, ex.ctrl_location))
+        flatten_locations(ctx.locations, ex.ctrl_location),
+    )
 end
 
 flatten_locations(parent_locs, x::LocationExpr) = flatten_locations(parent_locs, x.ex)
@@ -207,21 +219,26 @@ merge_location_ex(l1, l2::LocationExpr) = merge_location_ex(l1, l2.ex)
 merge_location_ex(l1::LocationExpr, l2::LocationExpr) = merge_location_ex(l1.ex, l2.ex)
 
 function compile(ctx::CtrlJuliaAST, ex::GateLocation)
-    return Expr(:call, ex.gate, ctx.register,
-        flatten_locations(ctx.locations, ex.location), ctx.ctrl_locs)
+    return Expr(
+        :call,
+        ex.gate,
+        ctx.register,
+        flatten_locations(ctx.locations, ex.location),
+        ctx.ctrl_locs,
+    )
 end
 
 function compile(ctx::CtrlJuliaAST, ex::Control)
-    return Expr(:call, ex.gate.gate, ctx.register,
+    return Expr(
+        :call,
+        ex.gate.gate,
+        ctx.register,
         flatten_locations(ctx.locations, ex.gate.location),
         # NOTE: the control location has two part:
         # 1. control locations from the context
         # 2. control locations in the given location space (need flatten it)
-            merge_location_ex(
-                    ctx.ctrl_locs,
-                    flatten_locations(ctx.locations, ex.ctrl_location)
-                )
-        )
+        merge_location_ex(ctx.ctrl_locs, flatten_locations(ctx.locations, ex.ctrl_location)),
+    )
 end
 
 function compile(ctx::JuliaAST, ex::Measure)
