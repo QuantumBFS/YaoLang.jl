@@ -27,5 +27,5 @@ end
     state_vec = statevec(r)
     a = invorder!(copy(r)) |> qft(4)
     kv = ifft(state_vec) * sqrt(length(state_vec))
-    @test statevec(a) ≈ kv    
+    @test statevec(a) ≈ kv
 end

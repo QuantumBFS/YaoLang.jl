@@ -102,13 +102,29 @@ function rm_annotations(x::Expr)
     end
 end
 
+_gensym(name) = gensym(name)
+_gensym(name::Expr) = gensym()
+_quote_name(name::Symbol) = QuoteNode(name)
+_quote_name(name::Expr) = if name.head == :(::)
+    name.args[2]
+else
+    error("unsupported function name $name")
+end
+_fname(x::Symbol) = x
+_fname(x::Expr) = if name.head == :(::)
+    name.args[2] = (~qft)
+    (NiLangCore._typeof)(~qft)
+else
+    error("unsupported function name $name")
+end
+
 function device_m(ex::Expr, strict=false)
     def = splitdef(ex)
     haskey(def, :name) || throw(Meta.ParseError("Invalid Syntax: generic circuit should have a name"))
 
     name = def[:name]
-    quote_name = QuoteNode(name)
-    stub_name = gensym(name)
+    quote_name = _quote_name(name)
+    stub_name = _gensym(name)
     generic_circuit = :($(GenericCircuit){$quote_name})
     classical_def = deepcopy(def)
     classical_def[:name] = :(::$generic_circuit)
@@ -130,6 +146,7 @@ function device_m(ex::Expr, strict=false)
     # splatting original classical arguments
     splat_args = Expr(:(=), free_args, :($stub_circ.free))
     ir = parse_ast(def[:body])
+    @show ir
 
     if strict && !(is_pure_quantum(ir))
         throw(Meta.ParseError("statement is not a pure quantum program, move classical operations out of @device expression or use strict=false option"))
@@ -164,7 +181,9 @@ function device_m(ex::Expr, strict=false)
         # ctrl stub def
         $(ctrl_stub_def === nothing ? :() : combinedef(ctrl_stub_def))
 
-        Core.@__doc__ const $name = $generic_circuit()
+        #Core.@__doc__ const $name = $generic_circuit()
+        Core.@__doc__ $name(args...) = $generic_circuit()(args...)
+        getcircuit(::typeof($name)) = $generic_circuit()
     end
 end
 
