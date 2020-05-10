@@ -1,6 +1,3 @@
-export transform, ctrl_transform, device_m, split_device_def
-export JuliaASTCodegenCtx, CompileCtx, AbstractJuliaASTCtx
-
 abstract type CompileCtx end
 abstract type AbstractJuliaASTCtx <: CompileCtx end
 
@@ -66,7 +63,7 @@ function codegen_eval(ctx::JuliaASTCodegenCtx, ir::QASTCode)
     quoted_name = QuoteNode(ir.name)
     def = deepcopy(ir.def)
     def[:name] = GlobalRef(YaoIR, :evaluate)
-    def[:args] = Any[:(::$(generic_circuit(ir.name))), def[:args]...]
+    def[:args] = Any[:(::$(generic_circuit(ir.name))), variables(def)...]
     def[:body] = :($Circuit{$quoted_name}($(ctx.stub_name), $(Expr(:tuple, ir.free_variables...))))
     return combinedef(def)
 end
@@ -104,7 +101,7 @@ end
 function codegen_code_qast_runtime_stub(ctx::JuliaASTCodegenCtx, ir::QASTCode)
     def = Dict{Symbol, Any}()
     def[:name] = GlobalRef(YaoIR, :code_qast)
-    def[:args] = Any[:(::$(generic_circuit(ir.name))), ir.def[:args]...]
+    def[:args] = Any[:(::$(generic_circuit(ir.name))), variables(ir.def)...]
     def[:body] = ir
     if haskey(ir.def, :whereparams)
         def[:whereparams] = ir.def[:whereparams]
@@ -117,7 +114,7 @@ function codegen_code_qast_stub(ctx::JuliaASTCodegenCtx, ir::QASTCode)
     def[:name] = GlobalRef(YaoIR, :code_qast)
     def[:args] = Any[:(::$(generic_circuit(ir.name))), :(::Type{$(argtypes(ir.def))})]
     def[:body] = ir
-    
+
     if haskey(ir.def, :whereparams)
         def[:whereparams] = ir.def[:whereparams]
     end
@@ -133,7 +130,7 @@ function codegen(ctx::JuliaASTCodegenCtx, ir)
 end
 
 function device_m(ex::Expr, strict_mode=nothing)
-    ir = QASTCode(ex; strict_mode=strict_mode #= default parsing pass =#)
+    ir = QASTCode(ex; strict_mode=value(strict_mode) #= default parsing pass =#)
 
     # TODO: code optimization/transformation pass
     # TODO: switch compile target

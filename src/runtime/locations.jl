@@ -54,17 +54,6 @@ function merge_locations(l1::Locations, l2::Locations)
     Locations((l1.storage..., l2.storage...))
 end
 
-"""
-    decode_sign(ctrls...)
-Decode signs into control sequence on control or inversed control.
-"""
-decode_sign(ctrls::Int...) = decode_sign(ctrls)
-decode_sign(ctrls::NTuple{N,Int}) where {N} = tuple(abs.(ctrls), Int.(ctrls .> 0))
-
-decode_sign(ctrl_locs::Locations) = decode_sign(ctrl_locs.storage)
-# maybe use a better way to implement this
-decode_sign(ctrl_locs::Locations{UnitRange{Int}}) = decode_sign(ctrl_locs.storage...)
-
 # location mapping
 # TODO: preserve sign when indexing
 # TODO: provide a @inlocation macro via Expr(:meta, :inlocation, true) so when we compile to Julia functions

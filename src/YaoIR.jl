@@ -4,7 +4,6 @@ using ExprTools
 using LinearAlgebra
 using LuxurySparse
 using YaoBase
-using YaoArrayRegister
 
 include("runtime/locations.jl")
 include("runtime/generic_circuit.jl")

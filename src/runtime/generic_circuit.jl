@@ -2,6 +2,20 @@ export GenericCircuit, Circuit
 
 function evaluate end
 
+export PrimitiveCircuit
+# Primitive Routines
+struct PrimitiveCircuit{name} end
+
+# avoid splatting
+evaluate(c::PrimitiveCircuit) = c()
+evaluate(c::PrimitiveCircuit, x) = c(x)
+evaluate(c::PrimitiveCircuit, x, y) = c(x, y)
+evaluate(c::PrimitiveCircuit, x, y, xs...) = c(x, y, xs...)
+
+function Base.show(io::IO, x::PrimitiveCircuit{name}) where name
+    print(io, name, " (primitive circuit)")
+end
+
 """
     GenericCircuit{name}
 

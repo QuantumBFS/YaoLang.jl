@@ -1,33 +1,3 @@
-export GateLocation, Control, Measure, Column, QASTCode
-export parse_ast, parse_locations, parse_ctrl, parse_measure
-
-"""
-    split_device_def(ex)
-
-Split device kernel definition, similar to `ExprTools.splitdef`, but checks syntax.
-"""
-function split_device_def(ex::Expr)
-    def = splitdef(ex, throw=false)
-    # syntax check
-    def !== nothing || throw(Meta.ParseError("Invalid Syntax: expect a function definition."))
-    haskey(def, :name) || throw(Meta.ParseError("Invalid Syntax: generic circuit cannot be anonymous"))
-    def[:name] isa Symbol || throw(Meta.ParseError("Invalid Syntax: generic circuit cannot be defined on existing Julia objects"))
-    return def
-end
-
-function arguements(def::Dict)
-    if haskey(def, :args)
-        return map(rm_annotations, def[:args])
-    else
-        return Any[]
-    end
-end
-
-# TODO: actually implement this using JuliaVariables
-function capture_free_variables(def::Dict)
-    return arguements(def)
-end
-
 struct QASTCode
     name
     arguements
@@ -40,15 +10,13 @@ end
 function QASTCode(ex::Expr; strict_mode=nothing, pass=[parse_locations, parse_ctrl, parse_measure])
     def = split_device_def(ex)
     ir = parse_ast(def[:body]; pass=pass)
-
-    if (strict_mode == :pure) && !(is_pure_quantum(ir))
-        throw(Meta.ParseError("statement is not pure quantum, move classical operations out of @device expression or use strict=false option"))
-    elseif (strict_mode == :qasm) && !(is_qasm_compat(ir))
-        throw(Meta.ParseError("statement is not QASM compatible, move incompatible operations out of @device expression or use strict=false option"))
-    elseif strict_mode == false || strict_mode === nothing
-        # skip: strict off
-    else
+    strict_mode in [:pure, :qasm, false, nothing] ||
         throw(Meta.ParseError("Invalid Syntax: invalid arguments for compile option strict, got $strict_mode"))
+
+    if (strict_mode === :pure) && !(is_pure_quantum(ir))
+        throw(Meta.ParseError("statement is not pure quantum, move classical operations out of @device expression or use strict=false option"))
+    elseif (strict_mode === :qasm) && !(is_qasm_compat(ir))
+        throw(Meta.ParseError("statement is not QASM compatible, move incompatible operations out of @device expression or use strict=false option"))
     end
 
     return QASTCode(def[:name],
@@ -76,13 +44,6 @@ function parse_ast(ex::Expr; pass=[parse_locations, parse_ctrl, parse_measure])
     end
     return ex
 end
-
-to_locations(x) = :(Locations($x))
-to_locations(x::Int) = Locations(x)
-
-is_literal(x) = true
-is_literal(x::Expr) = false
-is_literal(x::Symbol) = false
 
 function to_locations(x::Expr)
     # literal range

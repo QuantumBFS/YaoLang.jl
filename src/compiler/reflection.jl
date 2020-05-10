@@ -1,4 +1,4 @@
-export @code_qast, code_qast
+export @code_qast
 
 function code_qast end
 

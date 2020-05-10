@@ -7,9 +7,12 @@ Check if the given expression is a pure quantum circuit.
 """
 is_pure_quantum(x) = false
 
+# skip LineNumberNode
+is_pure_quantum(x::LineNumberNode) = true
+
 function is_pure_quantum(ex::Expr)
     # no classical function call is allowed
-    ex.head === :call || return false
+    ex.head === :call && return false
     return all(is_pure_quantum, ex.args)
 end
 

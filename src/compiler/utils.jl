@@ -1,4 +1,34 @@
-export rm_annotations, argtypes
+"""
+    split_device_def(ex)
+
+Split device kernel definition, similar to `ExprTools.splitdef`, but checks syntax.
+"""
+function split_device_def(ex::Expr)
+    def = splitdef(ex, throw=false)
+    # syntax check
+    def !== nothing || throw(Meta.ParseError("Invalid Syntax: expect a function definition."))
+    haskey(def, :name) || throw(Meta.ParseError("Invalid Syntax: generic circuit cannot be anonymous"))
+    def[:name] isa Symbol || throw(Meta.ParseError("Invalid Syntax: generic circuit cannot be defined on existing Julia objects"))
+    return def
+end
+
+function variables(def::Dict)
+    if haskey(def, :args)
+        return def[:args]
+    else
+        return Any[]
+    end
+end
+
+function arguements(def::Dict)
+    map(rm_annotations, variables(def))
+end
+
+# TODO: actually implement this using JuliaVariables
+function capture_free_variables(def::Dict)
+    return arguements(def)
+end
+
 
 """
     rm_annotations(x)
@@ -37,3 +67,14 @@ function argtypes(def::Dict)
 end
 
 generic_circuit(name::Symbol) = :($(GenericCircuit){$(QuoteNode(name))})
+
+to_locations(x) = :(Locations($x))
+to_locations(x::Int) = Locations(x)
+
+is_literal(x) = true
+is_literal(x::Expr) = false
+is_literal(x::Symbol) = false
+
+
+value(x) = x
+value(x::QuoteNode) = x.value
