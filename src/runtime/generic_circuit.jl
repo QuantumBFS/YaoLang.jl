@@ -1,5 +1,12 @@
 export GenericCircuit, Circuit
 
+function evaluate end
+
+"""
+    GenericCircuit{name}
+
+Generic quantum circuit is the quantum counterpart of generic function.
+"""
 struct GenericCircuit{name} end
 
 function Base.show(io::IO, x::GenericCircuit{name}) where name
@@ -29,4 +36,4 @@ end
 
 # we only convert to Locations right before we call the stubs
 (circ::Circuit)(register, locs) = circ.fn(circ, register, Locations(locs))
-(circ::Circuit)(register, locs, ctrl_locs) = circ.fn(circ, register, Locations(locs), Locations(ctrl_locs))
+(circ::Circuit)(register, locs, ctrl_locs) = circ.fn(circ, register, Locations(locs), CtrlLocations(ctrl_locs))

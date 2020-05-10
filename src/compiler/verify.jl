@@ -13,8 +13,6 @@ function is_pure_quantum(ex::Expr)
     return all(is_pure_quantum, ex.args)
 end
 
-is_pure_quantum(::LocationExpr) = true
-
 function is_pure_quantum(ex::GateLocation)
     ex.gate isa Symbol && return true
     if ex.gate.head === :call
@@ -39,3 +37,8 @@ end
 
 hasmeasure(x) = false
 hasmeasure(x::Measure) = true
+
+# TODO: check if qasm compatible
+function is_qasm_compat(ex)
+    ex
+end

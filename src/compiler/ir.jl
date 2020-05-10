@@ -1,12 +1,80 @@
-export LocationExpr, GateLocation, Control, Measure, Column
+export GateLocation, Control, Measure, Column, QASTCode
 export parse_ast, parse_locations, parse_ctrl, parse_measure
 
-struct IRCode
+"""
+    split_device_def(ex)
+
+Split device kernel definition, similar to `ExprTools.splitdef`, but checks syntax.
+"""
+function split_device_def(ex::Expr)
+    def = splitdef(ex, throw=false)
+    # syntax check
+    def !== nothing || throw(Meta.ParseError("Invalid Syntax: expect a function definition."))
+    haskey(def, :name) || throw(Meta.ParseError("Invalid Syntax: generic circuit cannot be anonymous"))
+    def[:name] isa Symbol || throw(Meta.ParseError("Invalid Syntax: generic circuit cannot be defined on existing Julia objects"))
+    return def
 end
 
-struct LocationExpr
-    ex
-    LocationExpr(ex) = new(to_locations(ex))
+function arguements(def::Dict)
+    if haskey(def, :args)
+        return map(rm_annotations, def[:args])
+    else
+        return Any[]
+    end
+end
+
+# TODO: actually implement this using JuliaVariables
+function capture_free_variables(def::Dict)
+    return arguements(def)
+end
+
+struct QASTCode
+    name
+    arguements
+    free_variables
+    def::Dict
+    strict_mode # pure, qasm, nothing
+    code
+end
+
+function QASTCode(ex::Expr; strict_mode=nothing, pass=[parse_locations, parse_ctrl, parse_measure])
+    def = split_device_def(ex)
+    ir = parse_ast(def[:body]; pass=pass)
+
+    if (strict_mode == :pure) && !(is_pure_quantum(ir))
+        throw(Meta.ParseError("statement is not pure quantum, move classical operations out of @device expression or use strict=false option"))
+    elseif (strict_mode == :qasm) && !(is_qasm_compat(ir))
+        throw(Meta.ParseError("statement is not QASM compatible, move incompatible operations out of @device expression or use strict=false option"))
+    elseif strict_mode == false || strict_mode === nothing
+        # skip: strict off
+    else
+        throw(Meta.ParseError("Invalid Syntax: invalid arguments for compile option strict, got $strict_mode"))
+    end
+
+    return QASTCode(def[:name],
+        arguements(def), capture_free_variables(def),
+        def, strict_mode, ir)
+end
+
+function Base.show(io::IO, ir::QASTCode)
+    print(io, "QASTCode(\n")
+    join(io, "  " .* [
+        "name=$(ir.name)",
+        "arguments=$(ir.arguements)",
+        "free_variables=$(ir.free_variables)",
+        "strict_mode=$(ir.strict_mode)",
+        "code=",
+    ], "\n")
+    print(io, ir.code)
+    print(io, ")")
+end
+
+parse_ast(x) = x
+function parse_ast(ex::Expr; pass=[parse_locations, parse_ctrl, parse_measure])
+    for p in pass
+        ex = p(ex)
+    end
+    return ex
 end
 
 to_locations(x) = :(Locations($x))
@@ -27,26 +95,40 @@ function to_locations(x::Expr)
     return :(Locations($x))
 end
 
+to_ctrl_locations(x) = :(CtrlLocations($x))
+to_ctrl_locations(x::Int) = CtrlLocations(x)
+
+function to_ctrl_locations(x::Expr)
+    # literal range
+    if (x.head === :call) && (x.args[1] === :(:))
+        args = x.args[2:end]
+        all(is_literal, args) && return CtrlLocations(Colon()(args...))
+    elseif x.head === :tuple # literal tuple
+        all(is_literal, x.args) && return CtrlLocations(Tuple(x.args))
+    end
+    return :(CtrlLocations($x))
+end
+
 struct GateLocation
-    location::LocationExpr
+    location
     gate
 
-    GateLocation(loc, gate) = new(LocationExpr(loc), gate)
+    GateLocation(loc, gate) = new(to_locations(loc), gate)
 end
 
 struct Control
-    ctrl_location::LocationExpr
+    ctrl_location
     gate::GateLocation
 
-    Control(ctrl_locs, gate) = new(LocationExpr(ctrl_locs), gate)
+    Control(ctrl_locs, gate) = new(to_ctrl_locations(ctrl_locs), gate)
 end
 
 struct Measure
-    location::LocationExpr
+    location
     operator
     config
 
-    Measure(locs, operator, config) = new(LocationExpr(locs), operator, config)
+    Measure(locs, operator, config) = new(to_locations(locs), operator, config)
 end
 
 Measure(locs) = Measure(locs, nothing, nothing)
@@ -54,15 +136,6 @@ Measure(locs, operator) = Measure(locs, operator, nothing)
 
 struct Column
     ex
-end
-
-function Base.show(io::IO, ex::LocationExpr)
-    if ex.ex isa Locations
-        m = ex.ex
-    else
-        m = ex.ex.args[2]
-    end
-    printstyled(io, m, color=:light_blue)
 end
 
 function Base.show(io::IO, ex::GateLocation)
@@ -83,19 +156,11 @@ function Base.show(io::IO, ex::Measure)
     ex.operator === nothing || print(io, " ", ex.operator)
 end
 
-Base.:(==)(x::LocationExpr, y::LocationExpr) = x.ex == y.ex
 Base.:(==)(x::GateLocation, y::GateLocation) = (x.gate == y.gate) && (x.location == y.location)
 Base.:(==)(x::Control, y::Control) = (x.ctrl_location == y.ctrl_location) && (x.gate == y.gate)
 Base.:(==)(x::Measure, y::Measure) = (x.location == y.location) && (x.operator == y.operator)
 Base.:(==)(x::Column, y::Column) = x.ex == y.ex
 
-parse_ast(x) = x
-function parse_ast(ex::Expr; pass=[parse_locations, parse_ctrl, parse_measure])
-    for p in pass
-        ex = p(ex)
-    end
-    return ex
-end
 
 """
     parse_locations(x)

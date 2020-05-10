@@ -1,6 +1,15 @@
-export Locations, AbstractLocations, LocationError, merge_locations
+export Locations, CtrlLocations, AbstractLocations, LocationError, merge_locations
+
+const LocationStorageTypes = Union{Int, NTuple{N, Int} where N, UnitRange{Int}, Vector{Int}}
 
 abstract type AbstractLocations end
+
+"""
+    merge_locations(locations...)
+
+Construct a new `Locations` by merging two or more existing locations.
+"""
+merge_locations(x::AbstractLocations, y::AbstractLocations, locations::AbstractLocations...) = merge_locations(merge_locations(x, y), locations...)
 
 """
     Locations <: AbstractLocations
@@ -17,10 +26,10 @@ Create a `Locations` object from a raw location statement. Valid storage types a
 
 Other types will be converted to the storage type via `Tuple`.
 """
-struct Locations{T <: Union{Int, NTuple{N, Int} where N, UnitRange{Int}}} <: AbstractLocations
+struct Locations{T <: LocationStorageTypes} <: AbstractLocations
     storage::T
 
-    Locations(x::T) where {T <: Union{Int, NTuple{N, Int} where N, UnitRange{Int}}} = new{T}(x)
+    Locations(x::T) where {T <: LocationStorageTypes} = new{T}(x)
 end
 
 # skip it if x is a location
@@ -34,19 +43,12 @@ Base.iterate(l::Locations) = iterate(l.storage)
 Base.iterate(l::Locations, st) = iterate(l.storage, st)
 Base.eltype(::Type{T}) where {T <: Locations} = Int
 Base.eltype(x::Locations) = Int
-Base.show(io::IO, x::Locations) = print(io, x.storage)
+Base.show(io::IO, x::Locations) = print(io, "Locations(", x.storage, ")")
 Base.Tuple(x::Locations) = (x.storage..., )
 
 struct LocationError <: Exception
     msg::String
 end
-
-"""
-    merge_locations(locations...)
-
-Construct a new `Locations` by merging two or more existing locations.
-"""
-merge_locations(x::Locations, y::Locations, locations::Locations...) = merge_locations(merge_locations(x, y), locations...)
 
 function merge_locations(l1::Locations, l2::Locations)
     Locations((l1.storage..., l2.storage...))
@@ -120,17 +122,48 @@ end
     (1<=sub.storage.start) && (sub.storage.stop <= length(parent)) || map_error(parent, sub)
 end
 
-@inline function Base.getindex(parent::Locations, sub::Locations)
-    map_check(parent, sub)
-    return unsafe_mapping(parent, sub)
-end
-
 # comparing
 function Base.:(==)(l1::Locations, l2::Locations)
     length(l1) == length(l2) || return false
-    flag = true
-    for (a, b) in zip(l1, l2)
-        flag = flag && a == b
+    return all(l1.storage .== l2.storage)
+end
+
+# CtrlLocations
+struct CtrlLocations{T <: LocationStorageTypes} <: AbstractLocations
+    storage::Locations{T}
+    configs::BitVector
+end
+
+# skip itself
+CtrlLocations(x::CtrlLocations) = x
+CtrlLocations(x::Locations) = CtrlLocations(x, trues(length(x)))
+CtrlLocations(x::LocationStorageTypes, cfg::Tuple) = CtrlLocations(Locations(x), BitVector(map(Bool, cfg)))
+CtrlLocations(xs...) = CtrlLocations(Locations(xs...))
+
+Base.length(l::CtrlLocations) = length(l.storage)
+
+function Base.show(io::IO, x::CtrlLocations)
+    print(io, "CtrlLocations(")
+    if all(x.configs)
+        print(io, x.storage.storage)
+    else
+        join(io, map((l, c)-> c ? string(l) : "!"*string(l), x.storage.storage, x.configs), ", ")
     end
-    return flag
+    print(io, ")")
+end
+
+function merge_locations(l1::CtrlLocations, l2::CtrlLocations)
+    CtrlLocations(merge_locations(l1.storage, l2.storage), vcat(l1.configs, l2.configs))
+end
+
+# NOTE: CtrlLocations can not be mapped by Locations
+@inline unsafe_mapping(parent::Locations, sub::CtrlLocations) = CtrlLocations(unsafe_mapping(parent, sub.storage), sub.configs)
+@inline map_check(parent::Locations, sub::CtrlLocations) = map_check(parent, sub.storage)
+
+Base.:(==)(l1::CtrlLocations, l2::CtrlLocations) = (l1.storage == l2.storage) && (l1.configs == l2.configs)
+
+# parent location has to be Locations since CtrlLocations can't be parent
+@inline function Base.getindex(parent::Locations, sub::AbstractLocations)
+    map_check(parent, sub)
+    return unsafe_mapping(parent, sub)
 end
