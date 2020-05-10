@@ -1,7 +1,7 @@
 using Test
 using YaoIR
 using YaoBase
-using YaoIR: parse_ast, GateLocation, Control, Measure
+using YaoIR: parse_ast, GateLocation, Control, Measure, QASTCode
 
 @testset "parsing" begin
     @testset "basic statement parsing" begin
@@ -56,6 +56,22 @@ using YaoIR: parse_ast, GateLocation, Control, Measure
             @test cond_body.args[2] == GateLocation(:(2:n), :(qft(n - 1)))
         end
     end
+end
+
+
+@testset "QASTCode" begin
+    ex = :(function qft(n::Int)
+    1 => H
+    for k in 2:n
+        @ctrl k 1 => shift(2π / 2^k)
+    end
+
+    if n > 1
+        2:n => qft(n - 1)
+    end
+    end)
+
+    @test_throws Meta.ParseError QASTCode(ex; strict_mode=:pure)
 end
 
 # @testset "compile(::[Ctrl]JuliaAST, ex)" begin
