@@ -8,7 +8,7 @@ using YaoIR
 end
 
 @testset "tuple conversion" begin
-    @test Tuple(Locations(1)) == (1, )
+    @test Tuple(Locations(1)) == (1,)
     @test Tuple(Locations((2, 4, 5))) == (2, 4, 5)
     @test Tuple(Locations(1:4)) == (1, 2, 3, 4)
 end
@@ -16,7 +16,7 @@ end
 @testset "merge locations" begin
     @test merge_locations(Locations(1), Locations(2)) == Locations(1, 2)
     @test merge_locations(Locations(1:3), Locations(5:9)) == Locations((1:3..., 5:9...))
-    @test merge_locations(Locations(1), Locations(2), Locations(4:8)) == Locations((1, 2, 4:8...))    
+    @test merge_locations(Locations(1), Locations(2), Locations(4:8)) == Locations((1, 2, 4:8...))
 end
 
 @testset "location mapping" begin
@@ -27,7 +27,7 @@ end
 
     @test locs[Locations(1)] == locs
     @test locs[Locations(1:1)] == locs
-    @test locs[Locations((1, ))] == locs
+    @test locs[Locations((1,))] == locs
 
     locs = Locations((1, 3, 5))
     @test_throws LocationError locs[Locations(4)]
