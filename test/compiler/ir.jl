@@ -1,6 +1,7 @@
 using Test
 using YaoIR
 using YaoBase
+using YaoIR: parse_ast, GateLocation, Control, Measure
 
 @testset "parsing" begin
     @testset "basic statement parsing" begin

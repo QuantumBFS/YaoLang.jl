@@ -9,4 +9,5 @@ end
 
 @testset "compiler" begin
     include("compiler/ir.jl")
+    include("compiler/circuit.jl")
 end
