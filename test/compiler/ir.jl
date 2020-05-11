@@ -74,7 +74,7 @@ end
     @test_throws Meta.ParseError QASTCode(ex; strict_mode=:pure)
 end
 
-@testset "compile(::[Ctrl]JuliaAST, ex)" begin
+@testset "transform(::JuliaASTCodegenCtx, ex)" begin
     ctx = JuliaASTCodegenCtx(:stub, :circ, :r, :locs, :ctrl_locs, Any[])
 
     ex = :(1 => H)
