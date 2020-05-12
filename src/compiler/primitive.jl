@@ -15,7 +15,12 @@ function generate_forward_stub(name::Symbol, op)
             return r
         end
 
-        function $stub(::$(Circuit){$quoted_name}, r::$(AbstractRegister), locs::$(Locations), ctrl_locs::$(Locations))
+        function $stub(
+            ::$(Circuit){$quoted_name},
+            r::$(AbstractRegister),
+            locs::$(Locations),
+            ctrl_locs::$(Locations),
+        )
             raw_ctrl_locs, ctrl_cfg = decode_sign(ctrl_locs)
             $(YaoBase).instruct!(r, $op, Tuple(locs), raw_ctrl_locs, ctrl_cfg)
             return r
@@ -31,9 +36,9 @@ function primitive_m(x::Symbol)
 end
 
 function primitive_m(ex::Expr)
-    def = splitdef(ex; throw=false)
+    def = splitdef(ex; throw = false)
     def === nothing && return assign_statement(ex)
-    
+
     haskey(def, :name) || throw(Meta.ParseError("Invalid Syntax: expect a function name"))
     name = def[:name]
     quoted_name = QuoteNode(name)
@@ -52,7 +57,7 @@ function primitive_m(ex::Expr)
     primitive_def[:name] = :(::$(PrimitiveCircuit{name}))
     primitive_def[:body] = quote
         m = $(Expr(:call, mat_stub, args...))
-        return Circuit{$quoted_name}($stub, (m, ))
+        return Circuit{$quoted_name}($stub, (m,))
     end
 
     circ = gensym(:circ)
@@ -61,23 +66,29 @@ function primitive_m(ex::Expr)
     ctrl_locs = gensym(:ctrl_locs)
     matrix = gensym(:m)
 
-    stub_def = Dict{Symbol, Any}()
+    stub_def = Dict{Symbol,Any}()
     stub_def[:name] = stub
-    stub_def[:args] = Any[:($circ::Circuit{$quoted_name}), :($register::$AbstractRegister), :($locs::$Locations)]
+    stub_def[:args] =
+        Any[:($circ::Circuit{$quoted_name}), :($register::$AbstractRegister), :($locs::$Locations)]
     stub_def[:body] = quote
         $matrix = $circ.free[1]
         YaoBase.instruct!($register, $matrix, Tuple($locs))
         return $register
     end
 
-    ctrl_stub_def = Dict{Symbol, Any}()
+    ctrl_stub_def = Dict{Symbol,Any}()
     ctrl_stub_def[:name] = stub
-    ctrl_stub_def[:args] = Any[:($circ::Circuit{$quoted_name}), :($register::$AbstractRegister), :($locs::$Locations), :($ctrl_locs::$CtrlLocations)]
+    ctrl_stub_def[:args] = Any[
+        :($circ::Circuit{$quoted_name}),
+        :($register::$AbstractRegister),
+        :($locs::$Locations),
+        :($ctrl_locs::$CtrlLocations),
+    ]
     ctrl_stub_def[:body] = quote
         $matrix = $circ.free[1]
         # issue #10
-        raw_ctrl_locs = ($(ctrl_locs).storage..., )
-        ctrl_cfg = map(Int, ($(ctrl_locs).configs..., ))
+        raw_ctrl_locs = ($(ctrl_locs).storage...,)
+        ctrl_cfg = map(Int, ($(ctrl_locs).configs...,))
         YaoBase.instruct!($register, $matrix, Tuple($locs), raw_ctrl_locs, ctrl_cfg)
         return $register
     end
@@ -92,11 +103,12 @@ function primitive_m(ex::Expr)
 end
 
 function assign_statement(ex::Expr)
-    ex.head === :(=) || throw(Meta.ParseError("Invalid Syntax, expect <primitive gate name> = <matrix expr>, got $ex"))
+    ex.head === :(=) ||
+        throw(Meta.ParseError("Invalid Syntax, expect <primitive gate name> = <matrix expr>, got $ex"))
     ex.args[1] isa Symbol || throw(Meta.ParseError("Invalid Syntax, expect Symbol got $(ex.args[1])"))
     name = ex.args[1]
     matrix_const = gensym(:matrix_const)
-    
+
     return quote
         const $matrix_const = $(esc(ex.args[2]))
         $(generate_forward_stub(name, matrix_const))

@@ -14,7 +14,7 @@ using Test
     end
 end
 
-@device strict=:pure function hadamard()
+@device strict = :pure function hadamard()
     1 => H
 end
 

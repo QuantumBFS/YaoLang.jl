@@ -51,5 +51,6 @@ end
 @testset "ctrl location mapping" begin
     locs = Locations(2:5)
     @test locs[CtrlLocations((1, 2), (0, 1))] == CtrlLocations((2, 3), (0, 1))
-    @test merge_locations(CtrlLocations((1, 2), (0, 1)), CtrlLocations(3, 4)) == CtrlLocations((1, 2, 3, 4), (0, 1, 1, 1))
+    @test merge_locations(CtrlLocations((1, 2), (0, 1)), CtrlLocations(3, 4)) ==
+          CtrlLocations((1, 2, 3, 4), (0, 1, 1, 1))
 end

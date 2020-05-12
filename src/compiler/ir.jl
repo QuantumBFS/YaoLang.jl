@@ -1,15 +1,19 @@
 struct QASTCode
-    name
-    arguements
-    free_variables
+    name::Any
+    arguements::Any
+    free_variables::Any
     def::Dict
-    strict_mode # pure, qasm, nothing
-    code
+    strict_mode::Any # pure, qasm, nothing
+    code::Any
 end
 
-function QASTCode(ex::Expr; strict_mode=nothing, pass=[parse_locations, parse_ctrl, parse_measure])
+function QASTCode(
+    ex::Expr;
+    strict_mode = nothing,
+    pass = [parse_locations, parse_ctrl, parse_measure],
+)
     def = split_device_def(ex)
-    ir = parse_ast(def[:body]; pass=pass)
+    ir = parse_ast(def[:body]; pass = pass)
     strict_mode in [:pure, :qasm, false, nothing] ||
         throw(Meta.ParseError("Invalid Syntax: invalid arguments for compile option strict, got $strict_mode"))
 
@@ -19,26 +23,28 @@ function QASTCode(ex::Expr; strict_mode=nothing, pass=[parse_locations, parse_ct
         throw(Meta.ParseError("statement is not QASM compatible, move incompatible operations out of @device expression or use strict=false option"))
     end
 
-    return QASTCode(def[:name],
-        arguements(def), capture_free_variables(def),
-        def, strict_mode, ir)
+    return QASTCode(def[:name], arguements(def), capture_free_variables(def), def, strict_mode, ir)
 end
 
 function Base.show(io::IO, ir::QASTCode)
     print(io, "QASTCode(\n")
-    join(io, "  " .* [
-        "name=$(ir.name)",
-        "arguments=$(ir.arguements)",
-        "free_variables=$(ir.free_variables)",
-        "strict_mode=$(ir.strict_mode)",
-        "code=",
-    ], "\n")
+    join(
+        io,
+        "  " .* [
+            "name=$(ir.name)",
+            "arguments=$(ir.arguements)",
+            "free_variables=$(ir.free_variables)",
+            "strict_mode=$(ir.strict_mode)",
+            "code=",
+        ],
+        "\n",
+    )
     print(io, ir.code)
     print(io, ")")
 end
 
 parse_ast(x) = x
-function parse_ast(ex::Expr; pass=[parse_locations, parse_ctrl, parse_measure])
+function parse_ast(ex::Expr; pass = [parse_locations, parse_ctrl, parse_measure])
     for p in pass
         ex = p(ex)
     end
@@ -71,23 +77,23 @@ function to_ctrl_locations(x::Expr)
 end
 
 struct GateLocation
-    location
-    gate
+    location::Any
+    gate::Any
 
     GateLocation(loc, gate) = new(to_locations(loc), gate)
 end
 
 struct Control
-    ctrl_location
+    ctrl_location::Any
     gate::GateLocation
 
     Control(ctrl_locs, gate) = new(to_ctrl_locations(ctrl_locs), gate)
 end
 
 struct Measure
-    location
-    operator
-    config
+    location::Any
+    operator::Any
+    config::Any
 
     Measure(locs, operator, config) = new(to_locations(locs), operator, config)
 end

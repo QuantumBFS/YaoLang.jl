@@ -4,11 +4,13 @@
 Split device kernel definition, similar to `ExprTools.splitdef`, but checks syntax.
 """
 function split_device_def(ex::Expr)
-    def = splitdef(ex, throw=false)
+    def = splitdef(ex, throw = false)
     # syntax check
     def !== nothing || throw(Meta.ParseError("Invalid Syntax: expect a function definition."))
-    haskey(def, :name) || throw(Meta.ParseError("Invalid Syntax: generic circuit cannot be anonymous"))
-    def[:name] isa Symbol || throw(Meta.ParseError("Invalid Syntax: generic circuit cannot be defined on existing Julia objects"))
+    haskey(def, :name) ||
+        throw(Meta.ParseError("Invalid Syntax: generic circuit cannot be anonymous"))
+    def[:name] isa Symbol ||
+        throw(Meta.ParseError("Invalid Syntax: generic circuit cannot be defined on existing Julia objects"))
     return def
 end
 

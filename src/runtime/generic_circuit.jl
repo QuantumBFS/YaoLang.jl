@@ -12,7 +12,7 @@ evaluate(c::PrimitiveCircuit, x) = c(x)
 evaluate(c::PrimitiveCircuit, x, y) = c(x, y)
 evaluate(c::PrimitiveCircuit, x, y, xs...) = c(x, y, xs...)
 
-function Base.show(io::IO, x::PrimitiveCircuit{name}) where name
+function Base.show(io::IO, x::PrimitiveCircuit{name}) where {name}
     print(io, name, " (primitive circuit)")
 end
 
@@ -51,4 +51,5 @@ end
 
 # we only convert to Locations right before we call the stubs
 (circ::Circuit)(register, locs) = circ.fn(circ, register, Locations(locs))
-(circ::Circuit)(register, locs, ctrl_locs) = circ.fn(circ, register, Locations(locs), CtrlLocations(ctrl_locs))
+(circ::Circuit)(register, locs, ctrl_locs) =
+    circ.fn(circ, register, Locations(locs), CtrlLocations(ctrl_locs))
