@@ -11,13 +11,13 @@ function generate_forward_stub(name::Symbol, op)
 
     return quote
         function $stub(::$(Circuit){$quoted_name}, r::$(AbstractRegister), locs::$(Locations))
-            $(YaoBase).instruct!(r, $op, Tuple(locs))
+            $(YaoAPI).instruct!(r, $op, Tuple(locs))
             return r
         end
 
         function $stub(::$(Circuit){$quoted_name}, r::$(AbstractRegister), locs::$(Locations), ctrl_locs::$(Locations))
             raw_ctrl_locs, ctrl_cfg = decode_sign(ctrl_locs)
-            $(YaoBase).instruct!(r, $op, Tuple(locs), raw_ctrl_locs, ctrl_cfg)
+            $(YaoAPI).instruct!(r, $op, Tuple(locs), raw_ctrl_locs, ctrl_cfg)
             return r
         end
 
@@ -66,7 +66,7 @@ function primitive_m(ex::Expr)
     stub_def[:args] = Any[:($circ::Circuit{$quoted_name}), :($register::$AbstractRegister), :($locs::$Locations)]
     stub_def[:body] = quote
         $matrix = $circ.free[1]
-        YaoBase.instruct!($register, $matrix, Tuple($locs))
+        YaoAPI.instruct!($register, $matrix, Tuple($locs))
         return $register
     end
 
@@ -78,7 +78,7 @@ function primitive_m(ex::Expr)
         # issue #10
         raw_ctrl_locs = ($(ctrl_locs).storage..., )
         ctrl_cfg = map(Int, ($(ctrl_locs).configs..., ))
-        YaoBase.instruct!($register, $matrix, Tuple($locs), raw_ctrl_locs, ctrl_cfg)
+        YaoAPI.instruct!($register, $matrix, Tuple($locs), raw_ctrl_locs, ctrl_cfg)
         return $register
     end
 
@@ -107,13 +107,13 @@ end
     @primitive ex
 
 Define a primitive quantum instruction. `ex` can be a Symbol, if the corresponding instruction
-interface of `YaoBase.instruct!` is implemented. Or `ex` can be an assignment statement for constant
+interface of `YaoAPI.instruct!` is implemented. Or `ex` can be an assignment statement for constant
 instructions. Or `ex` can be a function that returns corresponding matrix given a set of classical
 parameters.
 
 # Example
 
-Since the instructions interface `YaoBase.instruct!` of Pauli operators are defined, we can use
+Since the instructions interface `YaoAPI.instruct!` of Pauli operators are defined, we can use
 
 ```julia
 @primitive X

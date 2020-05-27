@@ -2,8 +2,7 @@ module YaoIR
 
 using ExprTools
 using LinearAlgebra
-using LuxurySparse
-using YaoBase
+using YaoAPI
 
 include("runtime/locations.jl")
 include("runtime/generic_circuit.jl")

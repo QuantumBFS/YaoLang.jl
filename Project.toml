@@ -7,7 +7,7 @@ version = "0.1.0"
 ExprTools = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LuxurySparse = "d05aeea4-b7d4-55ac-b691-9e7fabb07ba2"
-YaoBase = "a8f54c17-34bc-5a9d-b050-f522fe3f755f"
+YaoAPI = "0843a435-28de-4971-9e8b-a9641b2983a8"
 
 [compat]
 julia = "1.4"

@@ -65,7 +65,7 @@ Global phase gate.
 exp(iθ) \\mathbf{I}
 ```
 """
-@primitive phase(θ::T) where {T<:Real} = exp(im * θ) * IMatrix{2,T}()
+@primitive phase(θ::T) where {T<:Real} = Diagonal(Complex{T}[exp(im * θ), exp(im * θ)])
 @primitive Rx(θ::Real) = [cos(θ / 2) -im * sin(θ / 2); -im * sin(θ / 2) cos(θ / 2)]
 @primitive Ry(θ::Real) = [cos(θ / 2) -sin(θ / 2); sin(θ / 2) cos(θ / 2)]
 @primitive Rz(θ::Real) = Diagonal([-im * sin(θ / 2) + cos(θ / 2), im * sin(θ / 2) + cos(θ / 2)])
@@ -89,8 +89,7 @@ General rotation gate, `axis` is the rotation axis, `θ` is the rotation angle. 
 is the size of rotation axis.
 """
 @primitive function rot(axis, θ::T, m::Int = size(axis, 1)) where {T<:Real}
-    I = IMatrix{m,T}()
-    return I * cos(θ / 2) - im * sin(θ / 2) * axis
+    return Diagonal(fill(cos(θ / 2), m)) - im * sin(θ / 2) * axis
 end
 
 # # TODO: this should be an instruction
