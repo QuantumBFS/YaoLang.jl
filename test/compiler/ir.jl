@@ -61,17 +61,17 @@ end
 
 @testset "QASTCode" begin
     ex = :(function qft(n::Int)
-    1 => H
-    for k in 2:n
-        @ctrl k 1 => shift(2π / 2^k)
-    end
+        1 => H
+        for k in 2:n
+            @ctrl k 1 => shift(2π / 2^k)
+        end
 
-    if n > 1
-        2:n => qft(n - 1)
-    end
+        if n > 1
+            2:n => qft(n - 1)
+        end
     end)
 
-    @test_throws Meta.ParseError QASTCode(ex; strict_mode=:pure)
+    @test_throws Meta.ParseError QASTCode(ex; strict_mode = :pure)
 end
 
 @testset "transform(::JuliaASTCodegenCtx, ex)" begin
@@ -83,10 +83,15 @@ end
     @test transform(ctx, dst) == :($(YaoLang.evaluate)(H)(r, locs[$(Locations(1))]))
     @test ctrl_transform(ctx, dst) == :($(YaoLang.evaluate)(H)(r, locs[$(Locations(1))], ctrl_locs))
 
-    ex = :(@ctrl 3 2=>H)
+    ex = :(@ctrl 3 2 => H)
     dst = parse_ast(ex)
-    @test transform(ctx, dst) == :($(YaoLang.evaluate)(H)(r, locs[$(Locations(2))], locs[$(CtrlLocations(3))]))
-    @test ctrl_transform(ctx, dst) == :($(YaoLang.evaluate)(H)(r, locs[$(Locations(2))], merge_locations(ctrl_locs, locs[$(CtrlLocations(3))])))
+    @test transform(ctx, dst) ==
+          :($(YaoLang.evaluate)(H)(r, locs[$(Locations(2))], locs[$(CtrlLocations(3))]))
+    @test ctrl_transform(ctx, dst) == :($(YaoLang.evaluate)(H)(
+        r,
+        locs[$(Locations(2))],
+        merge_locations(ctrl_locs, locs[$(CtrlLocations(3))]),
+    ))
 
     ex = :(@measure k)
     dst = parse_ast(ex)
@@ -95,14 +100,14 @@ end
     dst = parse_ast(ex)
     @test transform(ctx, dst) == :(measure!(operator, r, locs[Locations(k)]))
 
-    ex = :(@measure reset_to=1 k operator)
+    ex = :(@measure reset_to = 1 k operator)
     dst = parse_ast(ex)
     @test transform(ctx, dst) == :(measure!(ResetTo(1), operator, r, locs[Locations(k)]))
-    
-    ex = :(@measure remove=true k operator)
+
+    ex = :(@measure remove = true k operator)
     dst = parse_ast(ex)
     @test transform(ctx, dst) == :(measure!($(RemoveMeasured()), operator, r, locs[Locations(k)]))
-    
-    ex = :(@measure blabla=1 k operator)
+
+    ex = :(@measure blabla = 1 k operator)
     @test_throws Meta.ParseError parse_ast(ex)
 end
