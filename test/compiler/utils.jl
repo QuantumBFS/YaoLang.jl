@@ -1,3 +1,3 @@
 using Test
-using YaoIR
+using YaoLang
 

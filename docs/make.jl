@@ -1,11 +1,11 @@
-using Documenter, YaoIR
+using Documenter, YaoLang
 
 makedocs(;
-    modules = [YaoIR],
+    modules = [YaoLang],
     format = Documenter.HTML(),
     pages = ["Home" => "index.md"],
-    repo = "https://github.com/QuantumBFS/YaoIR.jl",
-    sitename = "YaoIR.jl",
+    repo = "https://github.com/QuantumBFS/YaoLang.jl",
+    sitename = "YaoLang.jl",
 )
 
-deploydocs(; repo = "github.com/QuantumBFS/YaoIR.jl")
+deploydocs(; repo = "github.com/QuantumBFS/YaoLang.jl")

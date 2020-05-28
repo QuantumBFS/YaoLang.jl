@@ -1,7 +1,7 @@
 using Test
-using YaoIR
+using YaoLang
 using YaoBase
-using YaoIR: parse_ast, GateLocation, Control, Measure, QASTCode, JuliaASTCodegenCtx, transform, ctrl_transform
+using YaoLang: parse_ast, GateLocation, Control, Measure, QASTCode, JuliaASTCodegenCtx, transform, ctrl_transform
 
 @testset "parsing" begin
     @testset "basic statement parsing" begin
@@ -80,13 +80,13 @@ end
     ex = :(1 => H)
     dst = parse_ast(ex)
 
-    @test transform(ctx, dst) == :($(YaoIR.evaluate)(H)(r, locs[$(Locations(1))]))
-    @test ctrl_transform(ctx, dst) == :($(YaoIR.evaluate)(H)(r, locs[$(Locations(1))], ctrl_locs))
+    @test transform(ctx, dst) == :($(YaoLang.evaluate)(H)(r, locs[$(Locations(1))]))
+    @test ctrl_transform(ctx, dst) == :($(YaoLang.evaluate)(H)(r, locs[$(Locations(1))], ctrl_locs))
 
     ex = :(@ctrl 3 2=>H)
     dst = parse_ast(ex)
-    @test transform(ctx, dst) == :($(YaoIR.evaluate)(H)(r, locs[$(Locations(2))], locs[$(CtrlLocations(3))]))
-    @test ctrl_transform(ctx, dst) == :($(YaoIR.evaluate)(H)(r, locs[$(Locations(2))], merge_locations(ctrl_locs, locs[$(CtrlLocations(3))])))
+    @test transform(ctx, dst) == :($(YaoLang.evaluate)(H)(r, locs[$(Locations(2))], locs[$(CtrlLocations(3))]))
+    @test ctrl_transform(ctx, dst) == :($(YaoLang.evaluate)(H)(r, locs[$(Locations(2))], merge_locations(ctrl_locs, locs[$(CtrlLocations(3))])))
 
     ex = :(@measure k)
     dst = parse_ast(ex)

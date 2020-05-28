@@ -1,4 +1,4 @@
-using YaoIR
+using YaoLang
 using YaoArrayRegister
 using FFTW
 using Test

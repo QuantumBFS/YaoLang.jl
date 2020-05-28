@@ -1,14 +1,14 @@
 ## Introduction
 
-YaoIR is an Intermediate Representation built based on
+YaoLang is a domain specific language (DSL) built based on
 Julia builtin expression with extended semantic on quantum control, measure and position. Its (extended) syntax is very simple:
 
 ### Semantics
 
-The semantic of YaoIR tries to make use of Julia semantic as much as possible so you don't feel this
+The semantic of YaoLang tries to make use of Julia semantic as much as possible so you don't feel this
 is not Julian. But since the quantum circuit has some
 special semantic that Julia expression cannot express
-directly, the semantic of Julia expression is extended in YaoIR.
+directly, the semantic of Julia expression is extended in YaoLang.
 
 The point of this new IR is it make use of Julia native
 control flow directly instead of unroll the loop and conditions into a Julia type, such as `Chain`, `Kron`,
@@ -115,5 +115,5 @@ In YaoBlocks, a large quantum circuit can easily lost its structure if it is con
 ## API References
 
 ```@autodocs
-Modules = [YaoIR]
+Modules = [YaoLang]
 ```

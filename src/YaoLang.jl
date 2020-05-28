@@ -1,4 +1,4 @@
-module YaoIR
+module YaoLang
 
 using ExprTools
 using LinearAlgebra

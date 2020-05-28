@@ -62,7 +62,7 @@ end
 function codegen_eval(ctx::JuliaASTCodegenCtx, ir::QASTCode)
     quoted_name = QuoteNode(ir.name)
     def = deepcopy(ir.def)
-    def[:name] = GlobalRef(YaoIR, :evaluate)
+    def[:name] = GlobalRef(YaoLang, :evaluate)
     def[:args] = Any[:(::$(generic_circuit(ir.name))), variables(def)...]
     def[:body] = :($Circuit{$quoted_name}($(ctx.stub_name), $(Expr(:tuple, ir.free_variables...))))
     return combinedef(def)
@@ -100,7 +100,7 @@ end
 
 function codegen_code_qast_runtime_stub(ctx::JuliaASTCodegenCtx, ir::QASTCode)
     def = Dict{Symbol, Any}()
-    def[:name] = GlobalRef(YaoIR, :code_qast)
+    def[:name] = GlobalRef(YaoLang, :code_qast)
     def[:args] = Any[:(::$(generic_circuit(ir.name))), variables(ir.def)...]
     def[:body] = ir
     if haskey(ir.def, :whereparams)
@@ -111,7 +111,7 @@ end
 
 function codegen_code_qast_stub(ctx::JuliaASTCodegenCtx, ir::QASTCode)
     def = Dict{Symbol, Any}()
-    def[:name] = GlobalRef(YaoIR, :code_qast)
+    def[:name] = GlobalRef(YaoLang, :code_qast)
     def[:args] = Any[:(::$(generic_circuit(ir.name))), :(::Type{$(argtypes(ir.def))})]
     def[:body] = ir
 

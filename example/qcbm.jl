@@ -1,4 +1,4 @@
-using YaoIR
+using YaoLang
 using YaoArrayRegister
 using Flux.Optimise
 using LinearAlgebra
