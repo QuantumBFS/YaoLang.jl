@@ -87,8 +87,8 @@ function primitive_m(ex::Expr)
     ctrl_stub_def[:body] = quote
         $matrix = $circ.free[1]
         # issue #10
-        raw_ctrl_locs = ($(ctrl_locs).storage..., )
-        ctrl_cfg = map(Int, ($(ctrl_locs).configs..., ))
+        raw_ctrl_locs = ($(ctrl_locs).storage...,)
+        ctrl_cfg = map(Int, ($(ctrl_locs).configs...,))
         YaoAPI.instruct!($register, $matrix, Tuple($locs), raw_ctrl_locs, ctrl_cfg)
         return $register
     end
