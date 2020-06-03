@@ -110,7 +110,7 @@ function codegen_create_symbol(ctx::JuliaASTCodegenCtx, ir::QASTCode)
 end
 
 function codegen_code_qast_runtime_stub(ctx::JuliaASTCodegenCtx, ir::QASTCode)
-    def = Dict{Symbol, Any}()
+    def = Dict{Symbol,Any}()
     def[:name] = GlobalRef(YaoLang, :code_qast)
     def[:args] = Any[:(::$(generic_circuit(ir.name))), variables(ir.def)...]
     def[:body] = ir
@@ -121,7 +121,7 @@ function codegen_code_qast_runtime_stub(ctx::JuliaASTCodegenCtx, ir::QASTCode)
 end
 
 function codegen_code_qast_stub(ctx::JuliaASTCodegenCtx, ir::QASTCode)
-    def = Dict{Symbol, Any}()
+    def = Dict{Symbol,Any}()
     def[:name] = GlobalRef(YaoLang, :code_qast)
     def[:args] = Any[:(::$(generic_circuit(ir.name))), :(::Type{$(argtypes(ir.def))})]
     def[:body] = ir

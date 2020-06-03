@@ -1,7 +1,8 @@
 using Test
 using YaoLang
 using YaoBase
-using YaoLang: parse_ast, GateLocation, Control, Measure, QASTCode, JuliaASTCodegenCtx, transform, ctrl_transform
+using YaoLang:
+    parse_ast, GateLocation, Control, Measure, QASTCode, JuliaASTCodegenCtx, transform, ctrl_transform
 
 @testset "parsing" begin
     @testset "basic statement parsing" begin
