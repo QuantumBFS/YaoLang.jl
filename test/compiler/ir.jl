@@ -1,6 +1,6 @@
 using Test
 using YaoLang
-using YaoBase
+using YaoAPI
 using YaoLang:
     parse_ast, GateLocation, Control, Measure, QASTCode, JuliaASTCodegenCtx, transform, ctrl_transform
 
