@@ -4,8 +4,10 @@ export @device, @ctrl, @measure
     @device [strict=false] <generic circuit definition>
 
 Entry for defining a generic quantum program. A generic quantum program is a function takes
-a set of classical arguments as input and return a quantum circuit that can be furthur compiled
-into pulses or other quantum instructions.
+a set of classical arguments as input and return a quantum program that can be furthur compiled
+into pulses or other quantum instructions. The quantum program can return classical values from
+device if `return` statement is declared explicitly, or it always return nothing, and mutates the
+quantum register.
 
 # Supported Semantics
 

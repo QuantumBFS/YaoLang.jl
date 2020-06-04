@@ -49,6 +49,11 @@ end
 (circ::Circuit)(r::AbstractRegister) = circ(r, 1:nactive(r))
 (circ::Circuit)(locs) = Pair(locs, circ)
 
+function Base.:(|>)(r::AbstractRegister, circ::Circuit)
+    circ(r)
+    return r
+end
+
 # we only convert to Locations right before we call the stubs
 (circ::Circuit)(register, locs) = circ.fn(circ, register, Locations(locs))
 (circ::Circuit)(register, locs, ctrl_locs) =

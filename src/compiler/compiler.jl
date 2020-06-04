@@ -82,7 +82,7 @@ function codegen_quantum_circuit(ctx::JuliaASTCodegenCtx, ir::QASTCode)
     stub_def[:body] = quote
         $(splatting_variables(ir.free_variables, :($(ctx.circuit).free)))
         $(transform(ctx, ir.code))
-        return $(ctx.register)
+        return
     end
     return combinedef(stub_def)
 end
@@ -100,7 +100,7 @@ function codegen_ctrl_circuit(ctx::JuliaASTCodegenCtx, ir::QASTCode)
     stub_def[:body] = quote
         $(splatting_variables(ir.free_variables, :($(ctx.circuit).free)))
         $(ctrl_transform(ctx, ir.code))
-        return $(ctx.register)
+        return
     end
     return combinedef(stub_def)
 end
