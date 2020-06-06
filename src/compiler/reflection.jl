@@ -1,8 +1,14 @@
-export @code_qast
+export @code_yao
 
-function code_qast end
+function code_yao end
 
-macro code_qast(ex)
+"""
+    @code_yao <generic circuit call>
+
+Evaluates the arguments to the function call, determines their types, and
+calls `code_yao` on the resulting expression.
+"""
+macro code_yao(ex)
     (ex isa Expr) && (ex.head === :call) || error("expect a generic circuit call")
-    return Expr(:call, code_qast, ex.args...) |> esc
+    return Expr(:call, GlobalRef(YaoLang, :code_yao), ex.args...) |> esc
 end

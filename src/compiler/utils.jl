@@ -1,17 +1,35 @@
-"""
-    split_device_def(ex)
+function signature(ir::YaoIR)
+    defs = Dict(:name=>ir.name, :args=>ir.args)
+    if !isempty(ir.whereparams)
+        defs[:whereparams] = ir.whereparams
+    end
+    return defs
+end
 
-Split device kernel definition, similar to `ExprTools.splitdef`, but checks syntax.
-"""
-function split_device_def(ex::Expr)
-    def = splitdef(ex, throw = false)
-    # syntax check
-    def !== nothing || throw(Meta.ParseError("Invalid Syntax: expect a function definition."))
-    haskey(def, :name) ||
-        throw(Meta.ParseError("Invalid Syntax: generic circuit cannot be anonymous"))
-    def[:name] isa Symbol ||
-        throw(Meta.ParseError("Invalid Syntax: generic circuit cannot be defined on existing Julia objects"))
-    return def
+function hasmeasure(ir::YaoIR)
+    for (v, st) in ir.body
+        if is_quantum(st) && (st.expr.args[1] === :measure)
+            return true
+        end
+    end
+    return false
+end
+
+function build_codeinfo(m::Module, defs::Dict, ir::IR)
+    defs[:body] = :(return)
+    ci = Meta.lower(m, combinedef(defs))
+    mt = ci.args[].code[end-1]
+    mt_ci = mt.args[end]
+
+    # update method CodeInfo
+    ir = copy(ir)
+    Inner.argument!(ir, at = 1)
+    Inner.update!(mt_ci, ir)
+    return ci
+end
+
+function build_codeinfo(ir::YaoIR)
+    build_codeinfo(ir.mod, signature(ir), ir.body)
 end
 
 function variables(def::Dict)
@@ -22,8 +40,8 @@ function variables(def::Dict)
     end
 end
 
-function arguements(def::Dict)
-    map(rm_annotations, variables(def))
+function arguements(ir::YaoIR)
+    map(rm_annotations, ir.args)
 end
 
 # TODO: actually implement this using JuliaVariables
@@ -31,6 +49,9 @@ function capture_free_variables(def::Dict)
     return arguements(def)
 end
 
+is_quantum(x) = false
+is_quantum(st::Statement) = is_quantum(st.expr)
+is_quantum(ex::Expr) = ex.head === :quantum
 
 """
     rm_annotations(x)
@@ -68,8 +89,8 @@ function argtypes(def::Dict)
     return ex
 end
 
-generic_circuit(name::Symbol) = :($(GenericCircuit){$(QuoteNode(name))})
-
+generic_circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :GenericCircuit), QuoteNode(name))
+circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :Circuit), QuoteNode(name))
 to_locations(x) = :(Locations($x))
 to_locations(x::Int) = Locations(x)
 

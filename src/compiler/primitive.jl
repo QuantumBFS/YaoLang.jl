@@ -12,18 +12,19 @@ function generate_forward_stub(name::Symbol, op)
     return quote
         function $stub(::$(Circuit){$quoted_name}, r::$(AbstractRegister), locs::$(Locations))
             $(YaoAPI).instruct!(r, $op, Tuple(locs))
-            return r
+            return
         end
 
         function $stub(
             ::$(Circuit){$quoted_name},
             r::$(AbstractRegister),
             locs::$(Locations),
-            ctrl_locs::$(Locations),
+            ctrl_locs::$(CtrlLocations),
         )
-            raw_ctrl_locs, ctrl_cfg = decode_sign(ctrl_locs)
+            raw_ctrl_locs = Tuple(ctrl_locs.storage)
+            ctrl_cfg = map(Int, (ctrl_locs.configs...,))
             $(YaoAPI).instruct!(r, $op, Tuple(locs), raw_ctrl_locs, ctrl_cfg)
-            return r
+            return
         end
 
         (::$PrimitiveCircuit{$quoted_name})() = $Circuit{$quoted_name}($stub)
@@ -73,7 +74,7 @@ function primitive_m(ex::Expr)
     stub_def[:body] = quote
         $matrix = $circ.free[1]
         YaoAPI.instruct!($register, $matrix, Tuple($locs))
-        return $register
+        return
     end
 
     ctrl_stub_def = Dict{Symbol,Any}()
@@ -90,7 +91,7 @@ function primitive_m(ex::Expr)
         raw_ctrl_locs = ($(ctrl_locs).storage...,)
         ctrl_cfg = map(Int, ($(ctrl_locs).configs...,))
         YaoAPI.instruct!($register, $matrix, Tuple($locs), raw_ctrl_locs, ctrl_cfg)
-        return $register
+        return
     end
 
     quote

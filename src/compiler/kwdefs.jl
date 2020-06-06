@@ -1,7 +1,7 @@
 export @device, @ctrl, @measure
 
 """
-    @device [strict=false] <generic circuit definition>
+    @device [options] <generic circuit definition>
 
 Entry for defining a generic quantum program. A generic quantum program is a function takes
 a set of classical arguments as input and return a quantum program that can be furthur compiled
@@ -17,6 +17,22 @@ quantum register.
 The function marked by `@device` can be multiple dispatched like other Julia function. The only difference
 is that it always returns a quantum circuit object that should be runable on quantum device by feeding it
 the location of qubits and the pointer to quantum register.
+
+# Options
+
+- `mode`, compilation mode, default is `:hybrid`, see **Compilation Modes** for details.
+- `target`, compilation target, default is `:julia`, see **Compilation Targets** for details.
+
+## Compilation Modes
+
+- `:hybrid`, default mode, allows arbitrary Julia code to work with quantum statements.
+- `:pure`, all classical statements are disabled.
+- `:qasm`, allows limited set of classical statements which is compatible to [openQASM](https://github.com/Qiskit/openqasm)
+
+## Compilation Targets
+
+- `:julia`, default target, compiles the program to Julia program.
+- `:qasm`, compiles the program to [openQASM](https://github.com/Qiskit/openqasm).
 
 # Example
 
@@ -37,16 +53,26 @@ end
 
 This will give us a generic quantum circuit `qft` with 1 method.
 """
+macro device end
+
 macro device(ex)
-    return esc(device_m(ex))
+    return esc(device_m(__module__, ex))
 end
 
-macro device(option, ex)
-    if (option isa Expr) && (option.head === :(=)) && (option.args[1] == :strict)
-        return esc(device_m(ex, option.args[2]))
-    else
-        throw(Meta.ParseError("Invalid Syntax, expect a compile option"))
+macro device(args...)
+    options = args[1:end-1]
+    ex = args[end]
+    
+    kwargs = Pair[]
+    for each in options
+        if (each isa Expr) && (each.head === :(=))
+            push!(kwargs, each.args[1] => value(each.args[2]))
+        else
+            throw(Meta.ParseError("Invalid Syntax, expect a compile option, got $each"))
+        end
     end
+
+    return esc(device_m(__module__, ex; kwargs...))
 end
 
 """
