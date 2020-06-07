@@ -1,3 +1,7 @@
+```@meta
+CurrentModule = YaoLang.Compiler
+```
+
 ## Introduction
 
 YaoLang is a domain specific language (DSL) built based on
@@ -43,16 +47,16 @@ to represent repeated locations, e.g
 
 #### Control
 
-`@ctrl` is parsed as a keyword (means you cannot overload it) in each program, like QBIR, its first argument is the control
+[`@ctrl`](@ref) is parsed as a keyword (means you cannot overload it) in each program, like QBIR, its first argument is the control
 location with signs as control configurations and the second argument is a normal gate position argument introduce above.
 
 #### Measure
 
-`@measure` is another reserved special function parsed that has specific semantic in the IR (measure the locations passed to it).
+[`@measure`](@ref) is another reserved special function parsed that has specific semantic in the IR (measure the locations passed to it).
 
 ### Usage
 
-using it is pretty simple, just use `@device` macro to annotate a "device" function, like CUDA programming, this device function should not return anything but `nothing`.
+using it is pretty simple, just use [`@device`](@ref) macro to annotate a "device" function, like CUDA programming, this device function should not return anything but `nothing`.
 
 The compiler will compile this function definition to
 a generic circuit `Circuit` with the same name. A generic circuit is a generic quantum program that can
@@ -116,4 +120,10 @@ In YaoBlocks, a large quantum circuit can easily lost its structure if it is con
 
 ```@autodocs
 Modules = [YaoLang]
+```
+
+## Compiler API References
+
+```@autodocs
+Modules = [YaoLang.Compiler]
 ```
