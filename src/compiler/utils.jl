@@ -25,6 +25,7 @@ function build_codeinfo(m::Module, defs::Dict, ir::IR)
     ir = copy(ir)
     Inner.argument!(ir, at = 1)
     Inner.update!(mt_ci, ir)
+    Core.Compiler.validate_code(mt_ci)
     return ci
 end
 

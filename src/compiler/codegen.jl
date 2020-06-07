@@ -42,14 +42,58 @@ macro codegen(ex)
     end
 end
 
-flatten_locations(parent, x) = IRTools.xcall(Base, :getindex, parent, to_locations(x))
-flatten_locations(pr, v, parent, x) = insert!(pr, v, Statement(flatten_locations(parent, x)))
+flatten_locations(parent, x) = IRTools.xcall(Base, :getindex, parent, x)
+
+function flatten_locations(pr, v, parent, x)
+    loc = insert!(pr, v, Statement(to_locations(x)))
+    return insert!(pr, v, Statement(flatten_locations(parent, loc)))
+end
 
 # merge location in runtime
 merge_location_ex(l1, l2) = :(merge_locations($l1, $l2))
 # merge literal location in compile time
 merge_location_ex(l1::AbstractLocations, l2::AbstractLocations) = merge_locations(l1, l2)
 
+function extract_closure_captured_variables!(pr::IRTools.Pipe, circ, ir::YaoIR)
+    v = push!(pr, IRTools.xcall(Base, :getproperty, circ, QuoteNode(:free)))
+    for (k, each) in enumerate(arguements(ir))
+        x = push!(pr, IRTools.xcall(Base, :getfield, v, k))
+        push!(pr, Statement(Expr(:(=), IRTools.Slot(each), x)))
+    end
+end
+
+function scan_registers(register, stack::Vector, pr::IRTools.Pipe, v, st::Statement)
+    if st.expr.args[2] === :new
+        push!(stack, st.expr.args[3])
+    elseif st.expr.args[2] === :prev
+        pop!(stack)
+    end
+
+    if length(stack) == 1
+        delete!(pr, v)
+        return register
+    else
+        pr[v] = Statement(IRTools.Slot(first(stack)))
+        return v
+    end
+end
+
+function update_slots!(ssa::IRTools.IR, ir::YaoIR)
+    for (v, st) in ssa
+        if st.expr isa Expr
+            args = Any[]
+            for each in st.expr.args
+                if each in arguements(ir)
+                    push!(args, IRTools.Slot(each))
+                else
+                    push!(args, each)
+                end
+            end
+            ssa[v] = Statement(st; expr=Expr(st.expr.head, args...))
+        end
+    end
+    return ssa
+end
 
 @codegen function call(ctx::JuliaASTCodegenCtx, ir::YaoIR)
     defs = signature(ir)
@@ -69,34 +113,18 @@ end
 @codegen function quantum_circuit(ctx::JuliaASTCodegenCtx, ir::YaoIR)
     empty!(ctx.registers)
     pr = IRTools.Pipe(ir.body)
-    # self = IRTools.argument!(pr)
     circ = IRTools.argument!(pr)
     register = IRTools.argument!(pr)
     locations = IRTools.argument!(pr)
 
     # extract arguements from closure
-    v = push!(pr, IRTools.xcall(Base, :getproperty, circ, QuoteNode(:free)))
-    for (k, each) in enumerate(arguements(ir))
-        x = push!(pr, IRTools.xcall(Base, :getfield, v, k))
-        push!(pr, Statement(Expr(:(=), IRTools.Slot(each), x)))
-    end
+    extract_closure_captured_variables!(pr, circ, ir)
 
     for (v, st) in pr
         if is_quantum(st)
             head = st.expr.args[1]
             if head === :register
-                if st.expr.args[2] === :new
-                    push!(ctx.registers, st.expr.args[3])
-                elseif st.expr.args[2] === :prev
-                    pop!(ctx.registers)
-                end
-
-                if length(ctx.registers) == 1
-                    delete!(pr, v)
-                else
-                    pr[v] = Statement(IRTools.Slot(first(ctx.registers)))
-                    register = v
-                end
+                register = scan_registers(register, ctx.registers, pr, v, st)
             elseif head in [:gate, :ctrl]
                 locs = map(x->flatten_locations(pr, v, locations, x), st.expr.args[3:end])
                 pr[v] = Statement(st;
@@ -138,100 +166,67 @@ end
         :($(last(ctx.registers))::$AbstractRegister),
         :($(ctx.locations)::Locations),
     ]
-    
+
     ssa = IRTools.finish(pr)
-    for (v, st) in ssa
-        if st.expr isa Expr
-            args = Any[]
-            for each in st.expr.args
-                if each in arguements(ir)
-                    push!(args, IRTools.Slot(each))
-                else
-                    push!(args, each)
-                end
-            end
-            ssa[v] = Statement(st; expr=Expr(st.expr.head, args...))
-        end
-    end
+    update_slots!(ssa, ir)
     return build_codeinfo(ir.mod, def, ssa)
 end
 
-# @codegen function ctrl_circuit(ctx::JuliaASTCodegenCtx, ir::YaoIR)
-#     hasmeasure(ir) && return :()
-#     empty!(ctx.registers)
+@codegen function ctrl_circuit(ctx::JuliaASTCodegenCtx, ir::YaoIR)
+    hasmeasure(ir) && return :()
+    empty!(ctx.registers)
 
-#     pr = IRTools.Pipe(ir.body)
-#     # self = IRTools.argument!(pr)
-#     circ = IRTools.argument!(pr)
-#     register = IRTools.argument!(pr)
-#     locations = IRTools.argument!(pr)
-#     ctrl_locations = IRTools.argument!(pr)
+    pr = IRTools.Pipe(ir.body)
+    circ = IRTools.argument!(pr)
+    register = IRTools.argument!(pr)
+    locations = IRTools.argument!(pr)
+    ctrl_locations = IRTools.argument!(pr)
 
-#     # extract arguements from closure
-#     v = push!(pr, IRTools.xcall(Base, :getproperty, circ, QuoteNode(:free)))
-#     variable_map = Dict()
-#     for (k, each) in enumerate(arguements(ir))
-#         x = push!(pr, IRTools.xcall(Base, :getfield, v, k))
-#         variable_map[each] = Variable(x.id)
-#     end
+    # extract arguements from closure
+    extract_closure_captured_variables!(pr, circ, ir)
 
-#     for (v, st) in pr
-#         if is_quantum(st)
-#             head = st.expr.args[1]
-#             if head === :register
-#                 if st.expr.args[2] === :new
-#                     push!(ctx.registers, st.expr.args[3])
-#                 elseif st.expr.args[2] === :prev
-#                     pop!(ctx.registers)
-#                 end
-                
-#                 if length(ctx.registers) == 1
-#                     delete!(pr, v)
-#                 else
-#                     pr[v] = Statement(IRTools.Slot(first(ctx.registers)))
-#                     register = v
-#                 end
-#             elseif head === :gate
-#                 locs = flatten_locations(pr, v, locations, st.expr.args[3])
-#                 pr[v] = Statement(st;
-#                             expr=Expr(:call, st.expr.args[2],
-#                                 register,
-#                                 locs, ctrl_locations,
-#                             )
-#                         )
-#             elseif head === :ctrl
-#                 locs = flatten_locations(pr, v, locations, st.expr.args[3])
-#                 ctrl_locs = flatten_locations(pr, v, locations, st.expr.args[4])
-#                 ctrl_locs = insert!(pr, v, merge_location_ex(ctrl_locations, ctrl_locs))
-#                 pr[v] = Statement(st;
-#                             expr=Expr(:call, st.expr.args[2],
-#                                 register,
-#                                 locs, ctrl_locs,
-#                             )
-#                         )
-#             else # reserved for extending keywords
-#                 throw(ParseError("Invalid keyword: $head"))
-#             end
-#         end
-#     end
+    for (v, st) in pr
+        if is_quantum(st)
+            head = st.expr.args[1]
+            if head === :register
+                register = scan_registers(register, ctx.registers, pr, v, st)
+            elseif head === :gate
+                locs = flatten_locations(pr, v, locations, st.expr.args[3])
+                pr[v] = Statement(st;
+                            expr=Expr(:call, st.expr.args[2],
+                                register,
+                                locs, ctrl_locations,
+                            )
+                        )
+            elseif head === :ctrl
+                locs = flatten_locations(pr, v, locations, st.expr.args[3])
+                ctrl_locs = flatten_locations(pr, v, locations, st.expr.args[4])
+                ctrl_locs = insert!(pr, v, merge_location_ex(ctrl_locations, ctrl_locs))
+                pr[v] = Statement(st;
+                            expr=Expr(:call, st.expr.args[2],
+                                register,
+                                locs, ctrl_locs,
+                            )
+                        )
+            else # reserved for extending keywords
+                throw(ParseError("Invalid keyword: $head"))
+            end
+        end
+    end
 
-#     def = Dict{Symbol, Any}()
-#     def[:name] = ctx.stub_name
-#     def[:args] = Any[
-#         :($(ctx.circuit)::$(YaoLang.Circuit)),
-#         :($(last(ctx.registers))::$AbstractRegister),
-#         :($(ctx.locations)::$Locations),
-#         :($(ctx.ctrl_locations)::$CtrlLocations),
-#     ]
+    def = Dict{Symbol, Any}()
+    def[:name] = ctx.stub_name
+    def[:args] = Any[
+        :($(ctx.circuit)::$(YaoLang.Circuit)),
+        :($(last(ctx.registers))::$AbstractRegister),
+        :($(ctx.locations)::$Locations),
+        :($(ctx.ctrl_locations)::$CtrlLocations),
+    ]
 
-#     ssa = IRTools.finish(pr)
-#     for (v, st) in ssa
-#         if st.expr isa Expr
-#             ssa[v] = Statement(st; expr=Expr(st.expr.head, map(x->get(variable_map, x, x), st.expr.args)...))
-#         end
-#     end
-#     return build_codeinfo(ir.mod, def, ssa)
-# end
+    ssa = IRTools.finish(pr)
+    update_slots!(ssa, ir)
+    return build_codeinfo(ir.mod, def, ssa)
+end
 
 @codegen function create_symbol(ctx::JuliaASTCodegenCtx, ir::YaoIR)
     :(Core.@__doc__ const $(ir.name) = $(generic_circuit(ir.name))())
