@@ -121,9 +121,9 @@ end
     configs = rand(1:3, 4)
     gateset = (X, Y, Z)
     c = single_qubit_layer(configs)
+    println(@code_yao single_qubit_layer(configs))
     r = rand_state(4)
     r1 = copy(r) |> c
-
     r2 = copy(r)
     for k in 1:4
         r2 |> gateset[configs[k]](Locations(k))

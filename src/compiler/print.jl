@@ -2,7 +2,7 @@ function Base.show(io::IO, ir::YaoIR)
     indent = get(io, :indent, 0)
     printstyled(io, tab^indent, "circuit", color=:light_blue, bold=true)
     print(io, tab^indent, " ")
-    print_name(io, ir.name)
+    print_head(io, ir.name)
     print_args(io, ir.args)
 
     if !isempty(ir.whereparams)
@@ -10,6 +10,12 @@ function Base.show(io::IO, ir::YaoIR)
     end
     println(io)
     print(io, ir.body)
+end
+
+function print_head(io::IO, name)
+    name isa Expr && name.head === :(::) && print(io, "(")
+    print_name(io, name)
+    name isa Expr && name.head === :(::) && print(io, ")")
 end
 
 print_name(io::IO, name::Symbol) = printstyled(io, name)

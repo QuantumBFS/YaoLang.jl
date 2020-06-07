@@ -288,7 +288,7 @@ end
 end
 
 function JuliaASTCodegenCtx(ir::YaoIR, pass = collect(Any, keys(codegen_passes)))
-    stub_name = gensym(ir.name)
+    stub_name = gensym(rm_annotations(ir.name))
     JuliaASTCodegenCtx(
         stub_name,
         gensym(:circ),

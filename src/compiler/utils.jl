@@ -25,7 +25,7 @@ function build_codeinfo(ir::YaoIR)
 end
 
 function arguements(ir::YaoIR)
-    map(rm_annotations, map(rm_default_value, ir.args))
+    map(rm_annotations, ir.args)
 end
 
 """
@@ -44,10 +44,12 @@ function rm_annotations(x)
     end
 end
 
-function rm_default_value(x)
+function annotations(x)
     x isa Expr || return x
-    if x.head === :kw
-        return x.args[1]
+    if x.head == :(::)
+        return x.args[2]
+    elseif x.head in [:(=), :kw]
+        return annotations(x.args[1])
     else
         return x
     end
@@ -74,5 +76,9 @@ end
 
 generic_circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :GenericCircuit), QuoteNode(name))
 circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :Circuit), QuoteNode(name))
+# custom struct
+generic_circuit(name) = annotations(name)
+circuit(name) = rm_annotations(name)
+
 to_locations(x) = :(Locations($x))
 to_locations(x::Int) = Locations(x)
