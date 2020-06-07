@@ -8,15 +8,15 @@ end
 
 function build_codeinfo(m::Module, defs::Dict, ir::IR)
     defs[:body] = :(return)
-    ci = Meta.lower(m, combinedef(defs))
+    @timeit_debug to "make empty CI" ci = Meta.lower(m, combinedef(defs))
     mt = ci.args[].code[end-1]
     mt_ci = mt.args[end]
 
     # update method CodeInfo
-    ir = copy(ir)
-    Inner.argument!(ir, at = 1)
-    Inner.update!(mt_ci, ir)
-    Core.Compiler.validate_code(mt_ci)
+    @timeit_debug to "copy IR"     ir = copy(ir)
+    @timeit_debug to "insert self" Inner.argument!(ir, at = 1)
+    @timeit_debug to "update CI"   Inner.update!(mt_ci, ir)
+    @timeit_debug to "validate CI" Core.Compiler.validate_code(mt_ci)
     return ci
 end
 

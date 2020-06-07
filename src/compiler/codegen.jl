@@ -52,6 +52,12 @@ macro codegen(ex)
     name = Symbol(:codegen_, defs[:name])
     quoted_name = QuoteNode(defs[:name])
     defs[:name] = name
+    defs[:body] = quote
+        @timeit_debug to $(string(name)) begin
+            $(defs[:body])
+        end
+    end
+
     quote
         codegen_passes[$(quoted_name)] = $(esc(combinedef(defs)))
     end
@@ -111,17 +117,18 @@ function update_slots!(ssa::IRTools.IR, ir::YaoIR)
 end
 
 @codegen function call(ctx::JuliaASTCodegenCtx, ir::YaoIR)
-    defs = signature(ir)
-    defs[:name] = :(::$(generic_circuit(ir.name)))
-    defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, ir.args...))
-    return combinedef(defs)
+    @timeit_debug to "create defs" defs = signature(ir)
+    @timeit_debug to "create name" defs[:name] = :(::$(generic_circuit(ir.name)))
+    @timeit_debug to "create body" defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, ir.args...))
+    @timeit_debug to "combinedef" code = combinedef(defs)
+    return code
 end
 
 @codegen function evaluate(ctx::JuliaASTCodegenCtx, ir::YaoIR)
-    defs = signature(ir)
-    defs[:name] = GlobalRef(YaoLang, :evaluate)
-    defs[:args] = Any[:(::$(generic_circuit(ir.name))), ir.args...]
-    defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, ir.args...))
+    @timeit_debug to "create defs" defs = signature(ir)
+    @timeit_debug to "create name" defs[:name] = GlobalRef(YaoLang, :evaluate)
+    @timeit_debug to "create args" defs[:args] = Any[:(::$(generic_circuit(ir.name))), ir.args...]
+    @timeit_debug to "create body" defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, ir.args...))
     return combinedef(defs)
 end
 
@@ -133,9 +140,9 @@ end
     locations = IRTools.argument!(pr)
 
     # extract arguements from closure
-    extract_closure_captured_variables!(pr, circ, ir)
+    @timeit_debug to "extract variables" extract_closure_captured_variables!(pr, circ, ir)
 
-    for (v, st) in pr
+    @timeit_debug to "IRTools.Pipe loop" for (v, st) in pr
         if is_quantum(st)
             head = st.expr.args[1]
             if head === :register
@@ -188,9 +195,10 @@ end
         :($(ctx.locations)::Locations),
     ]
 
-    ssa = IRTools.finish(pr)
-    update_slots!(ssa, ir)
-    return build_codeinfo(ir.mod, def, ssa)
+    @timeit_debug to "IRTools.finish" ssa = IRTools.finish(pr)
+    @timeit_debug to "update_slots!" update_slots!(ssa, ir)
+    @timeit_debug to "build_codeinfo" code = build_codeinfo(ir.mod, def, ssa)
+    return code
 end
 
 @codegen function ctrl_circuit(ctx::JuliaASTCodegenCtx, ir::YaoIR)
@@ -218,9 +226,9 @@ end
     ctrl_locations = IRTools.argument!(pr)
 
     # extract arguements from closure
-    extract_closure_captured_variables!(pr, circ, ir)
+    @timeit_debug to "extract variables" extract_closure_captured_variables!(pr, circ, ir)
 
-    for (v, st) in pr
+    @timeit_debug to "IRTools.Pipe loop" for (v, st) in pr
         if is_quantum(st)
             head = st.expr.args[1]
             if head === :register
@@ -258,9 +266,10 @@ end
         :($(ctx.ctrl_locations)::$CtrlLocations),
     ]
 
-    ssa = IRTools.finish(pr)
-    update_slots!(ssa, ir)
-    return build_codeinfo(ir.mod, def, ssa)
+    @timeit_debug to "IRTools.finish" ssa = IRTools.finish(pr)
+    @timeit_debug to "update_slots!" update_slots!(ssa, ir)
+    @timeit_debug to "build_codeinfo" code = build_codeinfo(ir.mod, def, ssa)
+    return code
 end
 
 @codegen function create_symbol(ctx::JuliaASTCodegenCtx, ir::YaoIR)
