@@ -8,6 +8,11 @@ include("runtime/generic_circuit.jl")
 
 module Compiler
 
+    using TimerOutputs
+    const to = TimerOutput()
+    timings() = (TimerOutputs.print_timer(to); println())
+    enable_timings() = (TimerOutputs.enable_debug_timings(Compiler); return)
+
     using ExprTools
     using IRTools
     using IRTools.Inner
@@ -21,7 +26,6 @@ module Compiler
     using YaoLang: AbstractLocations, merge_locations,
         Locations, CtrlLocations, Circuit, PrimitiveCircuit
 
-    @nospecialize
     include("compiler/parse.jl")
     include("compiler/ir.jl")
     include("compiler/print.jl")
@@ -34,16 +38,17 @@ module Compiler
     include("compiler/validation.jl")
 
     function __init__()
+        TimerOutputs.reset_timer!(to)
         # not sure why this doesn't work inside the module
         IRTools.Inner.printers[:quantum] = function (io, ex)
             get(printers, ex.args[1], print)(io, ex)
-        end    
+        end
     end
 
 end
 
 using .Compiler
-export @device, @primitive
+export @device, @primitive, @code_yao
 include("runtime/primitives.jl")
 
 end # module

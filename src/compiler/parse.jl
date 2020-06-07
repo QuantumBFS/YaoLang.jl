@@ -3,7 +3,7 @@ using Core: GlobalRef
 
 const RESERVED = [:gate, :ctrl, :measure, :register]
 
-function to_function(m::Module, @nospecialize(ex))
+function to_function(m::Module, ex)
     # parse macros first
     ex = eval_stmts(m, ex)
     ex = to_control(ex)
@@ -27,12 +27,12 @@ function eval_stmts(m, ex)
     end
 end
 
-function is_gate_location(@nospecialize(ex))
+function is_gate_location(ex)
     ex isa Expr || return false
     return (ex.head === :call) && (ex.args[1] == :(=>))
 end
 
-function to_gate_location(@nospecialize(ex))
+function to_gate_location(ex)
     ex isa Expr || return ex
     if is_gate_location(ex)
         location = ex.args[2]
@@ -46,7 +46,7 @@ function to_gate_location(@nospecialize(ex))
     return ex
 end
 
-function to_control(@nospecialize(ex))
+function to_control(ex)
     ex isa Expr || return ex
     if (ex.head === :macrocall) && (ex.args[1] == Symbol("@ctrl"))
         length(ex.args) == 4 ||
@@ -67,7 +67,7 @@ function to_control(@nospecialize(ex))
     return Expr(ex.head, map(to_control, ex.args)...)
 end
 
-function to_measure(@nospecialize(ex))
+function to_measure(ex)
     ex isa Expr || return ex
 
     if (ex.head === :macrocall) && (ex.args[1] == Symbol("@measure"))
@@ -89,7 +89,7 @@ function to_measure(@nospecialize(ex))
     return Expr(ex.head, map(to_measure, ex.args)...)
 end
 
-function is_measure_kwarg(@nospecialize(ex))
+function is_measure_kwarg(ex)
     ex isa Expr || return false
     ex.head == :(=) && ex.args[1] in [:reset_to, :remove]
 end
