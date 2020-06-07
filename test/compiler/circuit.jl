@@ -101,3 +101,8 @@ end
     r = ArrayReg(bit"000") + ArrayReg(bit"010") + ArrayReg(bit"110")
     @test bit"0" == check_return(1)(r)
 end
+
+@testset "printing" begin
+    ir = @code_yao qft(3)
+    println(ir)
+end
