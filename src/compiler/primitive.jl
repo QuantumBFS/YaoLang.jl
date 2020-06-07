@@ -62,7 +62,7 @@ function primitive_m(ex::Expr)
     primitive_def[:name] = :(::$(PrimitiveCircuit{name}))
     primitive_def[:body] = quote
         m = $(Expr(:call, mat_stub, args...))
-        return Circuit{$quoted_name}($stub, (m,))
+        return Circuit{$quoted_name}($stub, (m, $(args...)))
     end
 
     circ = gensym(:circ)

@@ -17,8 +17,6 @@ function device_m(__module__::Module, ex::Expr; target::Symbol=:julia, mode::Sym
     # TODO: code optimization/transformation pass
     # TODO: switch compile target
 
-    @timeit_debug to "codegen" begin
-        code = codegen(codegen_ctxs[target](ir), ir)
-    end
+    @timeit_debug to "codegen" code = codegen(codegen_ctxs[target](ir), ir)
     return code
 end

@@ -99,36 +99,26 @@ function scan_registers(register, stack::Vector, pr::IRTools.Pipe, v, st::Statem
     end
 end
 
-function update_slots!(ssa::IRTools.IR, ir::YaoIR)
-    for (v, st) in ssa
-        if st.expr isa Expr
-            args = Any[]
-            for each in st.expr.args
-                if each in arguements(ir)
-                    push!(args, IRTools.Slot(each))
-                else
-                    push!(args, each)
-                end
-            end
-            ssa[v] = Statement(st; expr=Expr(st.expr.head, args...))
-        end
-    end
-    return ssa
-end
-
 @codegen function call(ctx::JuliaASTCodegenCtx, ir::YaoIR)
     @timeit_debug to "create defs" defs = signature(ir)
-    @timeit_debug to "create name" defs[:name] = :(::$(generic_circuit(ir.name)))
-    @timeit_debug to "create body" defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, ir.args...))
-    @timeit_debug to "combinedef" code = combinedef(defs)
+    if ir.name isa Symbol
+        @timeit_debug to "create name" defs[:name] = :(::$(generic_circuit(ir.name)))
+    end
+    @timeit_debug to "create body" defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, arguements(ir)...))
+    @timeit_debug to "combinedef"  code = combinedef(defs)
     return code
 end
 
 @codegen function evaluate(ctx::JuliaASTCodegenCtx, ir::YaoIR)
     @timeit_debug to "create defs" defs = signature(ir)
     @timeit_debug to "create name" defs[:name] = GlobalRef(YaoLang, :evaluate)
-    @timeit_debug to "create args" defs[:args] = Any[:(::$(generic_circuit(ir.name))), ir.args...]
-    @timeit_debug to "create body" defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, ir.args...))
+
+    if ir.name isa Symbol
+        @timeit_debug to "create args" defs[:args] = Any[:(::$(generic_circuit(ir.name))), ir.args...]
+    else
+        @timeit_debug to "create args" defs[:args] = Any[ir.name, ir.args...]
+    end
+    @timeit_debug to "create body" defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, arguements(ir)...))
     return combinedef(defs)
 end
 
@@ -196,7 +186,6 @@ end
     ]
 
     @timeit_debug to "IRTools.finish" ssa = IRTools.finish(pr)
-    @timeit_debug to "update_slots!" update_slots!(ssa, ir)
     @timeit_debug to "build_codeinfo" code = build_codeinfo(ir.mod, def, ssa)
     return code
 end
@@ -267,13 +256,15 @@ end
     ]
 
     @timeit_debug to "IRTools.finish" ssa = IRTools.finish(pr)
-    @timeit_debug to "update_slots!" update_slots!(ssa, ir)
     @timeit_debug to "build_codeinfo" code = build_codeinfo(ir.mod, def, ssa)
     return code
 end
 
 @codegen function create_symbol(ctx::JuliaASTCodegenCtx, ir::YaoIR)
-    :(Core.@__doc__ const $(ir.name) = $(generic_circuit(ir.name))())
+    # only create symbol when its a function declaration
+    if ir.name isa Symbol
+        :(Core.@__doc__ const $(ir.name) = $(generic_circuit(ir.name))())
+    end
 end
 
 @codegen function code_yao_runtime_stub(ctx::JuliaASTCodegenCtx, ir::YaoIR)
@@ -288,7 +279,7 @@ end
 end
 
 function JuliaASTCodegenCtx(ir::YaoIR, pass = collect(Any, keys(codegen_passes)))
-    stub_name = gensym(ir.name)
+    stub_name = gensym(rm_annotations(ir.name))
     JuliaASTCodegenCtx(
         stub_name,
         gensym(:circ),

@@ -41,13 +41,9 @@ function Base.show(io::IO, x::Circuit{name}) where {name}
 end
 
 # syntax sugar
-(p::Pair{<:Locations,<:Circuit})(register::AbstractRegister) = p.second(register, p.first)
-(p::Pair{Int,<:Circuit})(register::AbstractRegister) = p.second(register, p.first)
-(p::Pair{UnitRange{Int},<:Circuit})(register::AbstractRegister) = p.second(register, p.first)
-(p::Pair{NTuple{N,Int},<:Circuit} where {N})(register::AbstractRegister) = p.second(register, p.first)
-
 (circ::Circuit)(r::AbstractRegister) = circ(r, 1:nactive(r))
-(circ::Circuit)(locs) = Pair(locs, circ)
+(circ::Circuit)(locs) = r->(circ(r, locs); r)
+(circ::Circuit)(locs, ctrl_locs) = r->(circ(r, locs, ctrl_locs); r)
 
 function Base.:(|>)(r::AbstractRegister, circ::Circuit)
     circ(r)
@@ -55,10 +51,12 @@ function Base.:(|>)(r::AbstractRegister, circ::Circuit)
 end
 
 # we only convert to Locations right before we call the stubs
-(circ::Circuit)(register, locs) = circ.fn(circ, register, Locations(locs))
-(circ::Circuit)(register, locs, ctrl_locs) =
+(circ::Circuit)(register::AbstractRegister, locs) = circ.fn(circ, register, Locations(locs))
+(circ::Circuit)(register::AbstractRegister, locs, ctrl_locs) =
     circ.fn(circ, register, Locations(locs), CtrlLocations(ctrl_locs))
 
 # allow primitive circuits to be called directly
 (c::PrimitiveCircuit)(r::AbstractRegister, locs) = c()(r, locs)
 (c::PrimitiveCircuit)(r::AbstractRegister) = c()(r)
+(c::PrimitiveCircuit)(locs::Locations) = r->c(r, locs)
+(c::PrimitiveCircuit)(locs::Locations, ctrl_locs::CtrlLocations) = r->c(r, locs, ctrl_locs)
