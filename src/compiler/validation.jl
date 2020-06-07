@@ -1,4 +1,4 @@
-export is_quantum, is_qasm_compatible
+export is_quantum, is_pure_quantum, is_qasm_compatible
 
 const PRIMITIVES_GATE = [:shift, :X, :Y, :Z, :H, :phase, :Rx, :Ry, :Rz, :T, :S, :rot]
 
