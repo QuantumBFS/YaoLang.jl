@@ -24,23 +24,19 @@ function is_pure_quantum(ex::Expr)
     ex.head === :quantum && return true
 
     if ex.head === :call
-        (ex.args[1] isa Symbol) && return true
-
-        (ex.args[1] isa GlobalRef) &&
-            (ex.args[1].name in PRIMITIVES_GATE) &&
-                return true
-
-        (ex.args[1].head === :(.)) &&
-            (ex.args[1].args[1] === :YaoLang) &&
-                (ex.args[1].args[2] in PRIMITIVES_GATE) &&
-                    return true
+        if ex.args[1] isa Symbol
+            return true
+        elseif ex.args[1] isa GlobalRef
+            (ex.args[1].name in PRIMITIVES_GATE) && return true
+        elseif (ex.args[1] isa Expr)
+            (ex.args[1].head === :(.)) &&
+                (ex.args[1].args[1] === :YaoLang) &&
+                    (ex.args[1].args[2] in PRIMITIVES_GATE) &&
+                        return true
+        end
     end
     return false
 end
-
-is_literal(x) = true
-is_literal(x::Expr) = false
-is_literal(x::Symbol) = false
 
 function hasmeasure(ir::YaoIR)
     for (v, st) in ir.body

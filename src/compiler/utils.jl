@@ -24,21 +24,8 @@ function build_codeinfo(ir::YaoIR)
     build_codeinfo(ir.mod, signature(ir), ir.body)
 end
 
-function variables(def::Dict)
-    if haskey(def, :args)
-        return def[:args]
-    else
-        return Any[]
-    end
-end
-
 function arguements(ir::YaoIR)
     map(rm_annotations, ir.args)
-end
-
-# TODO: actually implement this using JuliaVariables
-function capture_free_variables(def::Dict)
-    return arguements(def)
 end
 
 """
@@ -62,25 +49,22 @@ function splatting_variables(variables, free)
     Expr(:(=), Expr(:tuple, variables...), free)
 end
 
-function argtypes(def::Dict)
-    ex = Expr(:curly, :Tuple)
-    if haskey(def, :args)
-        for each in def[:args]
-            if each isa Symbol
-                push!(ex.args, :Any)
-            elseif (each isa Expr) && (each.head === :(::))
-                push!(ex.args, each.args[end])
-            end
-        end
-    end
+# function argtypes(def::Dict)
+#     ex = Expr(:curly, :Tuple)
+#     if haskey(def, :args)
+#         for each in def[:args]
+#             if each isa Symbol
+#                 push!(ex.args, :Any)
+#             elseif (each isa Expr) && (each.head === :(::))
+#                 push!(ex.args, each.args[end])
+#             end
+#         end
+#     end
 
-    return ex
-end
+#     return ex
+# end
 
 generic_circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :GenericCircuit), QuoteNode(name))
 circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :Circuit), QuoteNode(name))
 to_locations(x) = :(Locations($x))
 to_locations(x::Int) = Locations(x)
-
-value(x) = x
-value(x::QuoteNode) = x.value

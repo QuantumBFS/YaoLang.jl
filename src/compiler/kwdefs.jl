@@ -66,7 +66,8 @@ macro device(args...)
     kwargs = Pair[]
     for each in options
         if (each isa Expr) && (each.head === :(=))
-            push!(kwargs, each.args[1] => value(each.args[2]))
+            each.args[2] isa QuoteNode || throw(ParseError("expect a Symbol, got $(each.args[2])"))
+            push!(kwargs, each.args[1] => each.args[2].value)
         else
             throw(Meta.ParseError("Invalid Syntax, expect a compile option, got $each"))
         end
