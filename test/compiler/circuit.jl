@@ -134,6 +134,7 @@ end
 
 @device function (b::Foo)(theta)
     @ctrl b.a b.b=>shift(theta)
+    theta
 end
 
 @testset "callable" begin

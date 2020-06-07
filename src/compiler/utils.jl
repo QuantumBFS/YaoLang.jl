@@ -82,7 +82,7 @@ generic_circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :GenericCircuit)
 circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :Circuit), QuoteNode(name))
 # custom struct
 generic_circuit(name) = annotations(name)
-circuit(name) = Expr(:curly, GlobalRef(YaoLang, :Circuit), QuoteNode(gensym(annotations(name))))
+circuit(name) = Expr(:curly, GlobalRef(YaoLang, :Circuit), QuoteNode(gensym(Symbol(annotations(name)))))
 
 to_locations(x) = :(Locations($x))
 to_locations(x::Int) = Locations(x)

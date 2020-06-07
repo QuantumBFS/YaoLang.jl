@@ -99,23 +99,6 @@ function scan_registers(register, stack::Vector, pr::IRTools.Pipe, v, st::Statem
     end
 end
 
-function update_slots!(ssa::IRTools.IR, ir::YaoIR)
-    for (v, st) in ssa
-        if st.expr isa Expr
-            args = Any[]
-            for each in st.expr.args
-                if each in arguements(ir)
-                    push!(args, IRTools.Slot(each))
-                else
-                    push!(args, each)
-                end
-            end
-            ssa[v] = Statement(st; expr=Expr(st.expr.head, args...))
-        end
-    end
-    return ssa
-end
-
 @codegen function call(ctx::JuliaASTCodegenCtx, ir::YaoIR)
     @timeit_debug to "create defs" defs = signature(ir)
     if ir.name isa Symbol
@@ -203,7 +186,6 @@ end
     ]
 
     @timeit_debug to "IRTools.finish" ssa = IRTools.finish(pr)
-    @timeit_debug to "update_slots!" update_slots!(ssa, ir)
     @timeit_debug to "build_codeinfo" code = build_codeinfo(ir.mod, def, ssa)
     return code
 end
@@ -274,7 +256,6 @@ end
     ]
 
     @timeit_debug to "IRTools.finish" ssa = IRTools.finish(pr)
-    @timeit_debug to "update_slots!" update_slots!(ssa, ir)
     @timeit_debug to "build_codeinfo" code = build_codeinfo(ir.mod, def, ssa)
     return code
 end
