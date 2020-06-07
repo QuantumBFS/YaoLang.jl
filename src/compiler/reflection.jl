@@ -10,5 +10,5 @@ calls `code_yao` on the resulting expression.
 """
 macro code_yao(ex)
     (ex isa Expr) && (ex.head === :call) || error("expect a generic circuit call")
-    return Expr(:call, GlobalRef(YaoLang, :code_yao), ex.args...) |> esc
+    return IRTools.xcall(YaoLang, :code_yao, ex.args...) |> esc
 end

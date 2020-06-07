@@ -22,6 +22,7 @@ module Compiler
     using YaoLang: AbstractLocations, merge_locations,
         Locations, CtrlLocations, Circuit, PrimitiveCircuit
 
+    @nospecialize
     include("compiler/parse.jl")
     include("compiler/ir.jl")
     include("compiler/print.jl")
@@ -29,9 +30,9 @@ module Compiler
     include("compiler/compiler.jl")
     include("compiler/reflection.jl")
     include("compiler/primitive.jl")
-    # include("compiler/verify.jl")
     include("compiler/utils.jl")
     include("compiler/kwdefs.jl")
+    include("compiler/validation.jl")
 
     function __init__()
         # not sure why this doesn't work inside the module
@@ -44,7 +45,6 @@ end
 
 using .Compiler
 export @device, @primitive
-
 include("runtime/primitives.jl")
 
 end # module

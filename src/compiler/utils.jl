@@ -6,15 +6,6 @@ function signature(ir::YaoIR)
     return defs
 end
 
-function hasmeasure(ir::YaoIR)
-    for (v, st) in ir.body
-        if is_quantum(st) && (st.expr.args[1] === :measure)
-            return true
-        end
-    end
-    return false
-end
-
 function build_codeinfo(m::Module, defs::Dict, ir::IR)
     defs[:body] = :(return)
     ci = Meta.lower(m, combinedef(defs))
@@ -49,10 +40,6 @@ end
 function capture_free_variables(def::Dict)
     return arguements(def)
 end
-
-is_quantum(x) = false
-is_quantum(st::Statement) = is_quantum(st.expr)
-is_quantum(ex::Expr) = ex.head === :quantum
 
 """
     rm_annotations(x)
@@ -94,11 +81,6 @@ generic_circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :GenericCircuit)
 circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :Circuit), QuoteNode(name))
 to_locations(x) = :(Locations($x))
 to_locations(x::Int) = Locations(x)
-
-is_literal(x) = true
-is_literal(x::Expr) = false
-is_literal(x::Symbol) = false
-
 
 value(x) = x
 value(x::QuoteNode) = x.value

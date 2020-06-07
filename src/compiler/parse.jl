@@ -3,8 +3,9 @@ using Core: GlobalRef
 
 const RESERVED = [:gate, :ctrl, :measure, :register]
 
-function to_function(@nospecialize(ex))
+function to_function(m::Module, @nospecialize(ex))
     # parse macros first
+    ex = eval_stmts(m, ex)
     ex = to_control(ex)
     ex = to_measure(ex)
     ex = to_gate_location(ex)
@@ -14,6 +15,15 @@ function to_function(@nospecialize(ex))
         $ex
         # force return nothing if no return declared
         return
+    end
+end
+
+function eval_stmts(m, ex)
+    ex isa Expr || return ex
+    if ex.head === :$
+        return Base.eval(m, ex.args[1])
+    else
+        return Expr(ex.head, map(x->eval_stmts(m, x), ex.args)...)
     end
 end
 
@@ -72,7 +82,7 @@ function to_measure(@nospecialize(ex))
             end
         end
 
-        length(parameters) == 1 || throw(ParseError("@measure takes only 1 keyword argument, got $(length(parameters))"))
+        length(parameters) <= 1 || throw(ParseError("@measure takes only 1 keyword argument, got $(length(parameters))"))
         return Expr(:call, GlobalRef(Compiler, :measure), Expr(:parameters, parameters...), args...)
     end
 

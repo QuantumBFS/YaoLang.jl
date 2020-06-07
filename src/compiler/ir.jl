@@ -17,7 +17,7 @@ function YaoIR(m::Module, ast::Expr, mode::Symbol=:hybrid)
     # on frontend AST as well here, but not necessary
     # for now, and all syntax related things should
     # go into to_function transformation
-    ex = to_function(defs[:body])
+    ex = to_function(m, defs[:body])
     lowered_ast = Meta.lower(m, ex)
 
     if lowered_ast === nothing
@@ -31,6 +31,11 @@ end
 
 YaoIR(ast::Expr) = YaoIR(@__MODULE__, ast)
 
+"""
+    mark_quantum(ir::IR)
+
+swap the statement tag with `:quantum`.
+"""
 function mark_quantum(ir::IR)
     for (v, st) in ir
         if (st.expr isa Expr) && (st.expr.head === :call) && (st.expr.args[1] isa GlobalRef)
