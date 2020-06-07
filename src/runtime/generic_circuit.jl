@@ -58,3 +58,7 @@ end
 (circ::Circuit)(register, locs) = circ.fn(circ, register, Locations(locs))
 (circ::Circuit)(register, locs, ctrl_locs) =
     circ.fn(circ, register, Locations(locs), CtrlLocations(ctrl_locs))
+
+# allow primitive circuits to be called directly
+(c::PrimitiveCircuit)(r::AbstractRegister, locs) = c()(r, locs)
+(c::PrimitiveCircuit)(r::AbstractRegister) = c()(r)
