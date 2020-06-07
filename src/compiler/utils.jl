@@ -25,7 +25,7 @@ function build_codeinfo(ir::YaoIR)
 end
 
 function arguements(ir::YaoIR)
-    map(rm_annotations, ir.args)
+    map(rm_annotations, map(rm_default_value, ir.args))
 end
 
 """
@@ -33,13 +33,21 @@ end
 
 Remove type annotation of given expression.
 """
-rm_annotations(x) = x
-
-function rm_annotations(x::Expr)
+function rm_annotations(x)
+    x isa Expr || return x
     if x.head == :(::)
         return x.args[1]
     elseif x.head in [:(=), :kw] # default values
         return rm_annotations(x.args[1])
+    else
+        return x
+    end
+end
+
+function rm_default_value(x)
+    x isa Expr || return x
+    if x.head === :kw
+        return x.args[1]
     else
         return x
     end

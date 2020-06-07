@@ -15,9 +15,11 @@ end
 print_name(io::IO, name::Symbol) = printstyled(io, name)
 
 function print_name(io::IO, name::Expr)
-    if name.head == :(::)
+    if name.head === :(::)
         print(io, name.args[1], "::")
         printstyled(io, name.args[2]; color=:green, bold=true)
+    elseif name.head === :(kw)
+        print(io, name.args[1], "=", name.args[2])
     else # not sure this is the case, but print it anyway
         print(io, name)
     end

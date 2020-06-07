@@ -1,5 +1,6 @@
 using YaoLang
 using YaoLang.Compiler
+using ExprTools
 using IRTools
 using IRTools: IR
 using YaoArrayRegister
@@ -105,4 +106,27 @@ end
 @testset "printing" begin
     ir = @code_yao qft(3)
     println(ir)
+end
+
+@device function single_qubit_layer(configs::AbstractVector, gateset = (X, Y, Z))
+    @inbounds for k in 1:size(configs, 1)
+        idx = configs[k]
+        if idx > 0
+            idx => gateset[idx]
+        end
+    end
+end
+
+@testset "default value (#19)" begin
+    configs = rand(1:3, 4)
+    gateset = (X, Y, Z)
+    c = single_qubit_layer(configs)
+    r = rand_state(4)
+    r1 = copy(r) |> c
+
+    r2 = copy(r)
+    for k in 1:4
+        r2 |> gateset[configs[k]](Locations(k))
+    end
+    @test r1 ≈ r2
 end

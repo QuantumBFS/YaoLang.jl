@@ -119,8 +119,8 @@ end
 @codegen function call(ctx::JuliaASTCodegenCtx, ir::YaoIR)
     @timeit_debug to "create defs" defs = signature(ir)
     @timeit_debug to "create name" defs[:name] = :(::$(generic_circuit(ir.name)))
-    @timeit_debug to "create body" defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, ir.args...))
-    @timeit_debug to "combinedef" code = combinedef(defs)
+    @timeit_debug to "create body" defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, arguements(ir)...))
+    @timeit_debug to "combinedef"  code = combinedef(defs)
     return code
 end
 
@@ -128,7 +128,7 @@ end
     @timeit_debug to "create defs" defs = signature(ir)
     @timeit_debug to "create name" defs[:name] = GlobalRef(YaoLang, :evaluate)
     @timeit_debug to "create args" defs[:args] = Any[:(::$(generic_circuit(ir.name))), ir.args...]
-    @timeit_debug to "create body" defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, ir.args...))
+    @timeit_debug to "create body" defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, arguements(ir)...))
     return combinedef(defs)
 end
 
