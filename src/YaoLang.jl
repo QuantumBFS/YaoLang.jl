@@ -48,7 +48,7 @@ module Compiler
 end
 
 using .Compiler
-export @device, @primitive
+export @device, @primitive, @code_yao
 include("runtime/primitives.jl")
 
 end # module
