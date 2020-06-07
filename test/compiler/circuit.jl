@@ -57,10 +57,6 @@ end
     @test statevec(a) ≈ kv
 
     circ = qft(4)
-    @test circ(1:4) == ((1:4) => circ)
-    @test ((1:4) => circ)(copy(r)) == circ(1:4)(copy(r))
-    @test ((1, 2, 3, 4) => circ)(copy(r)) == circ(1:4)(copy(r))
-
     ir = @code_yao qft4()
     @test is_qasm_compatible(ir)
 end
@@ -112,7 +108,7 @@ end
     @inbounds for k in 1:size(configs, 1)
         idx = configs[k]
         if idx > 0
-            idx => gateset[idx]
+            k => gateset[idx]
         end
     end
 end
@@ -128,5 +124,22 @@ end
     for k in 1:4
         r2 |> gateset[configs[k]](Locations(k))
     end
+    @test r1 ≈ r2
+end
+
+struct Foo
+    a::Int
+    b::Int
+end
+
+@device function (b::Foo)(theta)
+    @ctrl b.a b.b=>shift(theta)
+end
+
+@testset "callable" begin
+    m = Foo(1, 2)
+    r = rand_state(4)
+    r1 = copy(r) |> m(1.2)
+    r2 = copy(r) |> shift(1.2)(1, 2)
     @test r1 ≈ r2
 end

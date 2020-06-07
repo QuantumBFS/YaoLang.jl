@@ -25,7 +25,11 @@ function build_codeinfo(ir::YaoIR)
 end
 
 function arguements(ir::YaoIR)
-    map(rm_annotations, ir.args)
+    args = map(rm_annotations, ir.args)
+    if (ir.name isa Expr) && (ir.name.head === :(::))
+        insert!(args, 1, ir.name.args[1])
+    end
+    return args
 end
 
 """
@@ -78,7 +82,7 @@ generic_circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :GenericCircuit)
 circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :Circuit), QuoteNode(name))
 # custom struct
 generic_circuit(name) = annotations(name)
-circuit(name) = rm_annotations(name)
+circuit(name) = Expr(:curly, GlobalRef(YaoLang, :Circuit), QuoteNode(gensym(annotations(name))))
 
 to_locations(x) = :(Locations($x))
 to_locations(x::Int) = Locations(x)

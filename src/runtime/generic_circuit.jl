@@ -42,8 +42,8 @@ end
 
 # syntax sugar
 (circ::Circuit)(r::AbstractRegister) = circ(r, 1:nactive(r))
-(circ::Circuit)(locs) = r->circ(r, locs)
-(circ::Circuit)(locs, ctrl_locs) = r->circ(locs, ctrl_locs)
+(circ::Circuit)(locs) = r->(circ(r, locs); r)
+(circ::Circuit)(locs, ctrl_locs) = r->(circ(r, locs, ctrl_locs); r)
 
 function Base.:(|>)(r::AbstractRegister, circ::Circuit)
     circ(r)
@@ -51,8 +51,8 @@ function Base.:(|>)(r::AbstractRegister, circ::Circuit)
 end
 
 # we only convert to Locations right before we call the stubs
-(circ::Circuit)(register, locs) = circ.fn(circ, register, Locations(locs))
-(circ::Circuit)(register, locs, ctrl_locs) =
+(circ::Circuit)(register::AbstractRegister, locs) = circ.fn(circ, register, Locations(locs))
+(circ::Circuit)(register::AbstractRegister, locs, ctrl_locs) =
     circ.fn(circ, register, Locations(locs), CtrlLocations(ctrl_locs))
 
 # allow primitive circuits to be called directly
