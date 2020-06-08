@@ -18,7 +18,7 @@ struct YaoIR
     mode::Symbol
 end
 
-function YaoIR(m::Module, ast::Expr, mode::Symbol=:hybrid)
+function YaoIR(m::Module, ast::Expr, mode::Symbol = :hybrid)
     defs = splitdef(ast; throw = false)
     defs === nothing && throw(ParseError("expect function definition"))
 
@@ -35,7 +35,14 @@ function YaoIR(m::Module, ast::Expr, mode::Symbol=:hybrid)
         body = IR(lowered_ast.args[], 0)
     end
 
-    ir = YaoIR(m, defs[:name], get(defs, :args, Any[]), get(defs, :whereparams, Any[]), mark_quantum(body), mode)
+    ir = YaoIR(
+        m,
+        defs[:name],
+        get(defs, :args, Any[]),
+        get(defs, :whereparams, Any[]),
+        mark_quantum(body),
+        mode,
+    )
     update_slots!(ir)
     return ir
 end
@@ -52,13 +59,13 @@ function mark_quantum(ir::IR)
         if (st.expr isa Expr) && (st.expr.head === :call) && (st.expr.args[1] isa GlobalRef)
             ref = st.expr.args[1]
             if ref.mod === Compiler && ref.name in RESERVED
-                ir[v] = Statement(st; expr=Expr(:quantum, ref.name, st.expr.args[2:end]...))
+                ir[v] = Statement(st; expr = Expr(:quantum, ref.name, st.expr.args[2:end]...))
             end
         end
 
         # mark quantum meta
         if (st.expr isa Expr) && (st.expr.head === :meta) && (st.expr.args[1] in RESERVED)
-            ir[v] = Statement(st; expr=Expr(:quantum, st.expr.args...))
+            ir[v] = Statement(st; expr = Expr(:quantum, st.expr.args...))
         end
     end
     return ir
@@ -77,9 +84,9 @@ function update_slots!(ir::YaoIR)
                     push!(args, each)
                 end
             end
-            ir.body[v] = Statement(st; expr=Expr(st.expr.head, args...))
+            ir.body[v] = Statement(st; expr = Expr(st.expr.head, args...))
         elseif (st.expr isa Symbol) && (st.expr in fn_args)
-            ir.body[v] = Statement(st; expr=IRTools.Slot(st.expr))
+            ir.body[v] = Statement(st; expr = IRTools.Slot(st.expr))
         end
     end
     return ir

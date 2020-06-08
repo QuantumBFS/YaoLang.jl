@@ -62,7 +62,7 @@ end
 macro device(args...)
     options = args[1:end-1]
     ex = args[end]
-    
+
     kwargs = Pair[]
     for each in options
         if (each isa Expr) && (each.head === :(=))
