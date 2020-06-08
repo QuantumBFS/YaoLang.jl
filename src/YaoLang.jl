@@ -36,6 +36,7 @@ module Compiler
     include("compiler/utils.jl")
     include("compiler/kwdefs.jl")
     include("compiler/validation.jl")
+    include("compiler/trace.jl")
 
     function __init__()
         TimerOutputs.reset_timer!(to)
@@ -48,7 +49,7 @@ module Compiler
 end
 
 using .Compiler
-export @device, @primitive, @code_yao
+export @device, @primitive, @code_yao, @quantum
 include("runtime/primitives.jl")
 
 end # module

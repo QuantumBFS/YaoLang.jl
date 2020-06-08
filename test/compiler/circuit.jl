@@ -144,3 +144,8 @@ end
     r2 = copy(r) |> shift(1.2)(1, 2)
     @test r1 ≈ r2
 end
+
+@testset "purify" begin
+    pure_qft = @quantum 3 qft(3)
+    @test is_pure_quantum(@code_yao pure_qft())
+end
