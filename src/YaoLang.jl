@@ -45,6 +45,7 @@ module Compiler
             get(printers, ex.args[1], print)(io, ex)
         end
     end
+end
 
 end
 

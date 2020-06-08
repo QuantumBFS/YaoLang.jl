@@ -23,7 +23,7 @@ function eval_stmts(m, ex)
     if ex.head === :$
         return Base.eval(m, ex.args[1])
     else
-        return Expr(ex.head, map(x->eval_stmts(m, x), ex.args)...)
+        return Expr(ex.head, map(x -> eval_stmts(m, x), ex.args)...)
     end
 end
 
@@ -49,8 +49,7 @@ end
 function to_control(ex)
     ex isa Expr || return ex
     if (ex.head === :macrocall) && (ex.args[1] == Symbol("@ctrl"))
-        length(ex.args) == 4 ||
-            throw(ParseError("@ctrl expect 2 argument, got $(length(ex.args)-2)"))
+        length(ex.args) == 4 || throw(ParseError("@ctrl expect 2 argument, got $(length(ex.args)-2)"))
 
         ctrl_location = ex.args[3]
         gate_ex = ex.args[4]
@@ -82,7 +81,8 @@ function to_measure(ex)
             end
         end
 
-        length(parameters) <= 1 || throw(ParseError("@measure takes only 1 keyword argument, got $(length(parameters))"))
+        length(parameters) <= 1 ||
+            throw(ParseError("@measure takes only 1 keyword argument, got $(length(parameters))"))
         return Expr(:call, GlobalRef(Compiler, :measure), Expr(:parameters, parameters...), args...)
     end
 

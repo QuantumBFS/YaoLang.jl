@@ -5,7 +5,7 @@ using Test
 ex = :(function qft(n::Int)
     1 => H
     for k in 2:n
-        @ctrl k 1=>shift(2π / 2^k)
+        @ctrl k 1 => shift(2π / 2^k)
     end
 
     if n > 1

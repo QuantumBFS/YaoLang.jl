@@ -31,8 +31,8 @@ function is_pure_quantum(ex::Expr)
         elseif (ex.args[1] isa Expr)
             (ex.args[1].head === :(.)) &&
                 (ex.args[1].args[1] === :YaoLang) &&
-                    (ex.args[1].args[2] in PRIMITIVES_GATE) &&
-                        return true
+                (ex.args[1].args[2] in PRIMITIVES_GATE) &&
+                return true
         end
     end
     return false
@@ -47,9 +47,7 @@ function hasmeasure(ir::YaoIR)
     return false
 end
 
-const QASM_VALIDE_EX = Any[
-    :(+), :(-), :(*),  :(\), :(/), :(^),
-]
+const QASM_VALIDE_EX = Any[:(+), :(-), :(*), :(\), :(/), :(^)]
 
 for fn in [:sin, :cos, :tanh, :exp, :log, :sqrt]
     push!(QASM_VALIDE_EX, GlobalRef(Base, fn))
