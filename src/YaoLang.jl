@@ -47,8 +47,6 @@ module Compiler
     end
 end
 
-end
-
 using .Compiler
 export @device, @primitive, @code_yao, @quantum
 include("runtime/primitives.jl")
