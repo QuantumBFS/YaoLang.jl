@@ -1,5 +1,14 @@
 export YaoIR
 
+"""
+    YaoIR
+
+The Yao Intermediate Representation. See compilation section for more details.
+
+    YaoIR([m::Module=YaoLang.Compiler], ast::Expr[, mode::Symbol=:hybrid])
+
+Creates a `YaoIR` from Julia AST.
+"""
 struct YaoIR
     mod::Module
     name::Any

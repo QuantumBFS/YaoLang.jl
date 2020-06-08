@@ -121,9 +121,3 @@ In YaoBlocks, a large quantum circuit can easily lost its structure if it is con
 ```@autodocs
 Modules = [YaoLang]
 ```
-
-## Compiler API References
-
-```@autodocs
-Modules = [YaoLang.Compiler]
-```
