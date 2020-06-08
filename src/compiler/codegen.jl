@@ -3,7 +3,7 @@ export codegen, JuliaASTCodegenCtx
 abstract type CompileCtx end
 abstract type AbstractJuliaASTCtx <: CompileCtx end
 
-const codegen_passes = Dict{Symbol, Function}()
+const codegen_passes = Dict{Symbol,Function}()
 
 # abstract type AbstractQASMCtx <: CompileCtx end
 # struct QASMCodegenCtx <: AbstractQASMCtx
@@ -48,7 +48,8 @@ end
 
 macro codegen(ex)
     defs = splitdef(ex)
-    defs[:name] isa Symbol || throw(ParseError("@codegen expect function not callable or lambda function"))
+    defs[:name] isa Symbol ||
+        throw(ParseError("@codegen expect function not callable or lambda function"))
     name = Symbol(:codegen_, defs[:name])
     quoted_name = QuoteNode(defs[:name])
     defs[:name] = name
@@ -104,8 +105,9 @@ end
     if ir.name isa Symbol
         @timeit_debug to "create name" defs[:name] = :(::$(generic_circuit(ir.name)))
     end
-    @timeit_debug to "create body" defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, arguements(ir)...))
-    @timeit_debug to "combinedef"  code = combinedef(defs)
+    @timeit_debug to "create body" defs[:body] =
+        Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, arguements(ir)...))
+    @timeit_debug to "combinedef" code = combinedef(defs)
     return code
 end
 
@@ -118,7 +120,8 @@ end
     else
         @timeit_debug to "create args" defs[:args] = Any[ir.name, ir.args...]
     end
-    @timeit_debug to "create body" defs[:body] = Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, arguements(ir)...))
+    @timeit_debug to "create body" defs[:body] =
+        Expr(:call, circuit(ir.name), ctx.stub_name, Expr(:tuple, arguements(ir)...))
     return combinedef(defs)
 end
 
@@ -138,16 +141,11 @@ end
             if head === :register
                 register = scan_registers(register, ctx.registers, pr, v, st)
             elseif head in [:gate, :ctrl]
-                locs = map(x->flatten_locations(pr, v, locations, x), st.expr.args[3:end])
-                pr[v] = Statement(st;
-                            expr=Expr(:call, st.expr.args[2],
-                                register,
-                                locs...,
-                            )
-                        )
+                locs = map(x -> flatten_locations(pr, v, locations, x), st.expr.args[3:end])
+                pr[v] = Statement(st; expr = Expr(:call, st.expr.args[2], register, locs...))
             elseif head === :measure
                 measure_ex = Expr(:call, GlobalRef(YaoAPI, :measure!))
-                
+
                 if (st.expr.args[2] isa Expr) && (st.expr.args[2].head === :parameters)
                     kwargs = first(st.expr.args[2])
                     if kwargs.args[1] === :reset_to
@@ -170,14 +168,14 @@ end
                 loc = flatten_locations(pr, v, locations, args[end])
                 push!(measure_ex.args, loc)
 
-                pr[v] = Statement(st; expr=measure_ex)
+                pr[v] = Statement(st; expr = measure_ex)
             else # reserved for extending keywords
                 throw(ParseError("Invalid keyword: $head"))
             end
         end
     end
 
-    def = Dict{Symbol, Any}()
+    def = Dict{Symbol,Any}()
     def[:name] = ctx.stub_name
     def[:args] = Any[
         :($(ctx.circuit)::$(YaoLang.Circuit)),
@@ -192,7 +190,7 @@ end
 
 @codegen function ctrl_circuit(ctx::JuliaASTCodegenCtx, ir::YaoIR)
     if hasmeasure(ir)
-        def = Dict{Symbol, Any}()
+        def = Dict{Symbol,Any}()
         def[:name] = ctx.stub_name
         def[:args] = Any[
             :($(ctx.circuit)::$(YaoLang.Circuit)),
@@ -224,29 +222,20 @@ end
                 register = scan_registers(register, ctx.registers, pr, v, st)
             elseif head === :gate
                 locs = flatten_locations(pr, v, locations, st.expr.args[3])
-                pr[v] = Statement(st;
-                            expr=Expr(:call, st.expr.args[2],
-                                register,
-                                locs, ctrl_locations,
-                            )
-                        )
+                pr[v] =
+                    Statement(st; expr = Expr(:call, st.expr.args[2], register, locs, ctrl_locations))
             elseif head === :ctrl
                 locs = flatten_locations(pr, v, locations, st.expr.args[3])
                 ctrl_locs = flatten_locations(pr, v, locations, st.expr.args[4])
                 ctrl_locs = insert!(pr, v, merge_location_ex(ctrl_locations, ctrl_locs))
-                pr[v] = Statement(st;
-                            expr=Expr(:call, st.expr.args[2],
-                                register,
-                                locs, ctrl_locs,
-                            )
-                        )
+                pr[v] = Statement(st; expr = Expr(:call, st.expr.args[2], register, locs, ctrl_locs))
             else # reserved for extending keywords
                 throw(ParseError("Invalid keyword: $head"))
             end
         end
     end
 
-    def = Dict{Symbol, Any}()
+    def = Dict{Symbol,Any}()
     def[:name] = ctx.stub_name
     def[:args] = Any[
         :($(ctx.circuit)::$(YaoLang.Circuit)),

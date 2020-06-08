@@ -1,5 +1,5 @@
 function signature(ir::YaoIR)
-    defs = Dict(:name=>ir.name, :args=>ir.args)
+    defs = Dict(:name => ir.name, :args => ir.args)
     if !isempty(ir.whereparams)
         defs[:whereparams] = ir.whereparams
     end
@@ -13,9 +13,9 @@ function build_codeinfo(m::Module, defs::Dict, ir::IR)
     mt_ci = mt.args[end]
 
     # update method CodeInfo
-    @timeit_debug to "copy IR"     ir = copy(ir)
+    @timeit_debug to "copy IR" ir = copy(ir)
     @timeit_debug to "insert self" Inner.argument!(ir, at = 1)
-    @timeit_debug to "update CI"   Inner.update!(mt_ci, ir)
+    @timeit_debug to "update CI" Inner.update!(mt_ci, ir)
     @timeit_debug to "validate CI" Core.Compiler.validate_code(mt_ci)
     return ci
 end
@@ -82,7 +82,8 @@ generic_circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :GenericCircuit)
 circuit(name::Symbol) = Expr(:curly, GlobalRef(YaoLang, :Circuit), QuoteNode(name))
 # custom struct
 generic_circuit(name) = annotations(name)
-circuit(name) = Expr(:curly, GlobalRef(YaoLang, :Circuit), QuoteNode(gensym(Symbol(annotations(name)))))
+circuit(name) =
+    Expr(:curly, GlobalRef(YaoLang, :Circuit), QuoteNode(gensym(Symbol(annotations(name)))))
 
 to_locations(x) = :(Locations($x))
 to_locations(x::Int) = Locations(x)

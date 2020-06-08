@@ -10,7 +10,7 @@ using Test
 @device function qft(n::Int)
     1 => H
     for k in 2:n
-        @ctrl k 1=>shift(2π / 2^k)
+        @ctrl k 1 => shift(2π / 2^k)
     end
 
     if n > 1
@@ -29,23 +29,23 @@ end
 # cu1(pi/2) q[3],q[2];
 # h q[3];
 
-@device mode=:qasm function qft4()
-    1=>H
-    @ctrl 2 1=>shift(π/2)
-    @ctrl 3 1=>shift(π/4)
-    @ctrl 4 1=>shift(π/8)
+@device mode = :qasm function qft4()
+    1 => H
+    @ctrl 2 1 => shift(π / 2)
+    @ctrl 3 1 => shift(π / 4)
+    @ctrl 4 1 => shift(π / 8)
 
-    2=>H
-    @ctrl 3 2=>shift(π/2)
-    @ctrl 4 2=>shift(π/4)
+    2 => H
+    @ctrl 3 2 => shift(π / 2)
+    @ctrl 4 2 => shift(π / 4)
 
-    3=>H
-    @ctrl 4 3=>shift(π/2)
+    3 => H
+    @ctrl 4 3 => shift(π / 2)
 
-    4=>H
+    4 => H
 end
 
-@device mode=:pure function hadamard()
+@device mode = :pure function hadamard()
     1 => H
 end
 
@@ -68,20 +68,20 @@ end
     @test (copy(r) |> hadamard()) ≈ (copy(r) |> H())
 end
 
-@device mode=:pure function pure_qft4()
-    1=>H
-    @ctrl 2 1=>shift($(π/2))
-    @ctrl 3 1=>shift($(π/4))
-    @ctrl 4 1=>shift($(π/8))
+@device mode = :pure function pure_qft4()
+    1 => H
+    @ctrl 2 1 => shift($(π / 2))
+    @ctrl 3 1 => shift($(π / 4))
+    @ctrl 4 1 => shift($(π / 8))
 
-    2=>H
-    @ctrl 3 2=>shift($(π/2))
-    @ctrl 4 2=>shift($(π/4))
+    2 => H
+    @ctrl 3 2 => shift($(π / 2))
+    @ctrl 4 2 => shift($(π / 4))
 
-    3=>H
-    @ctrl 4 3=>shift($(π/2))
+    3 => H
+    @ctrl 4 3 => shift($(π / 2))
 
-    4=>H
+    4 => H
 end
 
 @testset "\$ eval" begin
@@ -133,7 +133,7 @@ struct Foo
 end
 
 @device function (b::Foo)(theta)
-    @ctrl b.a b.b=>shift(theta)
+    @ctrl b.a b.b => shift(theta)
     theta
 end
 
