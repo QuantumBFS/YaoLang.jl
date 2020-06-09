@@ -11,8 +11,9 @@ is_quantum(ex::Statement) = is_quantum(ex.expr)
 is_quantum(ex::Expr) = ex.head === :quantum
 is_quantum(ex) = false
 
-function is_pure_quantum(ir::YaoIR)
-    return all(ir.body) do (v, st)
+is_pure_quantum(ir::YaoIR) = is_pure_quantum(ir.body)
+function is_pure_quantum(ir::IRTools.IR)
+    return all(ir) do (v, st)
         is_pure_quantum(st)
     end
 end
@@ -63,11 +64,13 @@ end
 
 Check if the given expression is compatible with openQASM.
 """
-function is_qasm_compatible(ir::YaoIR)
-    return all(ir.body) do (v, st)
+function is_qasm_compatible(ir::IRTools.IR)
+    return all(ir) do (v, st)
         is_qasm_compatible(st)
     end
 end
+
+is_qasm_compatible(ir::YaoIR) = is_qasm_compatible(ir.body)
 
 is_qasm_compatible(st::Statement) = is_qasm_compatible(st.expr)
 

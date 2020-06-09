@@ -52,7 +52,7 @@ function YaoIR(m::Module, tape::TraceTape{1}, name=gensym())
         body = IR(lowered_ast.args[], 0)
     end
 
-    ir = YaoIR(m, name, Any[], Any[], mark_quantum(body), :pure)
+    ir = YaoIR(m, name, Any[], Any[], mark_quantum(body), true, true)
     update_slots!(ir)
     return ir
 end

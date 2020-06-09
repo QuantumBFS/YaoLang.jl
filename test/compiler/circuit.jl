@@ -29,7 +29,7 @@ end
 # cu1(pi/2) q[3],q[2];
 # h q[3];
 
-@device mode = :qasm function qft4()
+@device function qft4()
     1 => H
     @ctrl 2 1 => shift(π / 2)
     @ctrl 3 1 => shift(π / 4)
@@ -45,7 +45,7 @@ end
     4 => H
 end
 
-@device mode = :pure function hadamard()
+@device function hadamard()
     1 => H
 end
 
@@ -58,35 +58,16 @@ end
 
     circ = qft(4)
     ir = @code_yao qft4()
-    @test is_qasm_compatible(ir)
+    @test ir.qasm_compatible == true
+    @test ir.pure_quantum == true
 end
 
 @testset "example/hadamard" begin
     ir = @code_yao hadamard()
-    @test ir.mode == :pure
+    @test ir.pure_quantum == true
+    @test ir.qasm_compatible == true
     r = rand_state(1)
     @test (copy(r) |> hadamard()) ≈ (copy(r) |> H())
-end
-
-@device mode = :pure function pure_qft4()
-    1 => H
-    @ctrl 2 1 => shift($(π / 2))
-    @ctrl 3 1 => shift($(π / 4))
-    @ctrl 4 1 => shift($(π / 8))
-
-    2 => H
-    @ctrl 3 2 => shift($(π / 2))
-    @ctrl 4 2 => shift($(π / 4))
-
-    3 => H
-    @ctrl 4 3 => shift($(π / 2))
-
-    4 => H
-end
-
-@testset "\$ eval" begin
-    ir = @code_yao pure_qft4()
-    @test is_pure_quantum(ir)
 end
 
 @device function check_return(k::Int)

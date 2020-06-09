@@ -20,14 +20,7 @@ the location of qubits and the pointer to quantum register.
 
 # Options
 
-- `mode`, compilation mode, default is `:hybrid`, see **Compilation Modes** for details.
 - `target`, compilation target, default is `:julia`, see **Compilation Targets** for details.
-
-## Compilation Modes
-
-- `:hybrid`, default mode, allows arbitrary Julia code to work with quantum statements.
-- `:pure`, all classical statements are disabled.
-- `:qasm`, allows limited set of classical statements which is compatible to [openQASM](https://github.com/Qiskit/openqasm)
 
 ## Compilation Targets
 

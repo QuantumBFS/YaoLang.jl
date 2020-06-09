@@ -14,7 +14,7 @@ ex = :(function qft(n::Int)
 end)
 
 @testset "validation" begin
-    ir = YaoIR(@__MODULE__, ex, :hybrid)
+    ir = YaoIR(@__MODULE__, ex)
     @test is_quantum(ir) == false
     @test is_pure_quantum(ir) == false
     @test is_qasm_compatible(ir) == false
