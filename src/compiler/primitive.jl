@@ -17,6 +17,11 @@ function generate_forward_stub(name::Symbol, op)
             return
         end
 
+        function $stub(::$(Circuit){$quoted_name}, r::$(TraceTape), locs::$(Locations))
+            $(GlobalRef(Compiler, :trace!))(r, Expr(:quantum, :gate, GlobalRef(YaoLang, $quoted_name), locs))
+            return
+        end
+
         function $stub(
             ::$(Circuit){$quoted_name},
             r::$(AbstractRegister),
@@ -26,6 +31,11 @@ function generate_forward_stub(name::Symbol, op)
             raw_ctrl_locs = Tuple(ctrl_locs.storage)
             ctrl_cfg = map(Int, (ctrl_locs.configs...,))
             $(YaoAPI).instruct!(r, $op, Tuple(locs), raw_ctrl_locs, ctrl_cfg)
+            return
+        end
+
+        function $stub(::$(Circuit){$quoted_name}, r::$(TraceTape), locs::$(Locations), ctrl_locs::$(CtrlLocations))
+            $(GlobalRef(Compiler, :trace!))(r, Expr(:quantum, :ctrl, GlobalRef(YaoLang, $quoted_name), locs, ctrl_locs))
             return
         end
 
@@ -98,11 +108,38 @@ function primitive_m(ex::Expr)
         return
     end
 
+    trace_stub_def = Dict{Symbol, Any}()
+    trace_stub_def[:name] = stub
+    trace_stub_def[:args] =
+        Any[:($circ::Circuit{$quoted_name}), :($register::$TraceTape), :($locs::$Locations)]
+    trace_stub_def[:body] =
+        Expr(:call, GlobalRef(Compiler, :trace!), register,
+                :(Expr(:quantum, :gate,
+                    Expr(:call, GlobalRef(YaoLang, $quoted_name), $circ.free[2:end]...), $locs)
+                )
+            )
+
+    trace_ctrl_stub_def = Dict{Symbol,Any}()
+    trace_ctrl_stub_def[:name] = stub
+    trace_ctrl_stub_def[:args] = Any[
+        :($circ::Circuit{$quoted_name}),
+        :($register::$TraceTape),
+        :($locs::$Locations),
+        :($ctrl_locs::$CtrlLocations),
+    ]
+    trace_ctrl_stub_def[:body] = Expr(:call, GlobalRef(Compiler, :trace!), register,
+                :(Expr(:quantum, :ctrl,
+                    Expr(:call, GlobalRef(YaoLang, $quoted_name), $circ.free[2:end]...), $locs, $ctrl_locs)
+                )
+            )
+
     quote
         $(combinedef(mat_stub_def))
         $(combinedef(stub_def))
         $(combinedef(ctrl_stub_def))
         $(combinedef(primitive_def))
+        $(combinedef(trace_stub_def))
+        $(combinedef(trace_ctrl_stub_def))
         Core.@__doc__ const $name = $(PrimitiveCircuit{name})()
         push!($(GlobalRef(Compiler, :PRIMITIVES)), $name)
         $name
