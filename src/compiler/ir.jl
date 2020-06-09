@@ -5,20 +5,21 @@ export YaoIR
 
 The Yao Intermediate Representation. See compilation section for more details.
 
-    YaoIR([m::Module=YaoLang.Compiler], ast::Expr[, mode::Symbol=:hybrid])
+    YaoIR([m::Module=YaoLang.Compiler], ast::Expr)
 
 Creates a `YaoIR` from Julia AST.
 """
-struct YaoIR
+mutable struct YaoIR
     mod::Module
     name::Any
     args::Vector{Any}
     whereparams::Vector{Any}
     body::IR
-    mode::Symbol
+    pure_quantum::Bool
+    qasm_compatible::Bool
 end
 
-function YaoIR(m::Module, ast::Expr, mode::Symbol = :hybrid)
+function YaoIR(m::Module, ast::Expr)
     defs = splitdef(ast; throw = false)
     defs === nothing && throw(ParseError("expect function definition"))
 
@@ -41,7 +42,7 @@ function YaoIR(m::Module, ast::Expr, mode::Symbol = :hybrid)
         get(defs, :args, Any[]),
         get(defs, :whereparams, Any[]),
         mark_quantum(body),
-        mode,
+        false, false,
     )
     update_slots!(ir)
     return ir
