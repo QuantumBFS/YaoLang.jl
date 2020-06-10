@@ -1,10 +1,10 @@
 export TraceTape, recover_ast
 
 struct TraceTape{B} <: AbstractRegister{B}
-    commands::NTuple{B, Vector{Any}}
+    commands::NTuple{B,Vector{Any}}
 end
 
-TraceTape() = TraceTape{1}((Any[], ))
+TraceTape() = TraceTape{1}((Any[],))
 
 function trace!(tape::TraceTape{1}, stmt)
     push!(tape.commands[1], stmt)
@@ -12,7 +12,7 @@ end
 
 function Base.show(io::IO, tape::TraceTape{1})
     for ex in tape.commands[1]
-        printstyled(io, ex.args[1]; color=:light_blue, bold=true)
+        printstyled(io, ex.args[1]; color = :light_blue, bold = true)
         print(io, " ")
         join(io, string.(ex.args[2:end]), " ")
         println(io)
@@ -25,12 +25,16 @@ function recover_ast(tape::TraceTape{1})
         if each.args[1] === :gate
             push!(ex.args, Expr(:call, :(=>), each.args[3], each.args[2]))
         elseif each.args[1] === :ctrl
-            push!(ex.args,
-                Expr(:macrocall, Symbol("@ctrl"),
+            push!(
+                ex.args,
+                Expr(
+                    :macrocall,
+                    Symbol("@ctrl"),
                     LineNumberNode(@__LINE__, @__FILE__),
-                    each.args[3], Expr(:call, :(=>), each.args[3], each.args[2])
-                    )
-                )
+                    each.args[3],
+                    Expr(:call, :(=>), each.args[3], each.args[2]),
+                ),
+            )
         elseif each.args[1] === :measure
             # push!(ex.args,
             #     Expr(:macrocall, Symbol("@measure"),
@@ -43,7 +47,7 @@ function recover_ast(tape::TraceTape{1})
     return ex
 end
 
-function YaoIR(m::Module, tape::TraceTape{1}, name=gensym())
+function YaoIR(m::Module, tape::TraceTape{1}, name = gensym())
     ast = recover_ast(tape)
     lowered_ast = Meta.lower(m, to_function(m, ast))
     if lowered_ast === nothing

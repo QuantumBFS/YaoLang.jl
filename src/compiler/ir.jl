@@ -42,7 +42,8 @@ function YaoIR(m::Module, ast::Expr)
         get(defs, :args, Any[]),
         get(defs, :whereparams, Any[]),
         mark_quantum(body),
-        false, false,
+        false,
+        false,
     )
     update_slots!(ir)
     return ir

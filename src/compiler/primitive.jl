@@ -18,7 +18,10 @@ function generate_forward_stub(name::Symbol, op)
         end
 
         function $stub(::$(Circuit){$quoted_name}, r::$(TraceTape), locs::$(Locations))
-            $(GlobalRef(Compiler, :trace!))(r, Expr(:quantum, :gate, GlobalRef(YaoLang, $quoted_name), locs))
+            $(GlobalRef(Compiler, :trace!))(
+                r,
+                Expr(:quantum, :gate, GlobalRef(YaoLang, $quoted_name), locs),
+            )
             return
         end
 
@@ -34,8 +37,16 @@ function generate_forward_stub(name::Symbol, op)
             return
         end
 
-        function $stub(::$(Circuit){$quoted_name}, r::$(TraceTape), locs::$(Locations), ctrl_locs::$(CtrlLocations))
-            $(GlobalRef(Compiler, :trace!))(r, Expr(:quantum, :ctrl, GlobalRef(YaoLang, $quoted_name), locs, ctrl_locs))
+        function $stub(
+            ::$(Circuit){$quoted_name},
+            r::$(TraceTape),
+            locs::$(Locations),
+            ctrl_locs::$(CtrlLocations),
+        )
+            $(GlobalRef(Compiler, :trace!))(
+                r,
+                Expr(:quantum, :ctrl, GlobalRef(YaoLang, $quoted_name), locs, ctrl_locs),
+            )
             return
         end
 
@@ -108,16 +119,21 @@ function primitive_m(ex::Expr)
         return
     end
 
-    trace_stub_def = Dict{Symbol, Any}()
+    trace_stub_def = Dict{Symbol,Any}()
     trace_stub_def[:name] = stub
     trace_stub_def[:args] =
         Any[:($circ::Circuit{$quoted_name}), :($register::$TraceTape), :($locs::$Locations)]
-    trace_stub_def[:body] =
-        Expr(:call, GlobalRef(Compiler, :trace!), register,
-                :(Expr(:quantum, :gate,
-                    Expr(:call, GlobalRef(YaoLang, $quoted_name), $circ.free[2:end]...), $locs)
-                )
-            )
+    trace_stub_def[:body] = Expr(
+        :call,
+        GlobalRef(Compiler, :trace!),
+        register,
+        :(Expr(
+            :quantum,
+            :gate,
+            Expr(:call, GlobalRef(YaoLang, $quoted_name), $circ.free[2:end]...),
+            $locs,
+        )),
+    )
 
     trace_ctrl_stub_def = Dict{Symbol,Any}()
     trace_ctrl_stub_def[:name] = stub
@@ -127,11 +143,18 @@ function primitive_m(ex::Expr)
         :($locs::$Locations),
         :($ctrl_locs::$CtrlLocations),
     ]
-    trace_ctrl_stub_def[:body] = Expr(:call, GlobalRef(Compiler, :trace!), register,
-                :(Expr(:quantum, :ctrl,
-                    Expr(:call, GlobalRef(YaoLang, $quoted_name), $circ.free[2:end]...), $locs, $ctrl_locs)
-                )
-            )
+    trace_ctrl_stub_def[:body] = Expr(
+        :call,
+        GlobalRef(Compiler, :trace!),
+        register,
+        :(Expr(
+            :quantum,
+            :ctrl,
+            Expr(:call, GlobalRef(YaoLang, $quoted_name), $circ.free[2:end]...),
+            $locs,
+            $ctrl_locs,
+        )),
+    )
 
     quote
         $(combinedef(mat_stub_def))
