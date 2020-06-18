@@ -37,12 +37,17 @@ Circuit{name}(fn::Function, free::Tuple) where {name} =
 Circuit{name}(fn::Function) where {name} = Circuit{name}(fn, ())
 
 function Base.show(io::IO, x::Circuit{name}) where {name}
-    ir::YaoIR = YaoLang.code_yao(GenericCircuit{name}(), x.free...)
     print(io, name, " ")
-    if ir.pure_quantum
-        print(io, "(quantum circuit)")
-    else # we don't distinguish qasm here
-        print(io, "(hybrid circuit)")
+
+    ir = Compiler.code_yao(GenericCircuit{name}(), x.free...)
+    if ir === nothing
+        print(io, "(primitive circuit)")
+    else
+        if ir.pure_quantum
+            print(io, "(quantum circuit)")
+        else # we don't distinguish qasm here
+            print(io, "(hybrid circuit)")
+        end    
     end
 end
 

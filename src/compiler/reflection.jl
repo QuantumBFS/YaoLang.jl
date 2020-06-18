@@ -1,6 +1,8 @@
 export @code_yao
 
-function code_yao end
+function code_yao(xs...)
+    return
+end
 
 """
     @code_yao <generic circuit call>
