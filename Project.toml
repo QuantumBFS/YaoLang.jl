@@ -13,7 +13,7 @@ YaoAPI = "0843a435-28de-4971-9e8b-a9641b2983a8"
 
 [compat]
 ExprTools = "0.1"
-IRTools = "0.3"
+IRTools = "0.3, 0.4"
 LuxurySparse = "0.6"
 TimerOutputs = "0.5"
 YaoAPI = "0.1"
