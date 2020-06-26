@@ -47,7 +47,7 @@ function Base.show(io::IO, x::Circuit{name}) where {name}
             print(io, "(quantum circuit)")
         else # we don't distinguish qasm here
             print(io, "(hybrid circuit)")
-        end    
+        end
     end
 end
 
