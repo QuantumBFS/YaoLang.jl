@@ -41,7 +41,8 @@ end
 
 function hasmeasure(ir::YaoIR)
     for (v, st) in ir.body
-        if is_quantum(st) && (st.expr.args[1] === :measure)
+        # expect is actually measurement
+        if is_quantum(st) && (st.expr.args[1] in [:measure, :expect])
             return true
         end
     end

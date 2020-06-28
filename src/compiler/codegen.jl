@@ -169,6 +169,14 @@ end
                 push!(measure_ex.args, loc)
 
                 pr[v] = Statement(st; expr = measure_ex)
+            elseif head === :expect
+                expect_ex = Expr(:call, GlobalRef(YaoAPI, :expect))
+                push!(expect_ex.args, st.expr.args[2])
+                if length(st.expr.args) == 3 # 2 arguements
+                    push!(expect_ex.args, st.expr.args[3])
+                end
+                push!(expect_ex.args, register)
+                pr[v] = Statement(st; expr = expect_ex)
             else # reserved for extending keywords
                 throw(ParseError("Invalid keyword: $head"))
             end

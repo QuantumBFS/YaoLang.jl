@@ -90,3 +90,15 @@ Keyword for measurement in quantum circuit. It must be used inside `@device`. Se
     - `reset_to=<bitstring>` will reset the measured qubits to given bitstring
 """
 macro measure end
+
+"""
+    @expect <location> [operator]
+
+Keyword for expectation in quantum circuit. It must be used inside `@device`. See also [`@device`](@ref).
+
+# Arguments
+
+- `<location>`: a valid `Locations` argument to specifiy where to measure the register
+- `[operator]`: Optional, specifiy which operator to measure
+"""
+macro expect end
