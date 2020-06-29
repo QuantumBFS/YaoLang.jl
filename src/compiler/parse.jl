@@ -94,19 +94,3 @@ function is_measure_kwarg(ex)
     ex isa Expr || return false
     ex.head == :(=) && ex.args[1] in [:reset_to, :remove]
 end
-
-function to_expect(ex)
-    ex isa Expr || return ex
-
-    if (ex.head === :macrocall) && (ex.args[1] == Symbol("@expect"))
-        if length(ex.args) == 1 # no argument
-            throw(ParseError("@expect takes at least one argument"))
-        elseif length(ex.args) == 2 # 1 arg
-            return Expr(:call, GlobalRef(Compiler, :expect), ex.args[2])
-        elseif length(ex.args) == 3 # 2 arg
-            return Expr(:call, GlobalRef(Compiler, :expect), ex.args[2], ex.args[3])
-        else
-            throw(ParseError("@expect takes at most 2 arguments, got $(length(ex.args) - 1) arguments"))
-        end
-    end
-end

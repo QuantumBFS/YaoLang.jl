@@ -92,6 +92,13 @@ is the size of rotation axis.
     return Diagonal(fill(cos(θ / 2), m)) - im * sin(θ / 2) * axis
 end
 
+
+const expect = PrimitiveCircuit{:expect}()
+
+function (::PrimitiveCircuit{:expect})(op, locations)
+    
+end
+
 # # TODO: this should be an instruction
 # function time_evolution_stub(circ::Circuit{:time_evolution}, register::ArrayReg, locs::Locations)
 #     H, dt = circ.free
