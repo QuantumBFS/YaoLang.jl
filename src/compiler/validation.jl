@@ -27,6 +27,8 @@ function is_pure_quantum(ex::Expr)
     if ex.head === :call
         if ex.args[1] isa GlobalRef
             (ex.args[1].name in PRIMITIVES_GATE) && return true
+        elseif ex.args[1] isa Symbol # TODO: check metadata instead of hardcoded info
+            (ex.args[1] in PRIMITIVES_GATE) && return true
         elseif (ex.args[1] isa Expr)
             (ex.args[1].head === :(.)) &&
                 (ex.args[1].args[1] === :YaoLang) &&
