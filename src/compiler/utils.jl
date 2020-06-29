@@ -87,3 +87,20 @@ circuit(name) =
 
 to_locations(x) = :(Locations($x))
 to_locations(x::Int) = Locations(x)
+
+function count_nqubits(ir::YaoIR)
+    if ir.pure_quantum
+        stmts = ir.body.blocks[].stmts
+        locs = Int[]
+        for stmt in stmts
+            head = stmt.expr.head
+            args = stmt.expr.args
+            if args[1] == :gate
+                push!(locs, args[3])
+            elseif args[1] == :ctrl
+                push!(locs, args[3], args[4])
+            end
+        end
+        return maximum(locs)
+    end
+end

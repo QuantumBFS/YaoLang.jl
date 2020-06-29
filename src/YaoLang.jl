@@ -37,6 +37,8 @@ include("compiler/kwdefs.jl")
 include("compiler/validation.jl")
 include("compiler/trace.jl")
 
+include("compiler/zx_calculus.jl")
+
 function __init__()
     TimerOutputs.reset_timer!(to)
     # not sure why this doesn't work inside the module
