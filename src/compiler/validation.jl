@@ -25,9 +25,7 @@ function is_pure_quantum(ex::Expr)
     ex.head === :quantum && return true
 
     if ex.head === :call
-        if ex.args[1] isa Symbol
-            return true
-        elseif ex.args[1] isa GlobalRef
+        if ex.args[1] isa GlobalRef
             (ex.args[1].name in PRIMITIVES_GATE) && return true
         elseif (ex.args[1] isa Expr)
             (ex.args[1].head === :(.)) &&
