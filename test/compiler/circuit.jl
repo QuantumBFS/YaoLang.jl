@@ -31,16 +31,16 @@ end
 
 @device function qft4()
     1 => H
-    @ctrl 2 1 => shift(π / 2)
-    @ctrl 3 1 => shift(π / 4)
-    @ctrl 4 1 => shift(π / 8)
+    @ctrl 2 1 => shift($(π / 2))
+    @ctrl 3 1 => shift($(π / 4))
+    @ctrl 4 1 => shift($(π / 8))
 
     2 => H
-    @ctrl 3 2 => shift(π / 2)
-    @ctrl 4 2 => shift(π / 4)
+    @ctrl 3 2 => shift($(π / 2))
+    @ctrl 4 2 => shift($(π / 4))
 
     3 => H
-    @ctrl 4 3 => shift(π / 2)
+    @ctrl 4 3 => shift($(π / 2))
 
     4 => H
 end
