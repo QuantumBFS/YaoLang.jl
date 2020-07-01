@@ -29,9 +29,7 @@ function to_YaoIR(circ::ZXDiagram{T, P}) where {T, P}
                 if length(nb) <= 2
                     θ = phase(circ, v) * π
                     if spider_type(circ, v) == ZXCalculus.SpiderType.Z
-                        println("shift")
                         push!(ir, IRTools.xcall(YaoLang, :shift, θ))
-                        # push!(ir, Expr(:shift, θ))
                         push!(ir, Expr(:quantum, :gate, IRTools.var(length(ir)), q))
                     elseif spider_type(circ, v) == ZXCalculus.SpiderType.X
                         push!(ir, IRTools.xcall(YaoLang, :Rx, θ))
