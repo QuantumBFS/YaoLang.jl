@@ -15,6 +15,7 @@ mutable struct YaoIR
     args::Vector{Any}
     whereparams::Vector{Any}
     body::IR
+    quantum_blocks::Any # Vector{Tuple{Int, UnitRange{Int}}}
     pure_quantum::Bool
     qasm_compatible::Bool
 end
@@ -42,6 +43,7 @@ function YaoIR(m::Module, ast::Expr)
         get(defs, :args, Any[]),
         get(defs, :whereparams, Any[]),
         mark_quantum(body),
+        nothing,
         false,
         false,
     )
@@ -90,6 +92,14 @@ function update_slots!(ir::YaoIR)
         elseif (st.expr isa Symbol) && (st.expr in fn_args)
             ir.body[v] = Statement(st; expr = IRTools.Slot(st.expr))
         end
+    end
+    return ir
+end
+
+function sink_quantum!(ir::YaoIR)
+    deps = IRTools.dependencies(ir.body)
+    for (v, st) in ir.body
+        
     end
     return ir
 end
