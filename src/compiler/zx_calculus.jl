@@ -1,14 +1,72 @@
-using ZXCalculus
+using ZXCalculus, LightGraphs
+using ZXCalculus: qubit_loc
 
 function optimize!(ir::YaoIR)
     circ = to_ZX_diagram(ir)
-    clifford_simplify!(circ)
-    ir = to_YaoIR(circ)
+    circ = clifford_simplify(circ)
+    ir.body = to_YaoIR(circ)
     return ir
 end
 
+function to_YaoIR(circ::ZXDiagram{T, P}) where {T, P}
+    lo = circ.layout
+    vs = spiders(circ)
+    locs = Dict()
+    nqubit = lo.nbits
+    frontier_v = ones(T, nqubit)
+    ex = quote
+        $(Expr(:meta, :register, :new, gensym(:register)))
+        return
+    end
+    lowered_ast = Meta.lower(@__MODULE__, ex)
+    ir = mark_quantum(IRTools.IR(lowered_ast.args[], 0))
+
+    while sum([frontier_v[i] <= length(lo.spider_seq[i]) for i = 1:nqubit]) > 0
+        for q = 1:nqubit
+            if frontier_v[q] <= length(lo.spider_seq[q])
+                v = lo.spider_seq[q][frontier_v[q]]
+                nb = neighbors(circ, v)
+                if length(nb) <= 2
+                    θ = phase(circ, v) * π
+                    if spider_type(circ, v) == ZXCalculus.SpiderType.Z
+                        println("shift")
+                        push!(ir, IRTools.xcall(YaoLang, :shift, θ))
+                        # push!(ir, Expr(:shift, θ))
+                        push!(ir, Expr(:quantum, :gate, IRTools.var(length(ir)), q))
+                    elseif spider_type(circ, v) == ZXCalculus.SpiderType.X
+                        push!(ir, IRTools.xcall(YaoLang, :Rx, θ))
+                        push!(ir, Expr(:quantum, :gate, IRTools.var(length(ir)), q))
+                    elseif spider_type(circ, v) == ZXCalculus.SpiderType.H
+                        push!(ir, Expr(:quantum, :gate, :H, q))
+                    end
+
+                    frontier_v[q] += 1
+                elseif length(nb) == 3
+                    v1 = nb[[qubit_loc(lo, u) != q for u in nb]][1]
+                    if spider_type(circ, v1) == SpiderType.H
+                        v1 = setdiff(neighbors(circ, v1), [v])[1]
+                    end
+                    if sum([findfirst(isequal(u), lo.spider_seq[qubit_loc(lo, u)]) != frontier_v[qubit_loc(lo, u)] for u in [v, v1]]) == 0
+                        if spider_type(circ, v) == spider_type(circ, v1) == ZXCalculus.SpiderType.Z
+                            push!(ir, Expr(:quantum, :ctrl, :Z, qubit_loc(lo, v), qubit_loc(lo, v1)))
+                        elseif spider_type(circ, v) == ZXCalculus.SpiderType.Z
+                            push!(ir, Expr(:quantum, :ctrl, :X, qubit_loc(lo, v1), qubit_loc(lo, v)))
+                        elseif spider_type(circ, v) == ZXCalculus.SpiderType.X
+                            push!(ir, Expr(:quantum, :ctrl, :X, qubit_loc(lo, v), qubit_loc(lo, v1)))
+                        end
+                        for u in [v, v1]
+                            frontier_v[qubit_loc(lo, u)] += 1
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return mark_quantum(ir)
+end
+
 # TODO: move this to ZXCalculus.jl
-function clifford_simplify!(circ)
+function clifford_simplify(circ)
     zxg = ZXGraph(circ)
     simplify!(Rule{:lc}(), zxg)
     simplify!(Rule{:p1}(), zxg)
@@ -33,7 +91,7 @@ function to_ZX_diagram(ir::YaoIR)
                         gate = ir.body[IRTools.var(gate.id)].expr
                     end
                     loc = args[3]
-                    ir_push_gate!(circ, loc, gate)
+                    zx_push_gate!(circ, loc, gate)
                 elseif args[1] == :ctrl
                     gate = args[2]
                     if !(gate isa Symbol)
@@ -41,7 +99,7 @@ function to_ZX_diagram(ir::YaoIR)
                     end
                     loc = args[3]
                     ctrl = args[4]
-                    ir_push_ctrl_gate!(circ, ctrl, loc, gate)
+                    zx_push_ctrl_gate!(circ, ctrl, loc, gate)
                 end
             end
         end
@@ -49,7 +107,7 @@ function to_ZX_diagram(ir::YaoIR)
     end
 end
 
-function ir_push_gate!(circ, loc, gate)
+function zx_push_gate!(circ, loc, gate)
     if gate isa Symbol
         if gate === :H
             push_gate!(circ, Val{:H}(), loc)
@@ -67,6 +125,9 @@ function ir_push_gate!(circ, loc, gate)
         end
     elseif gate.head === :call
         g, θ = gate.args
+        if g isa GlobalRef
+            g = g.name
+        end
         if g === :shift
             push_gate!(circ, Val{:Z}(), loc, Rational(θ/π))
         elseif g === :Rx
@@ -81,7 +142,7 @@ function ir_push_gate!(circ, loc, gate)
     end
 end
 
-function ir_push_ctrl_gate!(circ, ctrl, loc, gate)
+function zx_push_ctrl_gate!(circ, ctrl, loc, gate)
     if gate isa Symbol
         if gate === :Z
             push_ctrl_gate!(circ, Val{:CZ}(), loc, ctrl)

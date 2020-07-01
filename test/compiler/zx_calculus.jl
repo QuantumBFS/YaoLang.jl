@@ -1,6 +1,7 @@
 using YaoLang
 using YaoLang.Compiler
-using YaoLang.Compiler: device_m, enable_timings, timings
+using YaoLang.Compiler: to_ZX_diagram, to_YaoIR, optimize!, clifford_simplify!
+using IRTools
 
 include("../../../ZXCalculus/script/zx_plot.jl")
 
@@ -35,7 +36,10 @@ end
 
 code = @code_yao testcir()
 code.pure_quantum = true
-circ = YaoLang.Compiler.to_ZX_diagram(code)
-ex_circ = YaoLang.Compiler.clifford_simplify!(circ)
+circ = to_ZX_diagram(code)
+circ = clifford_simplify!(circ)
+optimize!(code)
+circ2 = to_ZX_diagram(code)
+
 ZXplot(circ)
-ZXplot(ex_circ)
+ZXplot(circ2)
