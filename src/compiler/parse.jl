@@ -8,7 +8,6 @@ function to_function(m::Module, ex)
     ex = eval_stmts(m, ex)
     ex = to_control(ex)
     ex = to_measure(ex)
-    ex = to_expect(ex)
     ex = to_gate_location(ex)
 
     quote
