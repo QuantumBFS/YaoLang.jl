@@ -39,11 +39,8 @@ include("compiler/trace.jl")
 
 function __init__()
     TimerOutputs.reset_timer!(to)
-    # not sure why this doesn't work inside the module
-    IRTools.Inner.printers[:quantum] = function (io, ex)
-        get(printers, ex.args[1], print)(io, ex)
-    end
 end
+
 end
 
 using .Compiler

@@ -1,7 +1,7 @@
 name = "YaoLang"
 uuid = "77e32715-2d53-453b-8330-e0520dba5551"
 authors = ["Roger-luo"]
-version = "0.2.1"
+version = "0.3.0"
 
 [deps]
 ExprTools = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
@@ -13,7 +13,7 @@ YaoAPI = "0843a435-28de-4971-9e8b-a9641b2983a8"
 
 [compat]
 ExprTools = "0.1"
-IRTools = "0.3, 0.4"
+IRTools = "0.4"
 LuxurySparse = "0.6"
 TimerOutputs = "0.5"
 YaoAPI = "0.1"
