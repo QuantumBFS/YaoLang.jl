@@ -45,6 +45,22 @@ end
     4 => H
 end
 
+@device function qft4()
+    1 => H
+    @ctrl 2 1 => shift($(π / 2))
+    @ctrl 3 1 => shift($(π / 4))
+    @ctrl 4 1 => shift($(π / 8))
+
+    2 => H
+    @ctrl 3 2 => shift($(π / 2))
+    @ctrl 4 2 => shift($(π / 4))
+
+    3 => H
+    @ctrl 4 3 => shift($(π / 2))
+
+    4 => H
+end
+
 @device function hadamard()
     1 => H
 end
@@ -129,4 +145,18 @@ end
 @testset "purify" begin
     pure_qft = @quantum 3 qft(3)
     @test is_pure_quantum(@code_yao pure_qft())
+end
+
+@device function sink_quantum(θs)
+    for (k, θ) in enumerate(θs)
+        k => H
+        α = θ + 2π
+        k => Rz(sin(α))
+    end
+    return
+end
+
+@testset "sink quantum" begin
+    ir = @code_yao sink_quantum(rand(10))
+    @test ir.quantum_blocks == [6:6, 28:29]
 end
