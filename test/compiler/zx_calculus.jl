@@ -1,11 +1,6 @@
 using YaoLang
-using YaoLang.Compiler
-using YaoLang.Compiler: to_ZX_diagram, to_YaoIR, optimize!, clifford_simplify!
-using IRTools
-
-include("../../../ZXCalculus/script/zx_plot.jl")
-
-# enable_timings()
+using YaoLang.Compiler: to_ZX_diagram, to_IR, optimize!
+using YaoPlots
 
 @device function testcir()
     1 => shift($(3/2*π))
@@ -37,9 +32,8 @@ end
 code = @code_yao testcir()
 code.pure_quantum = true
 circ = to_ZX_diagram(code)
-circ = clifford_simplify!(circ)
 optimize!(code)
 circ2 = to_ZX_diagram(code)
 
-ZXplot(circ)
-ZXplot(circ2)
+plot(circ)
+plot(circ2)

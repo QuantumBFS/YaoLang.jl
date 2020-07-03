@@ -4,22 +4,20 @@ using ZXCalculus: qubit_loc
 function optimize!(ir::YaoIR)
     circ = to_ZX_diagram(ir)
     circ = clifford_simplify(circ)
-    ir.body = to_YaoIR(circ)
-    return ir
+    new_ir = YaoIR(ir.mod, ir.name, ir.args, ir.whereparams, to_IR(circ),
+        ir.quantum_blocks, ir.pure_quantum, ir.qasm_compatible)
+    return new_ir
 end
 
-function to_YaoIR(circ::ZXDiagram{T, P}) where {T, P}
+function to_IR(circ::ZXDiagram{T, P}) where {T, P}
     lo = circ.layout
     vs = spiders(circ)
     locs = Dict()
     nqubit = lo.nbits
     frontier_v = ones(T, nqubit)
-    ex = quote
-        $(Expr(:meta, :register, :new, gensym(:register)))
-        return
-    end
-    lowered_ast = Meta.lower(@__MODULE__, ex)
-    ir = mark_quantum(IRTools.IR(lowered_ast.args[], 0))
+    ir = IRTools.IR()
+    IRTools.return!(ir, nothing)
+    push!(ir, IRTools.Statement(Expr(:quantum, :new, gensym(:register))))
 
     while sum([frontier_v[i] <= length(lo.spider_seq[i]) for i = 1:nqubit]) > 0
         for q = 1:nqubit
@@ -30,12 +28,12 @@ function to_YaoIR(circ::ZXDiagram{T, P}) where {T, P}
                     θ = phase(circ, v) * π
                     if spider_type(circ, v) == ZXCalculus.SpiderType.Z
                         push!(ir, IRTools.xcall(YaoLang, :shift, θ))
-                        push!(ir, Expr(:quantum, :gate, IRTools.var(length(ir)), q))
+                        push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), q)))
                     elseif spider_type(circ, v) == ZXCalculus.SpiderType.X
                         push!(ir, IRTools.xcall(YaoLang, :Rx, θ))
-                        push!(ir, Expr(:quantum, :gate, IRTools.var(length(ir)), q))
+                        push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), q)))
                     elseif spider_type(circ, v) == ZXCalculus.SpiderType.H
-                        push!(ir, Expr(:quantum, :gate, :H, q))
+                        push!(ir, IRTools.Statement(Expr(:quantum, :gate, :H, q)))
                     end
 
                     frontier_v[q] += 1
@@ -60,7 +58,7 @@ function to_YaoIR(circ::ZXDiagram{T, P}) where {T, P}
             end
         end
     end
-    return mark_quantum(ir)
+    return ir
 end
 
 # TODO: move this to ZXCalculus.jl
