@@ -1,15 +1,17 @@
 using ZXCalculus, LightGraphs
 using ZXCalculus: qubit_loc
+import IRTools: IR
+import ZXCalculus: ZXDiagram
 
-function optimize!(ir::YaoIR)
-    circ = to_ZX_diagram(ir)
+function optimize(ir::YaoIR)
+    circ = ZXDiagram(ir)
     circ = clifford_simplify(circ)
-    new_ir = YaoIR(ir.mod, ir.name, ir.args, ir.whereparams, to_IR(circ),
+    new_ir = YaoIR(ir.mod, ir.name, ir.args, ir.whereparams, IR(circ),
         ir.quantum_blocks, ir.pure_quantum, ir.qasm_compatible)
     return new_ir
 end
 
-function to_IR(circ::ZXDiagram{T, P}) where {T, P}
+function IR(circ::ZXDiagram{T, P}) where {T, P}
     lo = circ.layout
     vs = spiders(circ)
     locs = Dict()
@@ -72,7 +74,7 @@ function clifford_simplify(circ)
     return ex_circ
 end
 
-function to_ZX_diagram(ir::YaoIR)
+function ZXDiagram(ir::YaoIR)
     if ir.pure_quantum
         n = count_nqubits(ir)
         circ = ZXDiagram(n)

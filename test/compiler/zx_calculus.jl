@@ -1,6 +1,8 @@
 using YaoLang
-using YaoLang.Compiler: to_ZX_diagram, to_IR, optimize!
+using YaoLang.Compiler: optimize!
 using YaoPlots
+using IRTools: IR
+using ZXCalculus: ZXDiagram
 
 @device function testcir()
     1 => shift($(3/2*π))
@@ -31,9 +33,9 @@ end
 
 code = @code_yao testcir()
 code.pure_quantum = true
-circ = to_ZX_diagram(code)
-optimize!(code)
-circ2 = to_ZX_diagram(code)
+circ = ZXDiagram(code)
+code = optimize(code)
+circ2 = ZXDiagram(code)
 
 plot(circ)
 plot(circ2)
