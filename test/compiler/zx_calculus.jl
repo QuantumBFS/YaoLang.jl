@@ -1,5 +1,5 @@
 using YaoLang
-using YaoLang.Compiler: optimize!
+using YaoLang.Compiler: optimize
 using YaoPlots
 using IRTools: IR
 using ZXCalculus: ZXDiagram
