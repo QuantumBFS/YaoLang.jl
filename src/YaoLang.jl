@@ -29,6 +29,7 @@ include("compiler/parse.jl")
 include("compiler/ir.jl")
 include("compiler/print.jl")
 include("compiler/codegen.jl")
+include("compiler/optimize.jl")
 include("compiler/compiler.jl")
 include("compiler/reflection.jl")
 include("compiler/primitive.jl")
@@ -41,11 +42,8 @@ include("compiler/zx_calculus.jl")
 
 function __init__()
     TimerOutputs.reset_timer!(to)
-    # not sure why this doesn't work inside the module
-    IRTools.Inner.printers[:quantum] = function (io, ex)
-        get(printers, ex.args[1], print)(io, ex)
-    end
 end
+
 end
 
 using .Compiler

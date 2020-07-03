@@ -15,6 +15,7 @@ mutable struct YaoIR
     args::Vector{Any}
     whereparams::Vector{Any}
     body::IR
+    quantum_blocks::Any # Vector{Tuple{Int, UnitRange{Int}}}
     pure_quantum::Bool
     qasm_compatible::Bool
 end
@@ -42,6 +43,7 @@ function YaoIR(m::Module, ast::Expr)
         get(defs, :args, Any[]),
         get(defs, :whereparams, Any[]),
         mark_quantum(body),
+        nothing,
         false,
         false,
     )
@@ -50,6 +52,19 @@ function YaoIR(m::Module, ast::Expr)
 end
 
 YaoIR(ast::Expr) = YaoIR(@__MODULE__, ast)
+
+function Base.copy(ir::YaoIR)
+    YaoIR(
+        ir.mod,
+        ir.name isa Expr ? copy(ir.name) : ir.name,
+        copy(ir.args),
+        copy(ir.whereparams),
+        copy(ir.body),
+        ir.quantum_blocks === nothing ? nothing : copy(ir.quantum_blocks),
+        ir.pure_quantum,
+        ir.qasm_compatible,
+    )
+end
 
 """
     mark_quantum(ir::IR)

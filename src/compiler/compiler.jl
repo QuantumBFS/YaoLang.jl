@@ -10,6 +10,7 @@ function device_m(__module__::Module, ex::Expr; target::Symbol = :julia)
     ir.qasm_compatible = is_qasm_compatible(ir)
 
     # TODO: code optimization/transformation pass
+    sink_quantum!(ir)
     # TODO: switch compile target
 
     @timeit_debug to "codegen" code = codegen(codegen_ctxs[target](ir), ir)

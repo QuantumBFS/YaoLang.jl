@@ -54,8 +54,23 @@ function print_where(io::IO, whereparams::Vector{Any})
     print(io, "}")
 end
 
-const printers = Dict{Symbol,Any}()
-# modified show(io::IO, b::Block) from IRTools: print.jl
+Inner.print_stmt(io::IO, ::Val{:quantum}, ex) = print_quantum(io, Val(ex.args[1]), ex)
+
+print_quantum(io, ::Val, ex) = print(io, ex)
+print_quantum(io, ::Val{:gate}, ex) = print_quantum(io, ex)
+print_quantum(io, ::Val{:ctrl}, ex) = print_quantum(io, ex)
+print_quantum(io, ::Val{:measure}, ex) = print_quantum(io, ex)
+
+function print_quantum(io, ::Val{:register}, ex)
+    if ex.args[2] === :new
+        printstyled(io, "%new%"; color = :light_blue, bold = true)
+        print(io, "(", ex.args[3], ")")
+    elseif ex.args[2] === :prev
+        printstyled(io, "%prev%"; color = :light_blue, bold = true)
+    else
+        print(io, ex)
+    end
+end
 
 function print_quantum(io, ex)
     printstyled(io, ex.args[1]; color = :light_blue, bold = true)
@@ -67,18 +82,4 @@ function print_quantum(io, ex)
         print(io, each)
     end
     print(io, ")")
-end
-
-printers[:gate] = print_quantum
-printers[:ctrl] = print_quantum
-printers[:measure] = print_quantum
-printers[:register] = function print_register_meta(io, ex)
-    if ex.args[2] === :new
-        printstyled(io, "%new%"; color = :light_blue, bold = true)
-        print(io, "(", ex.args[3], ")")
-    elseif ex.args[2] === :prev
-        printstyled(io, "%prev%"; color = :light_blue, bold = true)
-    else
-        print(io, ex)
-    end
 end
