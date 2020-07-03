@@ -40,16 +40,19 @@ function permute_stmts(ir::IR, perms)
         map[v] = IRTools.var(count)
     end
 
-    to = IR([],[], ir.lines, nothing)
+    to = IR([], [], ir.lines, nothing)
     for b in blocks(ir)
         bb = BasicBlock(b)
-        push!(to.blocks, BasicBlock([], substitute(map, bb.args), bb.argtypes, substitute(map, bb.branches)))
+        push!(
+            to.blocks,
+            BasicBlock([], substitute(map, bb.args), bb.argtypes, substitute(map, bb.branches)),
+        )
     end
 
     for (b, pm) in zip(blocks(to), perms)
         for v in pm
             st = ir[v]
-            push!(b, Statement(st; expr=substitute(map, st.expr)))
+            push!(b, Statement(st; expr = substitute(map, st.expr)))
         end
     end
     return to
@@ -57,7 +60,7 @@ end
 
 function substitute(d::Dict, ex)
     if ex isa Expr
-        return Expr(ex.head, map(x->substitute(d, x), ex.args)...)
+        return Expr(ex.head, map(x -> substitute(d, x), ex.args)...)
     elseif ex isa Variable
         return d[ex]
     else
@@ -83,7 +86,7 @@ function quantum_blocks(ir::YaoIR)
                 if st.expr.args[1] === :measure
                     push!(quantum_blocks, start:stop+1)
                     start = stop = 0
-                else                
+                else
                     if start > 0
                         stop += 1
                     else

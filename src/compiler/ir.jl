@@ -56,7 +56,7 @@ YaoIR(ast::Expr) = YaoIR(@__MODULE__, ast)
 function Base.copy(ir::YaoIR)
     YaoIR(
         ir.mod,
-        ir.name isa Expr ? copy(ir.name) : ir.name ,
+        ir.name isa Expr ? copy(ir.name) : ir.name,
         copy(ir.args),
         copy(ir.whereparams),
         copy(ir.body),
