@@ -258,7 +258,7 @@ end
 
 @codegen function code_yao_runtime_stub(ctx::JuliaASTCodegenCtx, ir::YaoIR)
     def = Dict{Symbol,Any}()
-    def[:name] = GlobalRef(YaoLang, :code_yao)
+    def[:name] = GlobalRef(Compiler, :code_yao)
     def[:args] = Any[:(::$(generic_circuit(ir.name))), ir.args...]
     def[:body] = ir
     if !isempty(ir.whereparams)

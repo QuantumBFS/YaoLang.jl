@@ -51,7 +51,7 @@ function generate_forward_stub(name::Symbol, op)
         end
 
         (::$PrimitiveCircuit{$quoted_name})() = $Circuit{$quoted_name}($stub)
-        Core.@__doc__ const $name = $PrimitiveCircuit{$quoted_name}()
+        Core.@__doc__ const $name = $Circuit{$quoted_name}($stub)
         push!($(GlobalRef(Compiler, :PRIMITIVES)), $name)
         $name
     end
