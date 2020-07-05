@@ -1,4 +1,4 @@
-using ZXCalculus, LightGraphs
+using ZXCalculus
 using ZXCalculus: qubit_loc
 import IRTools: IR
 import ZXCalculus: ZXDiagram
@@ -19,13 +19,13 @@ function IR(circ::ZXDiagram{T, P}) where {T, P}
     frontier_v = ones(T, nqubit)
     ir = IRTools.IR()
     IRTools.return!(ir, nothing)
-    push!(ir, IRTools.Statement(Expr(:quantum, :new, gensym(:register))))
+    push!(ir, IRTools.Statement(Expr(:quantum, :register, :new, gensym(:register))))
 
     while sum([frontier_v[i] <= length(lo.spider_seq[i]) for i = 1:nqubit]) > 0
         for q = 1:nqubit
             if frontier_v[q] <= length(lo.spider_seq[q])
                 v = lo.spider_seq[q][frontier_v[q]]
-                nb = neighbors(circ, v)
+                nb = ZXCalculus.neighbors(circ, v)
                 if length(nb) <= 2
                     θ = phase(circ, v) * π
                     if spider_type(circ, v) == ZXCalculus.SpiderType.Z
@@ -42,7 +42,7 @@ function IR(circ::ZXDiagram{T, P}) where {T, P}
                 elseif length(nb) == 3
                     v1 = nb[[qubit_loc(lo, u) != q for u in nb]][1]
                     if spider_type(circ, v1) == SpiderType.H
-                        v1 = setdiff(neighbors(circ, v1), [v])[1]
+                        v1 = setdiff(ZXCalculus.neighbors(circ, v1), [v])[1]
                     end
                     if sum([findfirst(isequal(u), lo.spider_seq[qubit_loc(lo, u)]) != frontier_v[qubit_loc(lo, u)] for u in [v, v1]]) == 0
                         if spider_type(circ, v) == spider_type(circ, v1) == ZXCalculus.SpiderType.Z
