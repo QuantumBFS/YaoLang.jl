@@ -83,7 +83,7 @@ end
     @test ir.pure_quantum == true
     @test ir.qasm_compatible == true
     r = rand_state(1)
-    @test (copy(r) |> hadamard()) ≈ (copy(r) |> H())
+    @test (copy(r) |> hadamard()) ≈ (copy(r) |> H)
 end
 
 @device function check_return(k::Int)

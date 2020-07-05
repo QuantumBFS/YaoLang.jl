@@ -68,7 +68,7 @@ function quantum_m(m::Module, n::Int, ex)
 
     name = gensym(Symbol(ex.args[1]))
     quote
-        old_ir = $(esc(IRTools.xcall(YaoLang, :code_yao, ex.args...)))
+        old_ir = $(esc(IRTools.xcall(Compiler, :code_yao, ex.args...)))
         if $(GlobalRef(YaoLang, :is_pure_quantum))(old_ir)
             $(esc(ex.args[1]))
         else
