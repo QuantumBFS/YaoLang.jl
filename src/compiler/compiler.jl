@@ -10,6 +10,7 @@ function device_m(__module__::Module, ex::Expr; target::Symbol = :julia, optimiz
     ir.qasm_compatible = is_qasm_compatible(ir)
 
     # TODO: code optimization/transformation pass
+    ir = YaoLang.Compiler.optimize(ir)
     sink_quantum!(ir)
     # TODO: switch compile target
 

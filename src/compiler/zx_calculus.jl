@@ -5,7 +5,8 @@ import ZXCalculus: ZXDiagram
 
 function optimize(ir::YaoIR)
     circ = ZXDiagram(ir)
-    circ = clifford_simplify(circ)
+    # circ = clifford_simplify(circ)
+    circ = phase_teleportation(circ)
     new_ir = YaoIR(ir.mod, ir.name, ir.args, ir.whereparams, IR(circ),
         ir.quantum_blocks, ir.pure_quantum, ir.qasm_compatible)
     return new_ir
@@ -31,11 +32,14 @@ function IR(circ::ZXDiagram{T, P}) where {T, P}
                     if spider_type(circ, v) == ZXCalculus.SpiderType.Z
                         push!(ir, IRTools.xcall(YaoLang, :shift, θ))
                         push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), q)))
+                        println("$q => shift($θ)")
                     elseif spider_type(circ, v) == ZXCalculus.SpiderType.X
                         push!(ir, IRTools.xcall(YaoLang, :Rx, θ))
                         push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), q)))
+                        println("$q => Rx($θ)")
                     elseif spider_type(circ, v) == ZXCalculus.SpiderType.H
                         push!(ir, IRTools.Statement(Expr(:quantum, :gate, :H, q)))
+                        println("$q => H")
                     end
 
                     frontier_v[q] += 1
@@ -45,12 +49,36 @@ function IR(circ::ZXDiagram{T, P}) where {T, P}
                         v1 = setdiff(ZXCalculus.neighbors(circ, v1), [v])[1]
                     end
                     if sum([findfirst(isequal(u), lo.spider_seq[qubit_loc(lo, u)]) != frontier_v[qubit_loc(lo, u)] for u in [v, v1]]) == 0
+                        if phase(circ, v) != 0
+                            if spider_type(circ, v) == ZXCalculus.SpiderType.Z
+                                push!(ir, IRTools.xcall(YaoLang, :shift, phase(circ, v)*π))
+                                println("$(qubit_loc(lo, v)) => shift($(phase(circ, v)*π))")
+                            else
+                                push!(ir, IRTools.xcall(YaoLang, :Rx, phase(circ, v)*π))
+                                println("$(qubit_loc(lo, v)) => Rx($(phase(circ, v)*π))")
+                            end
+                            push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), qubit_loc(lo, v))))
+                        end
+                        if phase(circ, v1) != 0
+                            if spider_type(circ, v1) == ZXCalculus.SpiderType.Z
+                                push!(ir, IRTools.xcall(YaoLang, :shift, phase(circ, v1)*π))
+                                println("$(qubit_loc(lo, v1)) => shift($(phase(circ, v1)*π))")
+                            else
+                                push!(ir, IRTools.xcall(YaoLang, :Rx, phase(circ, v1)*π))
+                                println("$(qubit_loc(lo, v1)) => Rx($(phase(circ, v1)*π))")
+                            end
+                            push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), qubit_loc(lo, v1))))
+                        end
+
                         if spider_type(circ, v) == spider_type(circ, v1) == ZXCalculus.SpiderType.Z
                             push!(ir, Expr(:quantum, :ctrl, :Z, qubit_loc(lo, v), qubit_loc(lo, v1)))
+                            println("@ctrl $(qubit_loc(lo, v1)) $(qubit_loc(lo, v)) => Z")
                         elseif spider_type(circ, v) == ZXCalculus.SpiderType.Z
                             push!(ir, Expr(:quantum, :ctrl, :X, qubit_loc(lo, v1), qubit_loc(lo, v)))
+                            println("@ctrl $(qubit_loc(lo, v)) $(qubit_loc(lo, v1)) => X")
                         elseif spider_type(circ, v) == ZXCalculus.SpiderType.X
                             push!(ir, Expr(:quantum, :ctrl, :X, qubit_loc(lo, v), qubit_loc(lo, v1)))
+                            println("@ctrl $(qubit_loc(lo, v1)) $(qubit_loc(lo, v)) => X")
                         end
                         for u in [v, v1]
                             frontier_v[qubit_loc(lo, u)] += 1
