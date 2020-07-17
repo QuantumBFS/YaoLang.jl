@@ -1,12 +1,12 @@
 using ZXCalculus
 using ZXCalculus: qubit_loc
 import IRTools: IR
-import ZXCalculus: ZXDiagram
+import ZXCalculus: ZXDiagram, clifford_simplification
 
 function optimize(ir::YaoIR)
     circ = ZXDiagram(ir)
-    # circ = clifford_simplify(circ)
     circ = phase_teleportation(circ)
+    # circ = clifford_simplification(circ)
     new_ir = YaoIR(ir.mod, ir.name, ir.args, ir.whereparams, IR(circ),
         ir.quantum_blocks, ir.pure_quantum, ir.qasm_compatible)
     return new_ir
@@ -79,17 +79,6 @@ function IR(circ::ZXDiagram{T, P}) where {T, P}
         end
     end
     return ir
-end
-
-# TODO: move this to ZXCalculus.jl
-function clifford_simplify(circ)
-    zxg = ZXGraph(circ)
-    simplify!(Rule{:lc}(), zxg)
-    simplify!(Rule{:p1}(), zxg)
-    replace!(Rule{:pab}(), zxg)
-
-    ex_circ = circuit_extraction(zxg)
-    return ex_circ
 end
 
 function ZXDiagram(ir::YaoIR)
