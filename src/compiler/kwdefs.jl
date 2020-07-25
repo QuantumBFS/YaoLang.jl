@@ -59,8 +59,18 @@ macro device(args...)
     kwargs = Pair[]
     for each in options
         if (each isa Expr) && (each.head === :(=))
-            each.args[2] isa QuoteNode || throw(ParseError("expect a Symbol, got $(each.args[2])"))
-            push!(kwargs, each.args[1] => each.args[2].value)
+            if each.args[2] isa QuoteNode
+                push!(kwargs, each.args[1] => each.args[2].value)
+            elseif (each.args[2] isa Expr) && (each.args[2].head === :vect)
+                if sum([!(e isa QuoteNode) for e in each.args[2].args]) == 0
+                    values = [e.value for e in each.args[2].args]
+                    push!(kwargs, each.args[1] => values)
+                else
+                    throw(Meta.ParseError("expect a Symbol or a vector of Symbols, got $(each.args[2])"))
+                end
+            else
+                throw(Meta.ParseError("expect a Symbol or a vector of Symbols, got $(each.args[2])"))
+            end
         else
             throw(Meta.ParseError("Invalid Syntax, expect a compile option, got $each"))
         end
