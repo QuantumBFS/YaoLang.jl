@@ -3,13 +3,22 @@ using ZXCalculus: qubit_loc
 import IRTools: IR
 import ZXCalculus: ZXDiagram, clifford_simplification
 
-function optimize(ir::YaoIR)
-    circ = ZXDiagram(ir)
-    circ = phase_teleportation(circ)
-    # circ = clifford_simplification(circ)
-    new_ir = YaoIR(ir.mod, ir.name, ir.args, ir.whereparams, IR(circ),
-        ir.quantum_blocks, ir.pure_quantum, ir.qasm_compatible)
-    return new_ir
+function optimize(ir::YaoIR, optimizor::Vector{Symbol} = Symbol[])
+    if length(optimizor) > 0
+        circ = ZXDiagram(ir)
+        for opt in optimizor
+            if opt === :zx_clifford
+                circ = clifford_simplification(circ)
+            elseif opt === :zx_teleport
+                circ = phase_teleportation(circ)
+            end
+        end
+        new_ir = YaoIR(ir.mod, ir.name, ir.args, ir.whereparams, IR(circ),
+            ir.quantum_blocks, ir.pure_quantum, ir.qasm_compatible)
+        return new_ir
+    else
+        return ir
+    end
 end
 
 function IR(circ::ZXDiagram{T, P}) where {T, P}

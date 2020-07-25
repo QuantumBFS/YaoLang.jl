@@ -2,7 +2,7 @@ const codegen_ctxs = Dict{Symbol,Any}()
 codegen_ctxs[:julia] = JuliaASTCodegenCtx
 
 
-function device_m(__module__::Module, ex::Expr; target::Symbol = :julia, optimize::Int=0)
+function device_m(__module__::Module, ex::Expr; target::Symbol = :julia, optimizor::Vector{Symbol} = Symbol[])
     ir = YaoIR(__module__, ex) #= default parsing pass =#
 
     # simple validation
@@ -10,7 +10,7 @@ function device_m(__module__::Module, ex::Expr; target::Symbol = :julia, optimiz
     ir.qasm_compatible = is_qasm_compatible(ir)
 
     # TODO: code optimization/transformation pass
-    ir = YaoLang.Compiler.optimize(ir)
+    ir = YaoLang.Compiler.optimize(ir, optimizor)
     sink_quantum!(ir)
     # TODO: switch compile target
 
