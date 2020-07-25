@@ -10,4 +10,5 @@ end
 @testset "compiler" begin
     include("compiler/circuit.jl")
     include("compiler/validation.jl")
+    include("compiler/zx_calculus.jl")
 end
