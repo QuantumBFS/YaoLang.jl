@@ -1,7 +1,7 @@
 using ZXCalculus
-using ZXCalculus: qubit_loc
+using ZXCalculus: qubit_loc, clifford_simplification
 import IRTools: IR
-import ZXCalculus: ZXDiagram, clifford_simplification
+import ZXCalculus: ZXDiagram
 
 function optimize(ir::YaoIR, optimizor::Vector{Symbol} = Symbol[])
     if length(optimizor) > 0
