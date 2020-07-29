@@ -84,7 +84,7 @@ for i = 1:32
     mat[:,i] = r0.state
 end
 
-@device optimizor = [:zx_teleport] function teleport_cir()
+@device optimizer = [:zx_teleport] function teleport_cir()
     5 => H
     5 => shift(0.0)
     @ctrl 4 5 => X
@@ -165,7 +165,7 @@ for i = 1:32
 end
 @test sum(abs.(mat - tp_mat) .> 1e-14) == 0
 
-@device optimizor = [:zx_clifford, :zx_teleport] function clifford_teleport_cir()
+@device optimizer = [:zx_clifford, :zx_teleport] function clifford_teleport_cir()
     5 => H
     5 => shift(0.0)
     @ctrl 4 5 => X

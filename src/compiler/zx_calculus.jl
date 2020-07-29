@@ -3,10 +3,10 @@ using ZXCalculus: qubit_loc, clifford_simplification
 import IRTools: IR
 import ZXCalculus: ZXDiagram
 
-function optimize(ir::YaoIR, optimizor::Vector{Symbol} = Symbol[])
-    if length(optimizor) > 0
+function optimize(ir::YaoIR, optimizer::Vector{Symbol} = Symbol[])
+    if length(optimizer) > 0 && ir.pure_quantum
         circ = ZXDiagram(ir)
-        for opt in optimizor
+        for opt in optimizer
             if opt === :zx_clifford
                 circ = clifford_simplification(circ)
             elseif opt === :zx_teleport
