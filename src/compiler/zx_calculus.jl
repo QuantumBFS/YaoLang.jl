@@ -15,6 +15,7 @@ function optimize(ir::YaoIR, optimizer::Vector{Symbol} = Symbol[])
         end
         new_ir = YaoIR(ir.mod, ir.name, ir.args, ir.whereparams, IR(circ),
             ir.quantum_blocks, ir.pure_quantum, ir.qasm_compatible)
+        YaoLang.Compiler.update_slots!(new_ir)
         return new_ir
     else
         return ir
