@@ -30,9 +30,9 @@ version = "0.1.1"
 
 [[FillArrays]]
 deps = ["LinearAlgebra", "Random", "SparseArrays"]
-git-tree-sha1 = "44f561e293987ffc84272cd3d2b14b0b93123d63"
+git-tree-sha1 = "be4180bdb27a11188d694ee3773122f4921f1a62"
 uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
-version = "0.8.10"
+version = "0.8.13"
 
 [[IRTools]]
 deps = ["InteractiveUtils", "MacroTools", "Test"]
@@ -92,14 +92,14 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[OrderedCollections]]
-git-tree-sha1 = "12ce190210d278e12644bcadf5b21cbdcf225cd3"
+git-tree-sha1 = "293b70ac1780f9584c89268a6e2a560d938a7065"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
-version = "1.2.0"
+version = "1.3.0"
 
 [[PrettyPrint]]
-git-tree-sha1 = "632eb4abab3449ab30c5e1afaa874f0b98b586e4"
+git-tree-sha1 = "21e1f88cb73589ec39a1181f77eb444b5276151e"
 uuid = "8162dcfd-2161-5ef2-ae6c-7681170c5f98"
-version = "0.2.0"
+version = "0.1.0"
 
 [[Printf]]
 deps = ["Unicode"]
@@ -107,9 +107,11 @@ uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [[RBNF]]
 deps = ["DataStructures", "MLStyle", "PrettyPrint"]
-git-tree-sha1 = "e364ab0c0fc5041b1a6311ba18889709e1c5a50a"
+git-tree-sha1 = "e8e3e63f89b01e09a0a53e076381cef2df8455ab"
+repo-rev = "master"
+repo-url = "https://github.com/thautwarm/RBNF.jl.git"
 uuid = "83ef0002-5b9e-11e9-219b-65bac3c6d69c"
-version = "0.1.0"
+version = "0.2.1"
 
 [[Random]]
 deps = ["Serialization"]
@@ -137,9 +139,9 @@ uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[StaticArrays]]
 deps = ["LinearAlgebra", "Random", "Statistics"]
-git-tree-sha1 = "5c06c0aeb81bef54aed4b3f446847905eb6cbda0"
+git-tree-sha1 = "016d1e1a00fabc556473b07161da3d39726ded35"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "0.12.3"
+version = "0.12.4"
 
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
