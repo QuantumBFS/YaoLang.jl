@@ -73,6 +73,11 @@ git-tree-sha1 = "da795394571b24ceb4ae7700428ff090d993363c"
 uuid = "d05aeea4-b7d4-55ac-b691-9e7fabb07ba2"
 version = "0.6.3"
 
+[[MLStyle]]
+git-tree-sha1 = "95b06320a3b9cda1815efdb232051015698c39ba"
+uuid = "d8e11817-5142-5d16-987a-aa16d5891078"
+version = "0.4.3"
+
 [[MacroTools]]
 deps = ["Markdown", "Random"]
 git-tree-sha1 = "f7d2e3f654af75f01ec49be82c231c382214223a"
@@ -91,9 +96,20 @@ git-tree-sha1 = "12ce190210d278e12644bcadf5b21cbdcf225cd3"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 version = "1.2.0"
 
+[[PrettyPrint]]
+git-tree-sha1 = "632eb4abab3449ab30c5e1afaa874f0b98b586e4"
+uuid = "8162dcfd-2161-5ef2-ae6c-7681170c5f98"
+version = "0.2.0"
+
 [[Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[[RBNF]]
+deps = ["DataStructures", "MLStyle", "PrettyPrint"]
+git-tree-sha1 = "e364ab0c0fc5041b1a6311ba18889709e1c5a50a"
+uuid = "83ef0002-5b9e-11e9-219b-65bac3c6d69c"
+version = "0.1.0"
 
 [[Random]]
 deps = ["Serialization"]
