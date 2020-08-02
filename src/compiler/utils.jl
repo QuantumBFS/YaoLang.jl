@@ -96,9 +96,9 @@ function count_nqubits(ir::YaoIR)
             head = stmt.expr.head
             args = stmt.expr.args
             if args[1] == :gate
-                push!(locs, args[3])
+                push!(locs, args[3]...)
             elseif args[1] == :ctrl
-                push!(locs, args[3], args[4])
+                push!(locs, args[3]..., args[4]...)
             end
         end
         return maximum(locs)

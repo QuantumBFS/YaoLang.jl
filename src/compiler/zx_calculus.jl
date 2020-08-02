@@ -162,7 +162,28 @@ function zx_push_ctrl_gate!(circ, ctrl, loc, gate)
         if gate === :Z
             push_ctrl_gate!(circ, Val{:CZ}(), loc, ctrl)
         elseif gate === :X
-            push_ctrl_gate!(circ, Val{:CNOT}(), loc, ctrl)
+            if ctrl isa Tuple
+                a = ctrl[1]
+                b = ctrl[2]
+                c = loc
+                push_gate!(circ, Val{:H}(), c)
+                push_ctrl_gate!(circ, Val{:CNOT}(), c, b)
+                push_gate!(circ, Val{:Z}(), c, 7//4)
+                push_ctrl_gate!(circ, Val{:CNOT}(), c, a)
+                push_gate!(circ, Val{:Z}(), c, 1//4)
+                push_ctrl_gate!(circ, Val{:CNOT}(), c, b)
+                push_gate!(circ, Val{:Z}(), c, 7//4)
+                push_ctrl_gate!(circ, Val{:CNOT}(), c, a)
+                push_gate!(circ, Val{:Z}(), b, 1//4)
+                push_gate!(circ, Val{:Z}(), c, 1//4)
+                push_gate!(circ, Val{:H}(), c)
+                push_ctrl_gate!(circ, Val{:CNOT}(), b, a)
+                push_gate!(circ, Val{:Z}(), a, 1//4)
+                push_gate!(circ, Val{:Z}(), b, 7//4)
+                push_ctrl_gate!(circ, Val{:CNOT}(), b, a)
+            elseif ctrl isa Integer
+                push_ctrl_gate!(circ, Val{:CNOT}(), loc, ctrl)
+            end
         end
     end
 end
