@@ -1,3 +1,6 @@
+function merge_primitive!(ir::YaoIR)
+end
+
 function sink_quantum!(ir::YaoIR)
     ir_perms = []
     for (k, b) in enumerate(blocks(ir.body))

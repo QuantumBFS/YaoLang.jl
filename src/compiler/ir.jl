@@ -1,5 +1,17 @@
 export YaoIR
 
+struct Primitive
+    name::Symbol
+    params::Vector{Any}
+end
+
+function Base.show(io::IO, ex::Primitive)
+    printstyled(io, ex.name; color=:yellow)
+    print(io, "(")
+    join(io, ex.params, ", ")
+    print(io, ")")
+end
+
 """
     YaoIR
 
