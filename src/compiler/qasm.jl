@@ -72,7 +72,7 @@ RBNF.@parser QASMLang begin
     space     := r"\G\s+"
 end
 
-function YaoIR(m::Module, src::String, func_name::String)
+function YaoIR(m::Module, src::String, func_name::Symbol)
     ast, ctx = RBNF.runparser(mainprogram, RBNF.runlexer(QASMLang, src))
     prog = ast.prog
     qregs = extract_qreg(prog)
@@ -116,11 +116,11 @@ function to_YaoLang_prog(op, locs, args = nothing)
     elseif op == "s"
         return "    $(locs[]) => S\n"
     elseif op == "sdg"
-        return "    $(locs[]) => shift(-π/2)\n"
+        return "    $(locs[]) => shift(\$(3*π/2))\n"
     elseif op == "t"
         return "    $(locs[]) => T\n"
     elseif op == "tdg"
-        return "    $(locs[]) => shift(-π/4)\n"
+        return "    $(locs[]) => shift(\$(7*π/4))\n"
     elseif op == "rx"
         return "    $(locs[]) => Rx($(args[]))\n"
     elseif op == "ry"
@@ -137,7 +137,7 @@ function to_YaoLang_prog(op, locs, args = nothing)
         return "    $(locs[]) => Rz($(args[3]))\n    $(locs[]) => Ry($(args[2]))\n    $(locs[]) => Rz($(args[1]))\n"
     elseif op == "CX"
         return "    @ctrl $(locs[1]) $(locs[2]) => X\n"
-    else 
+    else
         return ""
     end
 end
@@ -146,7 +146,7 @@ function eval_expr(ex)
     s = ""
     if ex isa Struct_neg
         return "-" * eval_expr(ex.value)
-    end 
+    end
     if ex isa RBNF.Token
         if ex.str == "pi"
             return s*"π"

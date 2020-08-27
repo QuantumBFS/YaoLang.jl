@@ -24,6 +24,7 @@ end
 
 function IR(circ::ZXDiagram{T, P}) where {T, P}
     lo = circ.layout
+    spider_seq = ZXCalculus.spider_sequence(circ)
     vs = spiders(circ)
     locs = Dict()
     nqubit = lo.nbits
@@ -32,10 +33,10 @@ function IR(circ::ZXDiagram{T, P}) where {T, P}
     IRTools.return!(ir, nothing)
     push!(ir, IRTools.Statement(Expr(:quantum, :register, :new, gensym(:register))))
 
-    while sum([frontier_v[i] <= length(lo.spider_seq[i]) for i = 1:nqubit]) > 0
+    while sum([frontier_v[i] <= length(spider_seq[i]) for i = 1:nqubit]) > 0
         for q = 1:nqubit
-            if frontier_v[q] <= length(lo.spider_seq[q])
-                v = lo.spider_seq[q][frontier_v[q]]
+            if frontier_v[q] <= length(spider_seq[q])
+                v = spider_seq[q][frontier_v[q]]
                 nb = ZXCalculus.neighbors(circ, v)
                 if length(nb) <= 2
                     θ = phase(circ, v) * π
@@ -55,7 +56,7 @@ function IR(circ::ZXDiagram{T, P}) where {T, P}
                     if spider_type(circ, v1) == SpiderType.H
                         v1 = setdiff(ZXCalculus.neighbors(circ, v1), [v])[1]
                     end
-                    if sum([findfirst(isequal(u), lo.spider_seq[qubit_loc(lo, u)]) != frontier_v[qubit_loc(lo, u)] for u in [v, v1]]) == 0
+                    if sum([findfirst(isequal(u), spider_seq[qubit_loc(lo, u)]) != frontier_v[qubit_loc(lo, u)] for u in [v, v1]]) == 0
                         if phase(circ, v) != 0
                             if spider_type(circ, v) == ZXCalculus.SpiderType.Z
                                 push!(ir, IRTools.xcall(YaoLang, :shift, phase(circ, v)*π))
