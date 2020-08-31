@@ -1,3 +1,7 @@
+module QASM
+
+export @qasm_str
+
 using RBNF
 
 struct QASMLang end
@@ -72,121 +76,132 @@ RBNF.@parser QASMLang begin
     space     := r"\G\s+"
 end
 
-function YaoIR(m::Module, src::String, func_name::Symbol)
-    ast, ctx = RBNF.runparser(mainprogram, RBNF.runlexer(QASMLang, src))
-    prog = ast.prog
-    qregs = extract_qreg(prog)
-    yaolang_prog = "function $func_name()\n"
-    for stmt in prog
-        if stmt isa Struct_iduop
-            op = stmt.op.str
-            op_args = extract_args(stmt.lst1)
-            op_locs = extract_locs(stmt.lst2, qregs)
-            yaolang_prog *= to_YaoLang_prog(op, op_locs, op_args)
-        elseif stmt isa Struct_u
-            ex1 = stmt.exprs[1][1]
-            ex2 = stmt.exprs[1][2]
-            ex3 = stmt.exprs[2]
-            theta = eval(Meta.parse(eval_expr(ex1)))
-            phi = eval(Meta.parse(eval_expr(ex2)))
-            lambda = eval(Meta.parse(eval_expr(ex3)))
-            op_locs = extract_locs(stmt.arg, qregs)
-            op_args = [theta, phi, lambda]
-            yaolang_prog *= to_YaoLang_prog("U", op_locs, op_args)
-        elseif stmt isa Struct_cx
-            op_locs = [extract_locs(stmt.arg1, qregs)[], extract_locs(stmt.arg2, qregs)[]]
-            yaolang_prog *= to_YaoLang_prog("CX", op_locs)
-        end
-    end
-    yaolang_prog *= "end"
-    # println(yaolang_prog)
-    ex = Meta.parse(yaolang_prog)
-    return YaoIR(m, ex)
+function load(src::String)
+    ast, _ = RBNF.runparser(mainprogram, RBNF.runlexer(QASMLang, src))
+    return ast
 end
 
-function to_YaoLang_prog(op, locs, args = nothing)
-    if op == "h"
-        return "    $(locs[]) => H\n"
-    elseif op == "x"
-        return "    $(locs[]) => X\n"
-    elseif op == "y"
-        return "    $(locs[]) => Y\n"
-    elseif op == "z"
-        return "    $(locs[]) => Z\n"
-    elseif op == "s"
-        return "    $(locs[]) => S\n"
-    elseif op == "sdg"
-        return "    $(locs[]) => shift(\$(3*π/2))\n"
-    elseif op == "t"
-        return "    $(locs[]) => T\n"
-    elseif op == "tdg"
-        return "    $(locs[]) => shift(\$(7*π/4))\n"
-    elseif op == "rx"
-        return "    $(locs[]) => Rx($(args[]))\n"
-    elseif op == "ry"
-        return "    $(locs[]) => Ry($(args[]))\n"
-    elseif op == "rz"
-        return "    $(locs[]) => Rz($(args[]))\n"
-    elseif op == "cz"
-        return "    @ctrl $(locs[1]) $(locs[2]) => Z\n"
-    elseif op == "cx"
-        return "    @ctrl $(locs[1]) $(locs[2]) => X\n"
-    elseif op == "ccx"
-        return "    @ctrl \$($(locs[1]), $(locs[2])) $(locs[3]) => X\n"
-    elseif op == "U"
-        return "    $(locs[]) => Rz($(args[3]))\n    $(locs[]) => Ry($(args[2]))\n    $(locs[]) => Rz($(args[1]))\n"
-    elseif op == "CX"
-        return "    @ctrl $(locs[1]) $(locs[2]) => X\n"
-    else
-        return ""
-    end
+macro qasm_str(src::String)
+    return load(src)
 end
 
-function eval_expr(ex)
-    s = ""
-    if ex isa Struct_neg
-        return "-" * eval_expr(ex.value)
-    end
-    if ex isa RBNF.Token
-        if ex.str == "pi"
-            return s*"π"
-        end
-        return s*ex.str
-    end
-    for sub_ex in ex
-        s = s*eval_expr(sub_ex)
-    end
-    return "("*s*")"
 end
 
-function extract_args(lst)
-    # TODO: Analyse the AST
-end
+# function YaoIR(m::Module, src::String, func_name::Symbol)
+#     ast, ctx = RBNF.runparser(mainprogram, RBNF.runlexer(QASMLang, src))
+#     prog = ast.prog
+#     qregs = extract_qreg(prog)
+#     yaolang_prog = "function $func_name()\n"
+#     for stmt in prog
+#         if stmt isa Struct_iduop
+#             op = stmt.op.str
+#             op_args = extract_args(stmt.lst1)
+#             op_locs = extract_locs(stmt.lst2, qregs)
+#             yaolang_prog *= to_YaoLang_prog(op, op_locs, op_args)
+#         elseif stmt isa Struct_u
+#             ex1 = stmt.exprs[1][1]
+#             ex2 = stmt.exprs[1][2]
+#             ex3 = stmt.exprs[2]
+#             theta = eval(Meta.parse(eval_expr(ex1)))
+#             phi = eval(Meta.parse(eval_expr(ex2)))
+#             lambda = eval(Meta.parse(eval_expr(ex3)))
+#             op_locs = extract_locs(stmt.arg, qregs)
+#             op_args = [theta, phi, lambda]
+#             yaolang_prog *= to_YaoLang_prog("U", op_locs, op_args)
+#         elseif stmt isa Struct_cx
+#             op_locs = [extract_locs(stmt.arg1, qregs)[], extract_locs(stmt.arg2, qregs)[]]
+#             yaolang_prog *= to_YaoLang_prog("CX", op_locs)
+#         end
+#     end
+#     yaolang_prog *= "end"
+#     # println(yaolang_prog)
+#     ex = Meta.parse(yaolang_prog)
+#     return YaoIR(m, ex)
+# end
 
-function extract_locs(lst, qregs)
-    if lst isa Struct_mixeditem
-        if lst.arg isa Nothing
-            return collect(qregs[lst.id.str])
-        else
-            return [qregs[lst.id.str][Meta.parse(lst.arg.str)+1]]
-        end
-    elseif lst isa Struct_argument
-        return [qregs[lst.id.str][Meta.parse(lst.arg.str)+1]]
-    else
-        return [extract_locs(lst[1], qregs); extract_locs(lst[2], qregs)]
-    end
-end
+# function to_YaoLang_prog(op, locs, args = nothing)
+#     if op == "h"
+#         return "    $(locs[]) => H\n"
+#     elseif op == "x"
+#         return "    $(locs[]) => X\n"
+#     elseif op == "y"
+#         return "    $(locs[]) => Y\n"
+#     elseif op == "z"
+#         return "    $(locs[]) => Z\n"
+#     elseif op == "s"
+#         return "    $(locs[]) => S\n"
+#     elseif op == "sdg"
+#         return "    $(locs[]) => shift(\$(3*π/2))\n"
+#     elseif op == "t"
+#         return "    $(locs[]) => T\n"
+#     elseif op == "tdg"
+#         return "    $(locs[]) => shift(\$(7*π/4))\n"
+#     elseif op == "rx"
+#         return "    $(locs[]) => Rx($(args[]))\n"
+#     elseif op == "ry"
+#         return "    $(locs[]) => Ry($(args[]))\n"
+#     elseif op == "rz"
+#         return "    $(locs[]) => Rz($(args[]))\n"
+#     elseif op == "cz"
+#         return "    @ctrl $(locs[1]) $(locs[2]) => Z\n"
+#     elseif op == "cx"
+#         return "    @ctrl $(locs[1]) $(locs[2]) => X\n"
+#     elseif op == "ccx"
+#         return "    @ctrl \$($(locs[1]), $(locs[2])) $(locs[3]) => X\n"
+#     elseif op == "U"
+#         return "    $(locs[]) => Rz($(args[3]))\n    $(locs[]) => Ry($(args[2]))\n    $(locs[]) => Rz($(args[1]))\n"
+#     elseif op == "CX"
+#         return "    @ctrl $(locs[1]) $(locs[2]) => X\n"
+#     else
+#         return ""
+#     end
+# end
 
-function extract_qreg(prog)
-    qregs = Dict{String, UnitRange{Int}}()
-    nqubits = 1
-    for stmt in prog
-        if stmt isa Struct_decl && stmt.regtype.str == "qreg"
-            qreg_id = stmt.id.str
-            qreg_nqubit = Meta.parse(stmt.int.str)
-            qregs[qreg_id] = nqubits:(nqubits + qreg_nqubit - 1)
-            nqubits += qreg_nqubit
-        end
-    end
-    return qregs
-end
+# function eval_expr(ex)
+#     s = ""
+#     if ex isa Struct_neg
+#         return "-" * eval_expr(ex.value)
+#     end
+#     if ex isa RBNF.Token
+#         if ex.str == "pi"
+#             return s*"π"
+#         end
+#         return s*ex.str
+#     end
+#     for sub_ex in ex
+#         s = s*eval_expr(sub_ex)
+#     end
+#     return "("*s*")"
+# end
+
+# function extract_args(lst)
+#     # TODO: Analyse the AST
+# end
+
+# function extract_locs(lst, qregs)
+#     if lst isa Struct_mixeditem
+#         if lst.arg isa Nothing
+#             return collect(qregs[lst.id.str])
+#         else
+#             return [qregs[lst.id.str][Meta.parse(lst.arg.str)+1]]
+#         end
+#     elseif lst isa Struct_argument
+#         return [qregs[lst.id.str][Meta.parse(lst.arg.str)+1]]
+#     else
+#         return [extract_locs(lst[1], qregs); extract_locs(lst[2], qregs)]
+#     end
+# end
+
+# function extract_qreg(prog)
+#     qregs = Dict{String, UnitRange{Int}}()
+#     nqubits = 1
+#     for stmt in prog
+#         if stmt isa Struct_decl && stmt.regtype.str == "qreg"
+#             qreg_id = stmt.id.str
+#             qreg_nqubit = Meta.parse(stmt.int.str)
+#             qregs[qreg_id] = nqubits:(nqubits + qreg_nqubit - 1)
+#             nqubits += qreg_nqubit
+#         end
+#     end
+#     return qregs
+# end
