@@ -81,8 +81,17 @@ function load(src::String)
     return ast
 end
 
-macro qasm_str(src::String)
+macro qasm_str(src)
+    return qasm_m(__module__, src)
+end
+
+function qasm_m(m, src::String)
     return load(src)
+end
+
+function qasm_m(m, ex::Expr)
+    ex.head === :$ || throw(Meta.ParseError("invalid expression $ex"))
+    return load(Base.eval(m, ex.args[1]))
 end
 
 end
