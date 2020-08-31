@@ -109,6 +109,16 @@ function count_nqubits(ir::YaoIR)
     end
 end
 
+_get_primitive_name(ex::GlobalRef) = ex
+_get_primitive_name(ex::Symbol) = ex
+
+function _get_primitive_name(ex::Expr)
+    if (ex.head === :call) && (ex.args[1] isa GlobalRef || ex.args[1] isa Symbol)
+        return ex
+    end
+    throw(ParseError("invalid primitive instruction $ex"))
+end
+
 """
     gate_count(circuit)::Dict
 
