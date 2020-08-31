@@ -18,6 +18,9 @@ ExprTools = "0.1"
 LuxurySparse = "0.6"
 TimerOutputs = "0.5"
 YaoAPI = "0.1"
+RBNF = "0.2"
+IRTools = "0.4"
+ZXCalculus = "0.2"
 julia = "1.4"
 
 [extras]
