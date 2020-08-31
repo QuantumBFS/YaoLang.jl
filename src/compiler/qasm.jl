@@ -96,9 +96,9 @@ end
 
 end
 
-# function YaoIR(m::Module, src::QASM.Struct_mainprogram, fname=gensym(:qasm))
-
-# end
+function YaoIR(m::Module, ast::QASM.Struct_mainprogram, fname=gensym(:qasm))
+    prog = ast.prog
+end
 
 # function YaoIR(m::Module, src::String, func_name::Symbol)
 #     ast, ctx = RBNF.runparser(mainprogram, RBNF.runlexer(QASMLang, src))
