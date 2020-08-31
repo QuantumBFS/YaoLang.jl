@@ -97,9 +97,9 @@ uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 version = "1.3.0"
 
 [[PrettyPrint]]
-git-tree-sha1 = "21e1f88cb73589ec39a1181f77eb444b5276151e"
-uuid = "8162dcfd-2161-5ef2-ae6c-7681170c5f98"
-version = "0.1.0"
+git-tree-sha1 = "12ce190210d278e12644bcadf5b21cbdcf225cd3"
+uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
+version = "1.2.0"
 
 [[Printf]]
 deps = ["Unicode"]
