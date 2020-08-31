@@ -38,6 +38,7 @@ include("compiler/kwdefs.jl")
 include("compiler/validation.jl")
 include("compiler/trace.jl")
 
+include("compiler/qasm.jl")
 include("compiler/zx_calculus.jl")
 
 function __init__()
