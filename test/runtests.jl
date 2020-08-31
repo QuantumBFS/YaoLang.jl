@@ -12,4 +12,5 @@ end
     include("compiler/validation.jl")
     include("compiler/zx_calculus.jl")
     include("compiler/qasm.jl")
+    include("compiler/utils.jl")
 end

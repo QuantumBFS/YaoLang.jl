@@ -1,3 +1,5 @@
+export gate_count
+
 function signature(ir::YaoIR)
     defs = Dict(:name => ir.name, :args => ir.args)
     if !isempty(ir.whereparams)
@@ -102,5 +104,65 @@ function count_nqubits(ir::YaoIR)
             end
         end
         return maximum(locs)
+    else
+        error("expect a pure quantum circuit")
+    end
+end
+
+"""
+    gate_count([f], ir)
+
+Count the number of quantum gates in given statement. The gate can
+be filtered by an optional Boolean function that takes
+a `Statement` as input.
+"""
+function gate_count end
+
+function gate_count(f, ir::YaoIR)
+    count = 0
+    for (_, st) in ir.body
+        if (st.expr isa Expr) && (st.expr.head === :quantum)
+            if f(st)
+                count += 1
+            end
+        end
+    end
+    return count
+end
+
+function gate_count(ir::YaoIR)
+    return gate_count(ir) do st
+        st.expr.args[1] in (:gate, :ctrl)
+    end
+end
+
+_get_primitive_name(ex::GlobalRef) = ex
+
+function _get_primitive_name(ex::Expr)
+    if ex.head === :call && (ex.args[1] isa Symbol || ex.args[1] isa GlobalRef)
+        return ex.args[1]
+    end
+    throw(ParseError("unknown primitive statement $ex"))
+end
+
+function gate_count(x::YaoLang.GenericCircuit)
+    if hasmethod(x, ())
+        tape = TraceTape()
+        n = count_nqubits(code_yao(x))
+        count = Dict()
+        x()(tape, Locations(1:n))
+
+        for each in tape.commands[1]
+            if each.args[1] === :gate
+                name = string(_get_primitive_name(each.args[2]))
+                count[name] = get(count, name, 0) + 1
+            elseif each.args[1] === :ctrl
+                ctrl_name = string("@ctrl ", _get_primitive_name(each.args[2]))
+                count[ctrl_name] = get(count, ctrl_name, 0) + 1
+            end
+        end
+        return count
+    else
+        error("not a pure quantum circuit")
     end
 end

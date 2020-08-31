@@ -72,6 +72,8 @@ RBNF.@parser QASMLang begin
     space     := r"\G\s+"
 end
 
+YaoIR(src::String, func_name::Symbol=gensym()) = YaoIR(Main, src, func_name)
+
 function YaoIR(m::Module, src::String, func_name::Symbol)
     ast, ctx = RBNF.runparser(mainprogram, RBNF.runlexer(QASMLang, src))
     prog = ast.prog
