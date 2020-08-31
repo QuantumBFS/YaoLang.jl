@@ -1,3 +1,5 @@
+export gate_count
+
 function signature(ir::YaoIR)
     defs = Dict(:name => ir.name, :args => ir.args)
     if !isempty(ir.whereparams)
@@ -102,5 +104,35 @@ function count_nqubits(ir::YaoIR)
             end
         end
         return maximum(locs)
+    else
+        error("expect a pure quantum circuit")
+    end
+end
+
+"""
+    gate_count(circuit)::Dict
+
+Count the number of each primitive instructions in given pure quantum
+circuit.
+"""
+function gate_count(x::YaoLang.GenericCircuit)
+    if hasmethod(x, ())
+        tape = TraceTape()
+        n = count_nqubits(code_yao(x))
+        count = Dict()
+        x()(tape, Locations(1:n))
+
+        for each in tape.commands[1]
+            if each.args[1] === :gate
+                name = string(_get_primitive_name(each.args[2]))
+                count[name] = get(count, name, 0) + 1
+            elseif each.args[1] === :ctrl
+                ctrl_name = string("@ctrl ", _get_primitive_name(each.args[2]))
+                count[ctrl_name] = get(count, ctrl_name, 0) + 1
+            end
+        end
+        return count
+    else
+        error("not a pure quantum circuit")
     end
 end
