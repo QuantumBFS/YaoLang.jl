@@ -114,7 +114,7 @@ _get_primitive_name(ex::Symbol) = ex
 
 function _get_primitive_name(ex::Expr)
     if (ex.head === :call) && (ex.args[1] isa GlobalRef || ex.args[1] isa Symbol)
-        return ex
+        return ex.args[1]
     end
     throw(ParseError("invalid primitive instruction $ex"))
 end
