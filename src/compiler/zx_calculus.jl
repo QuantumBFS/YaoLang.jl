@@ -123,6 +123,17 @@ function ZXDiagram(ir::YaoIR)
     end
 end
 
+function ZXDiagram(::Val{:qasm}, src)
+    src = replace(src, r"include \".*\";" => "")
+    ir = YaoIR(Val(:qasm), @__MODULE__, src, gensym())
+    if is_pure_quantum(ir)
+        ir.pure_quantum = true
+        zxd = ZXDiagram(ir)
+        return zxd
+    end
+    return ZXDiagram(count_nqubits(ir))
+end
+
 function zx_push_gate!(circ, loc, gate)
     if gate isa Symbol
         if gate === :H

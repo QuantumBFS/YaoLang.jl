@@ -72,7 +72,7 @@ RBNF.@parser QASMLang begin
     space     := r"\G\s+"
 end
 
-function YaoIR(m::Module, src::String, func_name::Symbol)
+function YaoIR(::Val{:qasm}, m::Module, src::String, func_name::Symbol)
     ast, ctx = RBNF.runparser(mainprogram, RBNF.runlexer(QASMLang, src))
     prog = ast.prog
     qregs = extract_qreg(prog)
@@ -99,7 +99,6 @@ function YaoIR(m::Module, src::String, func_name::Symbol)
         end
     end
     yaolang_prog *= "end"
-    # println(yaolang_prog)
     ex = Meta.parse(yaolang_prog)
     return YaoIR(m, ex)
 end
