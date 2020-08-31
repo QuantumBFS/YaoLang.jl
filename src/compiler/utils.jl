@@ -145,6 +145,12 @@ function _get_primitive_name(ex::Expr)
     throw(ParseError("unknown primitive statement $ex"))
 end
 
+"""
+    gate_count(circuit)::Dict
+
+Count the number of each primitive instructions in given pure quantum
+circuit.
+"""
 function gate_count(x::YaoLang.GenericCircuit)
     if hasmethod(x, ())
         tape = TraceTape()
