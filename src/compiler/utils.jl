@@ -110,42 +110,6 @@ function count_nqubits(ir::YaoIR)
 end
 
 """
-    gate_count([f], ir)
-
-Count the number of quantum gates in given statement. The gate can
-be filtered by an optional Boolean function that takes
-a `Statement` as input.
-"""
-function gate_count end
-
-function gate_count(f, ir::YaoIR)
-    count = 0
-    for (_, st) in ir.body
-        if (st.expr isa Expr) && (st.expr.head === :quantum)
-            if f(st)
-                count += 1
-            end
-        end
-    end
-    return count
-end
-
-function gate_count(ir::YaoIR)
-    return gate_count(ir) do st
-        st.expr.args[1] in (:gate, :ctrl)
-    end
-end
-
-_get_primitive_name(ex::GlobalRef) = ex
-
-function _get_primitive_name(ex::Expr)
-    if ex.head === :call && (ex.args[1] isa Symbol || ex.args[1] isa GlobalRef)
-        return ex.args[1]
-    end
-    throw(ParseError("unknown primitive statement $ex"))
-end
-
-"""
     gate_count(circuit)::Dict
 
 Count the number of each primitive instructions in given pure quantum
