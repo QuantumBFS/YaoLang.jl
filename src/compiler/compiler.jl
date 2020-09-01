@@ -2,7 +2,12 @@ const codegen_ctxs = Dict{Symbol,Any}()
 codegen_ctxs[:julia] = JuliaASTCodegenCtx
 
 
-function device_m(__module__::Module, ex::Expr; target::Symbol = :julia, optimizer::Vector{Symbol} = Symbol[])
+function device_m(
+    __module__::Module,
+    ex::Expr;
+    target::Symbol = :julia,
+    optimizer::Vector{Symbol} = Symbol[],
+)
     ir = YaoIR(__module__, ex) #= default parsing pass =#
 
     # simple validation
