@@ -3,7 +3,7 @@ using RBNF
 struct QASMLang end
 
 second((a, b)) = b
-second(vec::V) where V <: AbstractArray = vec[2]
+second(vec::V) where {V<:AbstractArray} = vec[2]
 
 RBNF.@parser QASMLang begin
     # define ignorances
@@ -11,68 +11,68 @@ RBNF.@parser QASMLang begin
 
     @grammar
     # define grammars
-    mainprogram := ["OPENQASM", ver=real, ';', prog=program]
-    program     = statement{*}
-    statement   = (decl | gate | opaque | qop | ifstmt | barrier)
+    mainprogram := ["OPENQASM", ver = real, ';', prog = program]
+    program = statement{*}
+    statement = (decl | gate | opaque | qop | ifstmt | barrier)
     # stmts
-    ifstmt      := ["if", '(', l=id, "==", r=nninteger, ')', body=qop]
-    opaque      := ["opaque", id=id, ['(', [arglist1=idlist].?, ')'].? , arglist2=idlist, ';']
-    barrier     := ["barrier", value=mixedlist]
-    decl        := [regtype="qreg" | "creg", id=id, '[', int=nninteger, ']', ';']
+    ifstmt := ["if", '(', l = id, "==", r = nninteger, ')', body = qop]
+    opaque := ["opaque", id = id, ['(', [arglist1 = idlist].?, ')'].?, arglist2 = idlist, ';']
+    barrier := ["barrier", value = mixedlist]
+    decl := [regtype = "qreg" | "creg", id = id, '[', int = nninteger, ']', ';']
 
     # gate
-    gate        := [decl=gatedecl, [goplist=goplist].?, '}']
-    gatedecl    := ["gate", id=id, ['(', [arglist1=idlist].?, ')'].?, arglist2=idlist, '{']
+    gate := [decl = gatedecl, [goplist = goplist].?, '}']
+    gatedecl := ["gate", id = id, ['(', [arglist1 = idlist].?, ')'].?, arglist2 = idlist, '{']
 
-    goplist     = (uop |barrier_ids){*}
-    barrier_ids := ["barrier", ids=idlist, ';']
+    goplist = (uop | barrier_ids){*}
+    barrier_ids := ["barrier", ids = idlist, ';']
     # qop
-    qop         = (uop | measure | reset)
-    reset       := ["reset", arg=argument, ';']
-    measure     := ["measure", arg1=argument, "->", arg2=argument, ';']
+    qop = (uop | measure | reset)
+    reset := ["reset", arg = argument, ';']
+    measure := ["measure", arg1 = argument, "->", arg2 = argument, ';']
 
-    uop         = (iduop | u | cx)
-    iduop      := [op=id, ['(', [lst1=explist].?, ')'].?, lst2=mixedlist, ';']
-    u          := ['U', '(', exprs=explist, ')', arg=argument, ';']
-    cx         := ["CX", arg1=argument, ',', arg2=argument, ';']
+    uop = (iduop | u | cx)
+    iduop := [op = id, ['(', [lst1 = explist].?, ')'].?, lst2 = mixedlist, ';']
+    u := ['U', '(', exprs = explist, ')', arg = argument, ';']
+    cx := ["CX", arg1 = argument, ',', arg2 = argument, ';']
 
-    idlist     = @direct_recur begin
+    idlist = @direct_recur begin
         init = id
         prefix = (recur, (',', id) % second)
     end
 
-    mixeditem   := [id=id, ['[', arg=nninteger, ']'].?]
-    mixedlist   = @direct_recur begin
+    mixeditem := [id = id, ['[', arg = nninteger, ']'].?]
+    mixedlist = @direct_recur begin
         init = mixeditem
         prefix = (recur, (',', mixeditem) % second)
     end
 
-    argument   := [id=id, ['[', (arg=nninteger), ']'].?]
+    argument := [id = id, ['[', (arg = nninteger), ']'].?]
 
-    explist    = @direct_recur begin
+    explist = @direct_recur begin
         init = exp
-        prefix = (recur,  (',', exp) % second)
+        prefix = (recur, (',', exp) % second)
     end
 
-    atom       = (real | nninteger | "pi" | id | fnexp) | (['(', exp, ')'] % second) | neg
-    fnexp      := [fn=fn, '(', arg=exp, ')']
-    neg        := ['-', value=exp]
-    exp        = @direct_recur begin
+    atom = (real | nninteger | "pi" | id | fnexp) | (['(', exp, ')'] % second) | neg
+    fnexp := [fn = fn, '(', arg = exp, ')']
+    neg := ['-', value = exp]
+    exp = @direct_recur begin
         init = atom
         prefix = (recur, binop, atom)
     end
-    fn         = ("sin" | "cos" | "tan" | "exp" | "ln" | "sqrt")
-    binop      = ('+' | '-' | '*' | '/')
+    fn = ("sin" | "cos" | "tan" | "exp" | "ln" | "sqrt")
+    binop = ('+' | '-' | '*' | '/')
 
     # define tokens
     @token
-    id        := r"\G[a-z]{1}[A-Za-z0-9_]*"
-    real      := r"\G([0-9]+\.[0-9]*|[0-9]*\.[0.9]+)([eE][-+]?[0-9]+)?"
+    id := r"\G[a-z]{1}[A-Za-z0-9_]*"
+    real := r"\G([0-9]+\.[0-9]*|[0-9]*\.[0.9]+)([eE][-+]?[0-9]+)?"
     nninteger := r"\G([1-9]+[0-9]*|0)"
-    space     := r"\G\s+"
+    space := r"\G\s+"
 end
 
-YaoIR(src::String, func_name::Symbol=gensym()) = YaoIR(Main, src, func_name)
+YaoIR(src::String, func_name::Symbol = gensym()) = YaoIR(Main, src, func_name)
 
 function YaoIR(m::Module, src::String, func_name::Symbol)
     ast, ctx = RBNF.runparser(mainprogram, RBNF.runlexer(QASMLang, src))
@@ -151,14 +151,14 @@ function eval_expr(ex)
     end
     if ex isa RBNF.Token
         if ex.str == "pi"
-            return s*"π"
+            return s * "π"
         end
-        return s*ex.str
+        return s * ex.str
     end
     for sub_ex in ex
-        s = s*eval_expr(sub_ex)
+        s = s * eval_expr(sub_ex)
     end
-    return "("*s*")"
+    return "(" * s * ")"
 end
 
 function extract_args(lst)
@@ -180,13 +180,13 @@ function extract_locs(lst, qregs)
 end
 
 function extract_qreg(prog)
-    qregs = Dict{String, UnitRange{Int}}()
+    qregs = Dict{String,UnitRange{Int}}()
     nqubits = 1
     for stmt in prog
         if stmt isa Struct_decl && stmt.regtype.str == "qreg"
             qreg_id = stmt.id.str
             qreg_nqubit = Meta.parse(stmt.int.str)
-            qregs[qreg_id] = nqubits:(nqubits + qreg_nqubit - 1)
+            qregs[qreg_id] = nqubits:(nqubits+qreg_nqubit-1)
             nqubits += qreg_nqubit
         end
     end
