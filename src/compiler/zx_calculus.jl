@@ -128,7 +128,7 @@ function zx_push_gate!(qc::QCircuit, loc, gate)
         if g isa GlobalRef
             g = g.name
         end
-        if g in (:shift, Rz, Rx)
+        if g in (:shift, :Rz, :Rx)
             push_gate!(qc, Val(g), loc, θ)
         elseif g === :Ry
             push_gate!(qc, Val(:Sdag), loc)
@@ -140,7 +140,7 @@ end
 
 function zx_push_ctrl_gate!(qc::QCircuit, ctrl, loc, gate)
     if gate isa Symbol
-        if gate === :Z
+        if gate === :Z && ctrl isa Integer
             push_gate!(qc, Val(:CZ), loc, ctrl)
         elseif gate === :X
             if ctrl isa Tuple && length(ctrl) == 2
