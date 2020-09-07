@@ -1,4 +1,5 @@
 using YaoLang, YaoArrayRegister
+using YaoLang.Compiler.QASM
 
 qasm_0 = """
 OPENQASM 2.0;
@@ -27,6 +28,10 @@ h qubits[4];
 cx qubits[1],qubits[4];
 cx qubits[0],qubits[4];
 """
+
+ast = QASM.load(qasm_0)
+
+dump(ast)
 
 qasm_1 = """OPENQASM 2.0;
 qreg q[3];
@@ -75,6 +80,34 @@ ccx q[0], q[2], q[1];
 ccx q[2], q[0], q[1];
 cx q[1], q[2];
 """
+
+qasm_5 = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[3];
+qreg a[2];
+creg c[3];
+creg syn[2];
+gate syndrome d1,d2,d3,a1,a2 
+{ 
+  cx d1,a1; cx d2,a1; 
+  cx d2,a2; cx d3,a2; 
+}
+x q[0]; // error
+barrier q;
+syndrome q[0],q[1],q[2],a[0],a[1];
+measure a -> syn;
+if(syn==1) x q[0];
+if(syn==2) x q[2];
+if(syn==3) x q[1];
+measure q -> c;
+"""
+
+using RBNF
+tokens = RBNF.runlexer(QASM.QASMLang, qasm_5)
+
+ast = QASM.load(qasm_5)
+
+ast.prog
 
 srcs = [qasm_0, qasm_1, qasm_2, qasm_3, qasm_4]
 for i = 0:4

@@ -17,13 +17,13 @@ RBNF.@parser QASMLang begin
     # define grammars
     mainprogram := ["OPENQASM", ver=real, ';', prog=program]
     program     = statement{*}
-    statement   = (decl | gate | opaque | qop | ifstmt | barrier)
+    statement   = (decl | gate | opaque | qop | ifstmt | barrier | inc)
     # stmts
     ifstmt      := ["if", '(', l=id, "==", r=nninteger, ')', body=qop]
     opaque      := ["opaque", id=id, ['(', [arglist1=idlist].?, ')'].? , arglist2=idlist, ';']
     barrier     := ["barrier", value=mixedlist]
     decl        := [regtype="qreg" | "creg", id=id, '[', int=nninteger, ']', ';']
-
+    inc         := ["include", file=str, ';']
     # gate
     gate        := [decl=gatedecl, [goplist=goplist].?, '}']
     gatedecl    := ["gate", id=id, ['(', [arglist1=idlist].?, ')'].?, arglist2=idlist, '{']
@@ -74,6 +74,7 @@ RBNF.@parser QASMLang begin
     real      := r"\G([0-9]+\.[0-9]*|[0-9]*\.[0.9]+)([eE][-+]?[0-9]+)?"
     nninteger := r"\G([1-9]+[0-9]*|0)"
     space     := r"\G\s+"
+    str       := @quote ("\"" ,"\\\"", "\"")
 end
 
 function load(src::String)
@@ -94,6 +95,26 @@ function qasm_m(m, ex::Expr)
     return load(Base.eval(m, ex.args[1]))
 end
 
+end
+
+function scan_registers(ast::QASM.Struct_mainprogram)
+    return scan_registers!(Dict(:classical=>[], :quantum=>[]), ast)
+end
+
+function scan_registers!(record::Dict, ast::QASM.Struct_mainprogram)
+    for node in ast.prog
+        scan_registers!(record, node)
+    end
+    return record
+end
+
+function scan_registers!(record::Dict, ast::QASM.Struct_decl)
+    if ast.regtype.str == "qreg"
+        push!(record[:quantum], ast)
+    else # classical
+        push!(record[:classical], ast)
+    end
+    return record
 end
 
 function YaoIR(m::Module, ast::QASM.Struct_mainprogram, fname=gensym(:qasm))
