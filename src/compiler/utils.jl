@@ -1,3 +1,4 @@
+import ZXCalculus: gate_count
 export gate_count
 
 function signature(ir::YaoIR)

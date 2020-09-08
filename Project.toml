@@ -15,11 +15,11 @@ ZXCalculus = "3525faa3-032d-4235-a8d4-8c2939a218dd"
 
 [compat]
 ExprTools = "0.1"
+IRTools = "0.4"
 LuxurySparse = "0.6"
+RBNF = "0.2"
 TimerOutputs = "0.5"
 YaoAPI = "0.1"
-RBNF = "0.2"
-IRTools = "0.4"
 ZXCalculus = "0.2"
 julia = "1.4"
 
