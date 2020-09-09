@@ -42,40 +42,28 @@ function IR(qc::QCircuit)
 
     if global_phase(qc) != 0
         push!(ir, IRTools.xcall(YaoLang, :phase, global_phase(qc)))
-        push!(
-            ir,
-            IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), 1)),
-        )
+        push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), 1)))
     end
     for g in gates(qc)
         if g.name in (:H, :Z, :X, :S, :T)
             push!(ir, IRTools.Statement(Expr(:quantum, :gate, g.name, g.loc)))
         elseif g.name === :Sdag
-            push!(ir, IRTools.xcall(YaoLang, :shift, 3π/2))
-            push!(
-                ir,
-                IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), g.loc)),
-            )
+            push!(ir, IRTools.xcall(YaoLang, :shift, 3π / 2))
+            push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), g.loc)))
         elseif g.name === :Tdag
-            push!(ir, IRTools.xcall(YaoLang, :shift, 7π/4))
-            push!(
-                ir,
-                IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), g.loc)),
-            )
+            push!(ir, IRTools.xcall(YaoLang, :shift, 7π / 4))
+            push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), g.loc)))
         elseif g.name in (:shift, :Rz, :Rx)
             θ = g.param
             push!(ir, IRTools.xcall(YaoLang, g.name, θ))
-            push!(
-                ir,
-                IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), g.loc)),
-            )
+            push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), g.loc)))
         elseif g.name === :CNOT
             push!(ir, Expr(:quantum, :ctrl, :X, g.loc, g.ctrl))
         elseif g.name === :CZ
             push!(ir, Expr(:quantum, :ctrl, :Z, g.loc, g.ctrl))
         end
     end
-    
+
     return ir
 end
 
