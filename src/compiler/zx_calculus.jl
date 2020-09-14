@@ -45,14 +45,8 @@ function IR(qc::QCircuit)
         push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), 1)))
     end
     for g in gates(qc)
-        if g.name in (:H, :Z, :X, :S, :T)
+        if g.name in (:H, :Z, :X, :S, :T, :Sdag, :Tdag)
             push!(ir, IRTools.Statement(Expr(:quantum, :gate, g.name, g.loc)))
-        elseif g.name === :Sdag
-            push!(ir, IRTools.xcall(YaoLang, :shift, 3π / 2))
-            push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), g.loc)))
-        elseif g.name === :Tdag
-            push!(ir, IRTools.xcall(YaoLang, :shift, 7π / 4))
-            push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), g.loc)))
         elseif g.name in (:shift, :Rz, :Rx)
             θ = g.param
             push!(ir, IRTools.xcall(YaoLang, g.name, θ))
