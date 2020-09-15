@@ -11,15 +11,15 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "SHA", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "215f1c81cfd1c5416cd78740bff8ef59b24cd7c0"
+git-tree-sha1 = "7c7f4cda0d58ec999189d70f5ee500348c4b4df1"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "3.15.0"
+version = "3.16.0"
 
 [[DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "88a93640bb3345436284ff089b383c34427f4117"
+git-tree-sha1 = "a88a67acbf3b61057371f315cadd027c8bce6d6d"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.18.2"
+version = "0.18.5"
 
 [[Dates]]
 deps = ["Printf"]
@@ -34,17 +34,17 @@ deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[ExprTools]]
-git-tree-sha1 = "6f0517056812fd6aa3af23d4b70d5325a2ae4e95"
+git-tree-sha1 = "7fce513fcda766962ff67c5596cb16c463dfd371"
 uuid = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
-version = "0.1.1"
+version = "0.1.2"
 
 [[IRTools]]
 deps = ["InteractiveUtils", "MacroTools", "Test"]
-git-tree-sha1 = "5edb2c69db2b89c2f4dfe544fe350ed1ff4db49e"
+git-tree-sha1 = "a8d88c05a23b44b4da6cf4fb5659e13ff95e0f47"
 repo-rev = "master"
 repo-url = "https://github.com/MikeInnes/IRTools.jl.git"
 uuid = "7869d1d1-7146-5819-86e3-90919afe41df"
-version = "0.4.0"
+version = "0.4.1"
 
 [[Inflate]]
 git-tree-sha1 = "f5fc07d4e706b84f72d54eedcc1c13d92fb0871c"
@@ -100,9 +100,9 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[OrderedCollections]]
-git-tree-sha1 = "293b70ac1780f9584c89268a6e2a560d938a7065"
+git-tree-sha1 = "16c08bf5dba06609fe45e30860092d6fa41fde7b"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
-version = "1.3.0"
+version = "1.3.1"
 
 [[Pkg]]
 deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
@@ -188,8 +188,8 @@ version = "0.1.0"
 
 [[ZXCalculus]]
 deps = ["LightGraphs", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "d2b2b03ecbb4bce80224bf5c8e5547af193cfff8"
+git-tree-sha1 = "da4867c3550db21f933283d5f5bee2f9f45f0aca"
 repo-rev = "master"
 repo-url = "https://github.com/QuantumBFS/ZXCalculus.jl.git"
 uuid = "3525faa3-032d-4235-a8d4-8c2939a218dd"
-version = "0.2.0"
+version = "0.2.2"
