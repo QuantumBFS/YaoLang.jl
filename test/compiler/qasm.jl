@@ -1,4 +1,5 @@
 using YaoLang, YaoArrayRegister
+using Test
 
 qasm_0 = """
 OPENQASM 2.0;
@@ -77,12 +78,10 @@ cx q[1], q[2];
 """
 
 srcs = [qasm_0, qasm_1, qasm_2, qasm_3, qasm_4]
-for i in 0:4
-    src = srcs[i+1]
-    ir_original = YaoLang.Compiler.YaoIR(@__MODULE__, src, :circ_original)
-    ir_original.pure_quantum = YaoLang.Compiler.is_pure_quantum(ir_original)
-    ir_optimized = YaoLang.Compiler.YaoIR(@__MODULE__, src, :circ_optimized)
-    ir_optimized.pure_quantum = YaoLang.Compiler.is_pure_quantum(ir_optimized)
+for src in srcs
+    ast = YaoLang.Compiler.QASM.load(src)
+    ir_original = YaoLang.Compiler.YaoIR(@__MODULE__, ast, :circ_original)
+    ir_optimized = YaoLang.Compiler.YaoIR(@__MODULE__, ast, :circ_optimized)
     ir_optimized = YaoLang.Compiler.optimize(ir_optimized, [:zx_teleport])
     code_original =
         YaoLang.Compiler.codegen(YaoLang.Compiler.JuliaASTCodegenCtx(ir_original), ir_original)
@@ -97,28 +96,10 @@ for i in 0:4
     circ_or = circ_original()
     circ_op = circ_optimized()
 
-    mat_original = zeros(ComplexF64, 2^nbits, 2^nbits)
-    for i in 1:2^nbits
-        st = zeros(ComplexF64, 2^nbits)
-        st[i] = 1
-        r0 = ArrayReg(st)
-        r0 |> circ_or
-        mat_original[:, i] = r0.state
-    end
+    r_or = rand_state(nbits)
+    r_op = copy(r_or)
+    r_or |> circ_or
+    r_op |> circ_op
 
-    mat_optimized = zeros(ComplexF64, 2^nbits, 2^nbits)
-    for i in 1:2^nbits
-        st = zeros(ComplexF64, 2^nbits)
-        st[i] = 1
-        r0 = ArrayReg(st)
-        r0 |> circ_op
-        mat_optimized[:, i] = r0.state
-    end
-
-    ind_or = findfirst(abs.(mat_original) .> 1e-10)
-    ind_op = findfirst(abs.(mat_optimized) .> 1e-10)
-    @test ind_or == ind_op
-
-    mat_optimized = mat_optimized .* (mat_original[ind_or] / mat_optimized[ind_op])
-    @test sum(abs.(mat_original - mat_optimized) .> 1e-10) == 0
+    @test fidelity(r_or, r_op) ≈ 1
 end
