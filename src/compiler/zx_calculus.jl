@@ -30,10 +30,7 @@ function optimize(ir::YaoIR, optimizer::Vector{Symbol} = Symbol[])
     end
 end
 
-function IR(circ::ZXDiagram{T,P}) where {T,P}
-    qc = QCircuit(circ)
-    return IR(qc)
-end
+IR(zxd::ZXDiagram) = IR(QCircuit(zxd))
 
 function IR(qc::QCircuit)
     ir = IRTools.IR()
@@ -98,9 +95,14 @@ function QCircuit(ir::YaoIR)
     return qc
 end
 
-function ZXDiagram(ir::YaoIR)
-    return ZXDiagram(QCircuit(ir))
+function QCircuit(src::String, ::Val{:qasm})
+    src = replace(src, r"include \".*\";" => "")
+    ast = QASM.load(src)
+    ir = YaoIR(@__MODULE__, ast)
+    return QCircuit(ir)
 end
+
+ZXDiagram(x...) = ZXDiagram(QCircuit(x...))
 
 function zx_push_gate!(qc::QCircuit, loc, gate)
     if gate isa Symbol
