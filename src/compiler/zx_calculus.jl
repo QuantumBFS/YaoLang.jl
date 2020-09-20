@@ -37,10 +37,6 @@ function IR(qc::QCircuit)
     IRTools.return!(ir, nothing)
     push!(ir, IRTools.Statement(Expr(:quantum, :register, :new, gensym(:register))))
 
-    if global_phase(qc) != 0
-        push!(ir, IRTools.xcall(YaoLang, :phase, global_phase(qc)))
-        push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), 1)))
-    end
     for g in gates(qc)
         if g.name in (:H, :Z, :X, :S, :T, :Sdag, :Tdag)
             push!(ir, IRTools.Statement(Expr(:quantum, :gate, g.name, g.loc)))
@@ -105,7 +101,6 @@ function zx_push_gate!(qc::QCircuit, loc, gate)
         elseif gate === :Y
             push_gate!(qc, Val(:X), loc)
             push_gate!(qc, Val(:Z), loc)
-            set_global_phase!(qc, global_phase(qc) + π)
         end
     elseif gate.head === :call
         g, θ = gate.args
