@@ -5,6 +5,8 @@
 
 The next DSL for Yao and quantum programs.
 
+**disclaimer: this package is still at alpha stage and things are very like to be broken and changed during this phase.**
+
 ![demo](demo.gif)
 
 This package is currently in release alpha, and is not included in [Yao](https://github.com/QuantumBFS/Yao.jl), expect some adventures and rough edges. Please feel free to open an issue.
