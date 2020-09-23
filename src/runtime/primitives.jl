@@ -66,7 +66,7 @@ exp(iθ) \\mathbf{I}
 ```
 """
 @primitive phase(θ::T) where {T<:Real} = Diagonal(Complex{T}[exp(im * θ), exp(im * θ)])
-@primitive Rx(θ::Real) = [cos(θ / 2) -im * sin(θ / 2); -im * sin(θ / 2) cos(θ / 2)]
+@primitive Rx(θ::Real) = [cos(θ / 2) -im*sin(θ / 2); -im*sin(θ / 2) cos(θ / 2)]
 @primitive Ry(θ::Real) = [cos(θ / 2) -sin(θ / 2); sin(θ / 2) cos(θ / 2)]
 @primitive Rz(θ::Real) = Diagonal([-im * sin(θ / 2) + cos(θ / 2), im * sin(θ / 2) + cos(θ / 2)])
 
