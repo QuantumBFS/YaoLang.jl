@@ -69,14 +69,10 @@ using Test
     @ctrl 1 5 => X
 end
 cir = test_cir()
-mat = zeros(ComplexF64, 32, 32)
-for i in 1:32
-    st = zeros(ComplexF64, 32)
-    st[i] = 1
-    r0 = ArrayReg(st)
-    r0 |> cir
-    mat[:, i] = r0.state
-end
+r = rand_state(5)
+r_pt = copy(r)
+r_pt_cl = copy(r)
+r |> cir
 
 @device optimizer = [:zx_teleport] function teleport_cir()
     5 => H
@@ -143,15 +139,8 @@ end
     @ctrl 1 5 => X
 end
 tp_cir = teleport_cir()
-tp_mat = zeros(ComplexF64, 32, 32)
-for i in 1:32
-    st = zeros(ComplexF64, 32)
-    st[i] = 1
-    r1 = ArrayReg(st)
-    r1 |> tp_cir
-    tp_mat[:, i] = r1.state
-end
-@test sum(abs.(mat - tp_mat) .> 1e-14) == 0
+r_pt |> tp_cir
+@test fidelity(r, r_pt) ≈ 1
 
 @device optimizer = [:zx_clifford, :zx_teleport] function clifford_teleport_cir()
     5 => H
@@ -218,15 +207,8 @@ end
     @ctrl 1 5 => X
 end
 cl_tp_cir = clifford_teleport_cir()
-cl_tp_mat = zeros(ComplexF64, 32, 32)
-for i in 1:32
-    st = zeros(ComplexF64, 32)
-    st[i] = 1
-    r1 = ArrayReg(st)
-    r1 |> cl_tp_cir
-    cl_tp_mat[:, i] = r1.state
-end
-@test sum(abs.(mat - cl_tp_mat) .> 1e-14) == 0
+r_pt_cl |> cl_tp_cir
+@test fidelity(r, r_pt_cl) ≈ 1
 
 code = @code_yao test_cir()
 zxd = ZXDiagram(code)

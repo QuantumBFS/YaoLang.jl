@@ -30,29 +30,16 @@ function optimize(ir::YaoIR, optimizer::Vector{Symbol} = Symbol[])
     end
 end
 
-function IR(circ::ZXDiagram{T,P}) where {T,P}
-    qc = QCircuit(circ)
-    return IR(qc)
-end
+IR(zxd::ZXDiagram) = IR(QCircuit(zxd))
 
 function IR(qc::QCircuit)
     ir = IRTools.IR()
     IRTools.return!(ir, nothing)
     push!(ir, IRTools.Statement(Expr(:quantum, :register, :new, gensym(:register))))
 
-    if global_phase(qc) != 0
-        push!(ir, IRTools.xcall(YaoLang, :phase, global_phase(qc)))
-        push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), 1)))
-    end
     for g in gates(qc)
-        if g.name in (:H, :Z, :X, :S, :T)
+        if g.name in (:H, :Z, :X, :S, :T, :Sdag, :Tdag)
             push!(ir, IRTools.Statement(Expr(:quantum, :gate, g.name, g.loc)))
-        elseif g.name === :Sdag
-            push!(ir, IRTools.xcall(YaoLang, :shift, 3π / 2))
-            push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), g.loc)))
-        elseif g.name === :Tdag
-            push!(ir, IRTools.xcall(YaoLang, :shift, 7π / 4))
-            push!(ir, IRTools.Statement(Expr(:quantum, :gate, IRTools.var(length(ir)), g.loc)))
         elseif g.name in (:shift, :Rz, :Rx)
             θ = g.param
             push!(ir, IRTools.xcall(YaoLang, g.name, θ))
@@ -98,9 +85,14 @@ function QCircuit(ir::YaoIR)
     return qc
 end
 
-function ZXDiagram(ir::YaoIR)
-    return ZXDiagram(QCircuit(ir))
+function QCircuit(src::String, ::Val{:qasm})
+    src = replace(src, r"include \".*\";" => "")
+    ast = QASM.load(src)
+    ir = YaoIR(@__MODULE__, ast)
+    return QCircuit(ir)
 end
+
+ZXDiagram(x...) = ZXDiagram(QCircuit(x...))
 
 function zx_push_gate!(qc::QCircuit, loc, gate)
     if gate isa Symbol
@@ -109,7 +101,6 @@ function zx_push_gate!(qc::QCircuit, loc, gate)
         elseif gate === :Y
             push_gate!(qc, Val(:X), loc)
             push_gate!(qc, Val(:Z), loc)
-            set_global_phase!(qc, global_phase(qc) + π)
         end
     elseif gate.head === :call
         g, θ = gate.args

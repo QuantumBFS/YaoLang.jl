@@ -1,4 +1,4 @@
-for gate in [:H, :X, :Y, :Z, :T, :S]
+for gate in [:H, :X, :Y, :Z, :T, :S, :Tdag, :Sdag]
     @eval begin
         export $gate
         @primitive $gate
@@ -36,6 +36,27 @@ end
 The T gate.
 """
 T
+
+"""
+    Tdag
+
+The dagger of T gate.
+"""
+Tdag
+
+"""
+    S
+
+The S gate.
+"""
+S
+
+"""
+    Sdag
+
+The dagger of S gate.
+"""
+Sdag
 
 export shift, phase, Rx, Ry, Rz, rot
 
