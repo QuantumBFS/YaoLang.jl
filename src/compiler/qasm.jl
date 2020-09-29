@@ -7,7 +7,7 @@ using RBNF
 struct QASMLang end
 
 second((a, b)) = b
-second(vec::V) where V <: AbstractArray = vec[2]
+second(vec::V) where {V<:AbstractArray} = vec[2]
 
 RBNF.@parser QASMLang begin
     # define ignorances
@@ -15,66 +15,66 @@ RBNF.@parser QASMLang begin
 
     @grammar
     # define grammars
-    mainprogram := ["OPENQASM", ver=real, ';', prog=program]
-    program     = statement{*}
-    statement   = (decl | gate | opaque | qop | ifstmt | barrier | inc)
+    mainprogram := ["OPENQASM", ver = real, ';', prog = program]
+    program = statement{*}
+    statement = (decl | gate | opaque | qop | ifstmt | barrier | inc)
     # stmts
-    ifstmt      := ["if", '(', l=id, "==", r=nninteger, ')', body=qop]
-    opaque      := ["opaque", id=id, ['(', [arglist1=idlist].?, ')'].? , arglist2=idlist, ';']
-    barrier     := ["barrier", value=mixedlist]
-    decl        := [regtype="qreg" | "creg", id=id, '[', int=nninteger, ']', ';']
-    inc         := ["include", file=str, ';']
+    ifstmt := ["if", '(', l = id, "==", r = nninteger, ')', body = qop]
+    opaque := ["opaque", id = id, ['(', [arglist1 = idlist].?, ')'].?, arglist2 = idlist, ';']
+    barrier := ["barrier", value = mixedlist]
+    decl := [regtype = "qreg" | "creg", id = id, '[', int = nninteger, ']', ';']
+    inc := ["include", file = str, ';']
     # gate
-    gate        := [decl=gatedecl, [goplist=goplist].?, '}']
-    gatedecl    := ["gate", id=id, ['(', [arglist1=idlist].?, ')'].?, arglist2=idlist, '{']
+    gate := [decl = gatedecl, [goplist = goplist].?, '}']
+    gatedecl := ["gate", id = id, ['(', [arglist1 = idlist].?, ')'].?, arglist2 = idlist, '{']
 
-    goplist     = (uop |barrier_ids){*}
-    barrier_ids := ["barrier", ids=idlist, ';']
+    goplist = (uop | barrier_ids){*}
+    barrier_ids := ["barrier", ids = idlist, ';']
     # qop
-    qop         = (uop | measure | reset)
-    reset       := ["reset", arg=argument, ';']
-    measure     := ["measure", arg1=argument, "->", arg2=argument, ';']
+    qop = (uop | measure | reset)
+    reset := ["reset", arg = argument, ';']
+    measure := ["measure", arg1 = argument, "->", arg2 = argument, ';']
 
-    uop         = (iduop | u | cx)
-    iduop      := [op=id, ['(', [lst1=explist].?, ')'].?, lst2=mixedlist, ';']
-    u          := ['U', '(', exprs=explist, ')', arg=argument, ';']
-    cx         := ["CX", arg1=argument, ',', arg2=argument, ';']
+    uop = (iduop | u | cx)
+    iduop := [op = id, ['(', [lst1 = explist].?, ')'].?, lst2 = mixedlist, ';']
+    u := ['U', '(', exprs = explist, ')', arg = argument, ';']
+    cx := ["CX", arg1 = argument, ',', arg2 = argument, ';']
 
-    idlist     = @direct_recur begin
+    idlist = @direct_recur begin
         init = id
         prefix = (recur, (',', id) % second)
     end
 
-    mixeditem   := [id=id, ['[', arg=nninteger, ']'].?]
-    mixedlist   = @direct_recur begin
+    mixeditem := [id = id, ['[', arg = nninteger, ']'].?]
+    mixedlist = @direct_recur begin
         init = mixeditem
         prefix = (recur, (',', mixeditem) % second)
     end
 
-    argument   := [id=id, ['[', (arg=nninteger), ']'].?]
+    argument := [id = id, ['[', (arg = nninteger), ']'].?]
 
-    explist    = @direct_recur begin
+    explist = @direct_recur begin
         init = exp
-        prefix = (recur,  (',', exp) % second)
+        prefix = (recur, (',', exp) % second)
     end
 
-    atom       = (real | nninteger | "pi" | id | fnexp) | (['(', exp, ')'] % second) | neg
-    fnexp      := [fn=fn, '(', arg=exp, ')']
-    neg        := ['-', value=exp]
-    exp        = @direct_recur begin
+    atom = (real | nninteger | "pi" | id | fnexp) | (['(', exp, ')'] % second) | neg
+    fnexp := [fn = fn, '(', arg = exp, ')']
+    neg := ['-', value = exp]
+    exp = @direct_recur begin
         init = atom
         prefix = (recur, binop, atom)
     end
-    fn         = ("sin" | "cos" | "tan" | "exp" | "ln" | "sqrt")
-    binop      = ('+' | '-' | '*' | '/')
+    fn = ("sin" | "cos" | "tan" | "exp" | "ln" | "sqrt")
+    binop = ('+' | '-' | '*' | '/')
 
     # define tokens
     @token
-    id        := r"\G[a-z]{1}[A-Za-z0-9_]*"
-    real      := r"\G([0-9]+\.[0-9]*|[0-9]*\.[0.9]+)([eE][-+]?[0-9]+)?"
+    id := r"\G[a-z]{1}[A-Za-z0-9_]*"
+    real := r"\G([0-9]+\.[0-9]*|[0-9]*\.[0.9]+)([eE][-+]?[0-9]+)?"
     nninteger := r"\G([1-9]+[0-9]*|0)"
-    space     := r"\G\s+"
-    str       := @quote ("\"" ,"\\\"", "\"")
+    space := r"\G\s+"
+    str := @quote ("\"", "\\\"", "\"")
 end
 
 function load(src::String)
@@ -100,7 +100,10 @@ end # end module
 using IRTools
 
 function scan_registers(ast::QASM.Struct_mainprogram)
-    return scan_registers!(Dict(:classical=>Dict(), :quantum=>Dict(), :nqubits=>0, :ncbit=>0), ast)
+    return scan_registers!(
+        Dict(:classical => Dict(), :quantum => Dict(), :nqubits => 0, :ncbit => 0),
+        ast,
+    )
 end
 
 function scan_registers!(record::Dict, ast::QASM.Struct_mainprogram)
@@ -122,7 +125,7 @@ function scan_registers!(record::Dict, ast::QASM.Struct_decl)
 end
 scan_registers!(record::Dict, ast) = record
 
-function YaoIR(m::Module, ast::QASM.Struct_mainprogram, fname=gensym(:qasm))
+function YaoIR(m::Module, ast::QASM.Struct_mainprogram, fname = gensym(:qasm))
     prog = ast.prog
     regs = scan_registers(ast)
     qregs = regs[:quantum]
@@ -158,16 +161,7 @@ function YaoIR(m::Module, ast::QASM.Struct_mainprogram, fname=gensym(:qasm))
         end
     end
 
-    yaoir = YaoIR(
-        m,
-        fname,
-        Any[],
-        Any[],
-        ir,
-        nothing,
-        false,
-        false,
-    )
+    yaoir = YaoIR(m, fname, Any[], Any[], ir, nothing, false, false)
     update_slots!(yaoir)
     yaoir.pure_quantum = is_pure_quantum(yaoir)
     return yaoir
@@ -203,9 +197,11 @@ function to_YaoLang_stmt(op, locs, args = nothing)
     elseif op == "ccx"
         return Expr(:quantum, :ctrl, :X, locs[3], (locs[1], locs[2]))
     elseif op == "U"
-        return (Expr(:quantum, :gate, IRTools.xcall(YaoLang, :Rz, args[3]), locs[1]), 
-                Expr(:quantum, :gate, IRTools.xcall(YaoLang, :Ry, args[2]), locs[1]), 
-                Expr(:quantum, :gate, IRTools.xcall(YaoLang, :Rz, args[1]), locs[1]))
+        return (
+            Expr(:quantum, :gate, IRTools.xcall(YaoLang, :Rz, args[3]), locs[1]),
+            Expr(:quantum, :gate, IRTools.xcall(YaoLang, :Ry, args[2]), locs[1]),
+            Expr(:quantum, :gate, IRTools.xcall(YaoLang, :Rz, args[1]), locs[1]),
+        )
     elseif op == "CX"
         return Expr(:quantum, :ctrl, :X, locs[2], locs[1])
     else
@@ -220,14 +216,14 @@ function eval_expr(ex)
     end
     if ex isa QASM.RBNF.Token
         if ex.str == "pi"
-            return s*"π"
+            return s * "π"
         end
-        return s*ex.str
+        return s * ex.str
     end
     for sub_ex in ex
-        s = s*eval_expr(sub_ex)
+        s = s * eval_expr(sub_ex)
     end
-    return "("*s*")"
+    return "(" * s * ")"
 end
 
 function extract_args(lst)
