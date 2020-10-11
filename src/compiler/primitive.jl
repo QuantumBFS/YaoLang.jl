@@ -1,5 +1,10 @@
 export @primitive
 
+function intrinsic_m(ex)
+end
+
+
+
 const PRIMITIVES = Any[]
 
 """

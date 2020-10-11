@@ -1,0 +1,2 @@
+macro intrinsic(ex)
+end

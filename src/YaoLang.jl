@@ -4,7 +4,7 @@ using LinearAlgebra
 using YaoAPI
 
 include("runtime/locations.jl")
-include("runtime/generic_circuit.jl")
+# include("runtime/generic_circuit.jl")
 
 module Compiler
 
@@ -23,32 +23,36 @@ using IRTools.Inner:
 using Base.Meta: ParseError
 
 import ..YaoLang
-using YaoLang: AbstractLocations, merge_locations, Locations, CtrlLocations, Circuit, PrimitiveCircuit
+using YaoLang: AbstractLocations, merge_locations, Locations, CtrlLocations
 
-include("compiler/parse.jl")
+include("compiler/utils.jl")
+include("compiler/routine.jl")
 include("compiler/ir.jl")
 include("compiler/print.jl")
-include("compiler/codegen.jl")
-include("compiler/optimize.jl")
-include("compiler/compiler.jl")
-include("compiler/reflection.jl")
-include("compiler/primitive.jl")
-include("compiler/utils.jl")
-include("compiler/kwdefs.jl")
-include("compiler/validation.jl")
-include("compiler/trace.jl")
 
-include("compiler/qasm.jl")
-include("compiler/zx_calculus.jl")
+# include("compiler/parse.jl")
+# include("compiler/ir.jl")
+# include("compiler/print.jl")
+# include("compiler/codegen.jl")
+# include("compiler/optimize.jl")
+# include("compiler/compiler.jl")
+# include("compiler/reflection.jl")
+# include("compiler/primitive.jl")
+# include("compiler/kwdefs.jl")
+# include("compiler/validation.jl")
+# include("compiler/trace.jl")
 
-function __init__()
-    TimerOutputs.reset_timer!(to)
+# include("compiler/qasm.jl")
+# include("compiler/zx_calculus.jl")
+
+# function __init__()
+#     TimerOutputs.reset_timer!(to)
+# end
+
 end
 
-end
-
-using .Compiler
-export @device, @primitive, @code_yao, @quantum
-include("runtime/primitives.jl")
+# using .Compiler
+# export @device, @primitive, @code_yao, @quantum
+# include("runtime/primitives.jl")
 
 end # module

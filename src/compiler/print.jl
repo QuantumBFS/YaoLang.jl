@@ -1,16 +1,16 @@
-function Base.show(io::IO, ir::YaoIR)
-    indent = get(io, :indent, 0)
-    printstyled(io, tab^indent, "circuit", color = :light_blue, bold = true)
-    print(io, tab^indent, " ")
-    print_head(io, ir.name)
-    print_args(io, ir.args)
+# function Base.show(io::IO, ir::YaoIR)
+#     indent = get(io, :indent, 0)
+#     printstyled(io, tab^indent, "circuit", color = :light_blue, bold = true)
+#     print(io, tab^indent, " ")
+#     print_head(io, ir.name)
+#     print_args(io, ir.args)
 
-    if !isempty(ir.whereparams)
-        print_where(io, ir.whereparams)
-    end
-    println(io)
-    print(io, ir.body)
-end
+#     if !isempty(ir.whereparams)
+#         print_where(io, ir.whereparams)
+#     end
+#     println(io)
+#     print(io, ir.body)
+# end
 
 function print_head(io::IO, name)
     name isa Expr && name.head === :(::) && print(io, "(")
