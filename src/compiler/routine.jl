@@ -31,12 +31,12 @@ struct IntrinsicSpec{name, Vars} <: Operation
     end
 
     function IntrinsicSpec(::IntrinsicRoutine{name}, xs...) where name
-        new{name, typeof(xs)}(parent, xs)
+        new{name, typeof(xs)}(xs)
     end
 end
 
 function Base.show(io::IO, x::IntrinsicSpec{name}) where name
-    return show(io, name, " (intrinsic operation)")
+    return print(io, name, " (intrinsic operation)")
 end
 
 export H, shift
@@ -97,7 +97,7 @@ macro semantic_stub(ex::Expr)
     macroname = Symbol("@$name")
     def[:name] = name
     def[:args] = ex.args[2:end]
-    err = DeviceError("@$name should be called inside @device macro")
+    err = DeviceError("@$name is not executed as a quantum program")
     def[:body] = quote
         throw($err)
     end

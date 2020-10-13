@@ -18,6 +18,13 @@ using IRTools
 using IRTools.Inner
 using YaoAPI
 
+using Core: CodeInfo
+using Core.Compiler: InferenceParams, OptimizationParams, get_world_counter,
+    get_inference_cache, AbstractInterpreter, VarTable, InferenceState, CFG
+using IRTools
+using IRTools.Inner: argument!, branch!, return!, block!
+using IRTools.Inner.Wrap: prewalk, slotname, isexpr
+
 using IRTools.Inner:
     IR, Block, BasicBlock, Statement, Variable, block, blocks, tab, print_stmt, printargs
 using Base.Meta: ParseError
@@ -27,8 +34,10 @@ using YaoLang: AbstractLocations, merge_locations, Locations, CtrlLocations
 
 include("compiler/utils.jl")
 include("compiler/routine.jl")
+include("compiler/interpreter.jl")
 include("compiler/ir.jl")
 include("compiler/print.jl")
+include("compiler/codegen/emulation.jl")
 
 # include("compiler/parse.jl")
 # include("compiler/ir.jl")
