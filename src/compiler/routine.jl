@@ -59,19 +59,25 @@ function Base.show(io::IO, fn::IntrinsicRoutine{name}) where name
 end
 
 # NOTE: kwargs is not supported for now
-struct RoutineSpec{P, Vars, Stub} <: Operation
-    stub::Stub
+struct RoutineSpec{P, Vars} <: Operation
     parent::P
     variables::Vars
 
-    function RoutineSpec(stub, parent, vars...)
-        new{typeof(parent), typeof(vars), typeof(stub)}(stub, parent, vars)
+    function RoutineSpec(parent, vars...)
+        new{typeof(parent), typeof(vars)}(parent, vars)
     end
 end
 
 function Base.hash(routine::RoutineSpec{P, Vars}, key) where {P, Vars}
     return hash(Tuple{P, Vars}, key)
 end
+
+# NOTE: the reason we don't use a gensym
+# here for stub function is 
+"stub for routine CodeInfo"
+struct RoutineStub end
+
+const routine_stub = RoutineStub()
 
 struct DeviceError <: Exception
     msg::String
@@ -192,58 +198,39 @@ end
 
 # frontend, only handles some syntax sugars
 function device_def(def::Dict)
-    if haskey(def, :name)
-        if def[:name] isa Symbol
-            return def_function(def)
-        else
-            return def_struct(def)
-        end
-    else
-        return def_function(def)
-    end
-end
-
-function def_function(def::Dict)
     args = get(def, :args, Any[])
-    device_def, stub_def, code = _initialize_code(def)
-    stub_name = stub_def[:name]
-    name = get(def, :name, gensym(:device))
-    self = gensym(:self)
-    device_def[:name] = :($self::$GenericRoutine{$(QuoteNode(name))})
-    device_def[:body] = quote
-        $RoutineSpec($stub_name, $self, $(rm_annotations.(args)...))
-    end
+    stub_def = copy(def)
+    device_def = copy(def)
+    code = Expr(:block)
+    isfunction = !(haskey(def, :name) && !(def[:name] isa Symbol))
 
-    push!(code.args, combinedef(stub_def))
-    push!(code.args, combinedef(device_def))
-    # create global symbol
-    push!(code.args, :(const $name = $GenericRoutine{$(QuoteNode(name))}() ))
-    push!(code.args, name)
-    return code
-end
-
-function def_struct(def::Dict)
-    args = copy(get(def, :args, Any[]))
-    device_def, stub_def, code = _initialize_code(def)
-    stub_name = stub_def[:name]
-    self = rm_annotations(def[:name])
-    self_annotation = annotations(def[:name])
-
-    if isnothing(self)
-        self = gensym(:self)
-        device_def[:name] = :($self::$self_annotation)
+    if haskey(def, :name) && !(def[:name] isa Symbol)
+        self = rm_annotations(def[:name])
+        self_annotation = annotations(def[:name])
+        name = nothing
     else
-        device_def[:name] = def[:name]
+        self = gensym(:self)
+        name = get(def, :name, gensym(:device))
+        self_annotation = GenericRoutine{name}
     end
 
-    pushfirst!(args, :($self::$self_annotation))
-    stub_def[:args] = args
+    device_def[:name] = :($self::$self_annotation)
     device_def[:body] = quote
-        $RoutineSpec($stub_name, $self, $(rm_annotations.(args)...))
+        $RoutineSpec($self, $(rm_annotations.(args)...))
     end
 
-    push!(code.args, combinedef(stub_def))
+    stub_def[:name] = :(::$RoutineStub)
+    stub_def[:args] = [:($self::$self_annotation), args...]
+    stub_def[:body] = preprocess_device_gate_syntax(def[:body])
+
     push!(code.args, combinedef(device_def))
+    push!(code.args, combinedef(stub_def))
+    
+    if !isnothing(name)
+        push!(code.args, :(const $name = $self_annotation() ))
+    end
+
+    push!(code.args, name)
     return code
 end
 
@@ -261,15 +248,6 @@ function preprocess_device_gate_syntax(ex)
         return Expr(ex.head, map(preprocess_device_gate_syntax, ex.args)...)
     end
     return ex
-end
-
-function _initialize_code(def::Dict)
-    code = Expr(:block)
-    device_def = copy(def)
-    stub_def = copy(def)
-    stub_def[:name] = gensym(:device_stub)
-    stub_def[:body] = preprocess_device_gate_syntax(def[:body])
-    return device_def, stub_def, code
 end
 
 function device_call(ex::Expr, kwargs)

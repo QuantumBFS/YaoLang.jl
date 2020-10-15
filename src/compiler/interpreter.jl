@@ -33,3 +33,19 @@ function Core.Compiler.abstract_eval_statement(interp::YaoInterpreter, @nospecia
     end
     return Core.Compiler.abstract_eval_statement(interp.native_interpreter, e, vtypes, sv)
 end
+
+function is_semantic_fn_call(e)
+    return e isa Expr && e.head === :call &&
+        e.args[1] isa GlobalRef &&
+            e.args[1].mod === YaoLang.Compiler.Semantic
+end
+
+function convert_to_quantum_head!(ci::CodeInfo)
+    for (v, e) in enumerate(ci.code)
+        if is_semantic_fn_call(e)
+            type = e.args[1].name
+            ci.code[v] = Expr(:quantum, e.args[1].name, e.args[2:end]...)
+        end
+    end
+    return ci
+end

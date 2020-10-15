@@ -32,11 +32,13 @@ using Base.Meta: ParseError
 import ..YaoLang
 using YaoLang: AbstractLocations, merge_locations, Locations, CtrlLocations
 
+const STUB_COUNT = Ref(0)
+
 include("compiler/utils.jl")
 include("compiler/routine.jl")
 include("compiler/interpreter.jl")
 include("compiler/ir.jl")
-include("compiler/print.jl")
+# include("compiler/print.jl")
 include("compiler/codegen/emulation.jl")
 
 # include("compiler/parse.jl")
