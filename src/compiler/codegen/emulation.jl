@@ -1,26 +1,23 @@
-export replace_with_execute
-using Core.Compiler: NewSSAValue
-using Core: SSAValue
-using YaoArrayRegister
+struct EchoReg{B} <: AbstractRegister{B} end
+Base.show(io::IO, x::EchoReg) = print(io, "echo register")
+EchoReg() = EchoReg{1}()
 
-function execute(::IntrinsicSpec{:H}, r::ArrayReg, loc::Locations)
-    println("executing H")
-    return
+@generated function execute(spec::RoutineSpec, r::EchoReg, loc::Locations)
+    ri = RoutineInfo(spec)
+    return replace_with_execute(ri)
 end
 
-function execute(::IntrinsicSpec{:H}, r::ArrayReg, loc::Locations, ctrl::CtrlLocations)
-    println("executing ctrl H")
-    return
+@generated function execute(spec::RoutineSpec, r::EchoReg, loc::Locations, ctrl::CtrlLocations)
+    ri = RoutineInfo(spec)
+    return replace_with_ctrl_execute(ri)
 end
 
-function execute(inst::IntrinsicSpec{:shift}, r::ArrayReg, loc::Locations)
-    println("executing shift(", inst.variables[1], ")")
-    return
+function execute(op::IntrinsicSpec, ::EchoReg, loc::Locations)
+    @info "executing $loc => $op"
 end
 
-function execute(inst::IntrinsicSpec{:shift}, r::ArrayReg, loc::Locations, ctrl::CtrlLocations)
-    println("executing ctrl shift(", inst.variables[1], ")")
-    return
+function execute(op::IntrinsicSpec, ::EchoReg, loc::Locations, ctrl::CtrlLocations)
+    @info "executing @ctrl $ctrl $loc => $op"
 end
 
 @generated function execute(spec::RoutineSpec, r::ArrayReg, loc::Locations)

@@ -59,6 +59,15 @@ function quantum_blocks(ci::CodeInfo, cfg::CFG)
     return quantum_blocks
 end
 
+function replace_from_perm(stmt, perm)
+    stmt isa Core.SSAValue && return Core.SSAValue(findfirst(isequal(stmt.id), perm))
+
+    if stmt isa Expr
+        return Expr(stmt.head, map(x->replace_from_perm(x, perm), stmt.args)...)
+    else
+        return stmt
+    end
+end
 
 function permute_stmts(ci::Core.CodeInfo, perm::Vector{Int})
     code = []
@@ -68,10 +77,7 @@ function permute_stmts(ci::Core.CodeInfo, perm::Vector{Int})
         stmt = ci.code[v]
 
         if stmt isa Expr
-            ex = prewalk(stmt) do x
-                x isa Core.SSAValue && return Core.SSAValue(findfirst(isequal(x.id), perm))
-                return x
-            end
+            ex = replace_from_perm(stmt, perm)
             push!(code, ex)
         elseif stmt isa Core.GotoIfNot
             if stmt.cond isa Core.SSAValue

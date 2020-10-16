@@ -1,2 +1,0 @@
-macro intrinsic(ex)
-end

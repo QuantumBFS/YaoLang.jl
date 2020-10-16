@@ -38,7 +38,7 @@ Locations(x::Locations) = x
 Locations(xs...) = Locations(xs)
 Locations(x::NTuple{N,T}) where {N,T} = throw(LocationError("expect Int, got $T"))
 
-Base.@propagate_inbounds Base.getindex(l::Locations, idx...) = getindex(l.storage, idx...)
+Base.@propagate_inbounds Base.getindex(l::Locations, idx...) = Locations(getindex(l.storage, idx...))
 Base.length(l::Locations) = length(l.storage)
 Base.iterate(l::Locations) = iterate(l.storage)
 Base.iterate(l::Locations, st) = iterate(l.storage, st)

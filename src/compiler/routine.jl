@@ -1,6 +1,5 @@
-export Routine, GenericRoutine, IntrinsicRoutine, RoutineSpec, @ctrl, @measure, @gate, @barrier, @device
-
 const compilecache = Dict{UInt, Any}()
+const operation_annotation_color = :light_black
 
 """
     Routine
@@ -22,7 +21,6 @@ abstract type Operation end
 struct GenericRoutine{name} <: Routine end
 struct IntrinsicRoutine{name} <: Routine end
 
-
 struct IntrinsicSpec{name, Vars} <: Operation
     variables::Vars
 
@@ -36,26 +34,24 @@ struct IntrinsicSpec{name, Vars} <: Operation
 end
 
 function Base.show(io::IO, x::IntrinsicSpec{name}) where name
-    return print(io, name, " (intrinsic operation)")
-end
-
-export H, shift
-const H = IntrinsicSpec{:H}()
-const shift = IntrinsicRoutine{:shift}()
-
-Base.adjoint(::IntrinsicSpec{:H}) = H
-Base.adjoint(s::IntrinsicSpec{:shift}) = IntrinsicSpec{:shift}(adjoint(s.variables[1]))
-
-function (p::IntrinsicRoutine{:shift})(theta::Real)
-    return IntrinsicSpec(p, theta)
+    print(io, name)
+    if !isempty(x.variables)
+        print(io, "(")
+        join(io, x.variables, ", ")
+        print(io, ")")
+    end
+    printstyled(io, " (intrinsic operation)"; color=operation_annotation_color)
+    return
 end
 
 function Base.show(io::IO, fn::GenericRoutine{name}) where name
-    print(io, name, " (generic routine with ", length(methods(fn).ms), " methods)")
+    print(io, name)
+    printstyled(io, " (generic routine with ", length(methods(fn).ms), " methods)"; color=operation_annotation_color)
 end
 
 function Base.show(io::IO, fn::IntrinsicRoutine{name}) where name
-    print(io, name, " (intrinsic routine)")
+    print(io, name)
+    printstyled(io, " (intrinsic routine)"; color=operation_annotation_color)
 end
 
 # NOTE: kwargs is not supported for now
@@ -78,6 +74,13 @@ end
 struct RoutineStub end
 
 const routine_stub = RoutineStub()
+
+struct Adjoint{P <: Operation} <: Operation
+    parent::P
+end
+
+Base.adjoint(x::Operation) = Adjoint(x)
+Base.adjoint(x::Adjoint) = x.parent
 
 struct DeviceError <: Exception
     msg::String
@@ -263,12 +266,10 @@ function is_preserved_macro(ex::Expr)
     return ex.args[1] in Semantic.PRESERVED_MACROS
 end
 
-# # TODO: use CUDA's approach to trigger recompilation
-# @generated function (routine::RoutineSpec)(r::AbstractRegister, locs::Locations)
-#     ci = cached_compilation(routine, r, locs)
-# end
+function (spec::RoutineSpec)(r::AbstractRegister, loc::Locations)
+    return execute(spec, r, locs)
+end
 
-# @generated function (routine::RoutineSpec)(r::AbstractRegister, locs::Locations, ctrl_locs::Locations)
-#     ci = cached_compilation(routine, r, locs, ctrl_locs)
-# end
-
+function (spec::RoutineSpec)(r::AbstractRegister, loc::Locations, ctrl::CtrlLocations)
+    return execute(spec, r, locs, ctrl)
+end
