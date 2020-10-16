@@ -18,8 +18,8 @@ second(vec::V) where {V<:AbstractArray} = vec[2]
 # is not corrently parsed
 RBNF.@parser QASMLang begin
     # define ignorances
-    ignore{space}
-    reserved = ["include", "measure", "if", "->"]
+    ignore{space, comment}
+    reserved = ["include", "measure", "barrier", "if", "->"]
 
     @grammar
     # define grammars
@@ -29,7 +29,7 @@ RBNF.@parser QASMLang begin
     # stmts
     ifstmt := ["if", '(', l = id, "==", r = nninteger, ')', body = qop]
     opaque := ["opaque", id = id, ['(', [arglist1 = idlist].?, ')'].?, arglist2 = idlist, ';']
-    barrier := ["barrier", value = mixedlist]
+    barrier := ["barrier", value = mixedlist, ';']
     decl := [regtype = "qreg" | "creg", id = id, '[', int = nninteger, ']', ';']
     inc := ["include", file = str, ';']
     # gate
@@ -82,6 +82,7 @@ RBNF.@parser QASMLang begin
     real := r"\G([0-9]+\.[0-9]*|[0-9]*\.[0.9]+)([eE][-+]?[0-9]+)?"
     nninteger := r"\G([1-9]+[0-9]*|0)"
     space := r"\G\s+"
+    comment := r"\G//.*"
     str := @quote ("\"", "\\\"", "\"")
 end
 
@@ -158,16 +159,22 @@ function print_qasm(io::IO, stmt::Parse.Struct_ifstmt)
     print_qasm(io, stmt.body)
 end
 
+function print_qasm(io::IO, stmt::Parse.Struct_barrier)
+    printstyled(io, "barrier "; color=:light_blue)
+    print_mixedlist(io, stmt.value)
+    print(io, ";")
+end
+
 function print_qasm(io::IO, stmt::Parse.Struct_iduop)
     printstyled(io, stmt.op.str; color=:light_magenta)
 
     if !isnothing(stmt.lst1)
         print(io, "(")
-        print_qasm(io, stmt.lst1)
+        print_explist(io, stmt.lst1)
         print(io, ")")
     end
     print(io, " ")
-    print_qasm(io, stmt.lst2)
+    print_mixedlist(io, stmt.lst2)
     print(io, ";")
 end
 
@@ -231,6 +238,32 @@ function print_qasm(io::IO, stmt::Parse.Struct_mixeditem)
         print_exp(io, stmt.arg)
         print(io, "]")    
     end
+end
+
+print_mixedlist(io::IO, stmt) = print_qasm(io, stmt)
+
+function print_mixedlist(io::IO, stmt::Tuple)
+    if length(stmt) == 2
+        print_mixedlist(io, stmt[1])
+        print(io, ", ")
+        print_qasm(io, stmt[2])
+    else
+        print_qasm(io, stmt)
+    end
+end
+
+function print_explist(io::IO, stmt::Tuple)
+    if length(stmt) == 2
+        print_explist(io, stmt[1])
+        print(io, ", ")
+        print_exp(io, stmt[2])
+    else
+        print_exp(io, stmt)
+    end
+end
+
+function print_explist(io::IO, stmt)
+    return print_exp(io, stmt)
 end
 
 function print_exp(io::IO, stmt::Tuple)
@@ -389,10 +422,25 @@ function parse(m::Module, record, stmt::Parse.Struct_cx)
     return xctrl(GlobalRef(YaoLang, :X), parse(m, record, stmt.arg2), CtrlLocations(parse(m, record, stmt.arg1)))
 end
 
+function parse(m::Module, record, stmt::Parse.Struct_ifstmt)
+    return :(
+        if $(parse_exp(stmt.l)) == $(parse_exp(stmt.r))
+            $(parse(m, record, stmt.body))
+        end
+    )
+end
+
 function parse(m::Module, record, stmt::Parse.Struct_measure)
     locs = parse(m, record, stmt.arg1)
     name = Symbol(stmt.arg2.id.str)
-    return :($name = $(YaoLang.Compiler.Semantic.measure)($locs))
+    return Expr(:(=), name, Expr(:call, GlobalRef(YaoLang.Compiler.Semantic, :measure), locs))
+end
+
+function parse(m::Module, record, stmt::Parse.Struct_barrier)
+    return Expr(:call,
+        GlobalRef(YaoLang.Compiler.Semantic, :barrier),
+        merge_locations(parse_mixedlist(m, record, stmt.value)...)
+    )
 end
 
 function parse(m::Module, record, stmt::Parse.Struct_iduop)
@@ -404,26 +452,23 @@ function parse(m::Module, record, stmt::Parse.Struct_iduop)
     # as stdlib in YaoLang.
 
     # isnothing(stmt.lst1) || throw(Meta.ParseError("$op gate should not have classical parameters"))
+    locs = merge_locations(parse_mixedlist(m, record, stmt.lst2)...)
+
     if op == "x"
-        xgate(YaoLang.X, parse_locations(record, stmt.lst2))
+        xgate(YaoLang.X, locs)
     elseif op == "y"
-        xgate(YaoLang.Y, parse_locations(record, stmt.lst2))
+        xgate(YaoLang.Y, locs)
     elseif op == "z"
-        xgate(YaoLang.Z, parse_locations(record, stmt.lst2))
+        xgate(YaoLang.Z, locs)
     elseif op == "h"
-        xgate(YaoLang.H, parse_locations(record, stmt.lst2))
+        xgate(YaoLang.H, locs)
     elseif op == "s"
-        xgate(YaoLang.S, parse_locations(record, stmt.lst2))
+        xgate(YaoLang.S, locs)
     elseif op == "ccx"
-        locs = parse_locations(record, stmt.lst2)
         xctrl(YaoLang.X, locs[3], CtrlLocations(locs[1:2]))
     else # some user defined routine
-        if isnothing(stmt.lst1)
-            gate = Expr(:call, GlobalRef(m, Symbol(op)))
-        else
-            gate = Expr(:call, GlobalRef(m, Symbol(op)), parse_exp(stmt.lst1))
-        end
-        xgate(gate, parse_locations(record, stmt.lst2))
+        gate = Expr(:call, GlobalRef(m, Symbol(op)), parse_explist(stmt.lst1)...)
+        xgate(gate, locs)
     end
 end
 
@@ -438,6 +483,43 @@ end
 
 function parse(m::Module, record::GateRegisterRecord, stmt::Parse.Struct_argument)
     return Locations(record.map[stmt.id.str])
+end
+
+function parse(m::Module, record::RegisterRecord, stmt::Parse.Struct_mixeditem)
+    if isnothing(stmt.arg)
+        return Locations(record[stmt.id.str][:])
+    else
+        address = Base.parse(Int, stmt.arg.str)
+        return Locations(record[stmt.id.str][address + 1])
+    end
+end
+
+function parse(::Module, record::GateRegisterRecord, stmt::Parse.Struct_mixeditem)
+    return Locations(record.map[stmt.id.str])
+end
+
+function parse_mixedlist(m::Module, record, stmt::Tuple)
+    return (parse_mixedlist(m, record, stmt[1])..., parse(m, record, stmt[2]))
+end
+
+parse_mixedlist(m::Module, record, ::Nothing) = ()
+
+function parse_mixedlist(m::Module, record, stmt)
+    return (parse(m, record, stmt), )
+end
+
+parse_explist(::Nothing) = ()
+
+function parse_explist(stmt::Tuple)
+    if length(stmt) == 2
+        return (parse_explist(stmt[1])..., parse_exp(stmt[2]))
+    else
+        return (parse_exp(stmt), )
+    end
+end
+
+function parse_explist(stmt)
+    return (parse_exp(stmt), )
 end
 
 function parse_exp(stmt::Parse.Struct_neg)
@@ -472,32 +554,6 @@ function parse_exp(stmt::Tuple)
     else
         throw(Meta.ParseError("unrecognized expression: $stmt"))
     end
-end
-
-function parse_locations(record, stmt)
-    return merge_locations(parse_locations!([], record, stmt)...)
-end
-
-function parse_locations!(locs::Vector, record, stmt::Tuple)
-    for each in stmt
-        parse_locations!(locs, record, each)
-    end
-    return locs
-end
-
-function parse_locations!(locs::Vector, record::RegisterRecord, stmt::Parse.Struct_mixeditem)
-    if isnothing(stmt.arg)
-        push!(locs, Locations(record[stmt.id.str][:]))
-    else
-        address = Base.parse(Int, stmt.arg.str)
-        push!(locs, Locations(record[stmt.id.str][address + 1]))
-    end
-    return locs
-end
-
-function parse_locations!(locs::Vector, record::GateRegisterRecord, stmt::Parse.Struct_mixeditem)
-    push!(locs, Locations(record.map[stmt.id.str]))
-    return locs
 end
 
 function parse_version(token::RBNF.Token)
