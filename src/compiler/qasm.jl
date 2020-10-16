@@ -19,7 +19,7 @@ second(vec::V) where {V<:AbstractArray} = vec[2]
 RBNF.@parser QASMLang begin
     # define ignorances
     ignore{space}
-    reserved = ["include", "measure", "->"]
+    reserved = ["include", "measure", "if", "->"]
 
     @grammar
     # define grammars
@@ -146,6 +146,16 @@ function print_qasm(io::IO, stmt::Parse.Struct_measure)
     printstyled(io, " -> "; color=:light_blue)
     print_qasm(io, stmt.arg2)
     print(io, ";")
+end
+
+function print_qasm(io::IO, stmt::Parse.Struct_ifstmt)
+    printstyled(io, "if"; color=:light_blue)
+    print(io, " (")
+    print_exp(io, stmt.l)
+    print(io, " == ")
+    print_exp(io, stmt.r)
+    print(io, ") ")
+    print_qasm(io, stmt.body)
 end
 
 function print_qasm(io::IO, stmt::Parse.Struct_iduop)
