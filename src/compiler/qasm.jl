@@ -285,12 +285,15 @@ function parse(m::Module, ast::Parse.Struct_mainprogram)
         push!(code.args, each)
     end
 
-    # main program
-    def = Dict{Symbol, Any}(
-        :name => gensym(:qasm),
-        :body => body,
-    )
-    push!(code.args, YaoLang.Compiler.device_def(def))
+    # create an anoymous routine
+    # if there are global statements
+    if !isempty(body.args)
+        def = Dict{Symbol, Any}(
+            :name => gensym(:qasm),
+            :body => body,
+        )
+        push!(code.args, YaoLang.Compiler.device_def(def))
+    end
     return code
 end
 
@@ -510,6 +513,22 @@ macro qasm_str(source::Expr)
     end
 
     return esc(parse(__module__, join(args)))
+end
+
+macro include_str(path)
+    if path isa Expr
+        path.head === :string || error("expect a String")
+        file = map(path.args) do x
+            x isa String && return x
+            return Base.eval(__module__, x)
+        end |> join
+    elseif path isa String
+        file = path
+    else
+        error("expect a String")
+    end
+
+    return esc(parse(__module__, read(file, String)))
 end
 
 end # end module
