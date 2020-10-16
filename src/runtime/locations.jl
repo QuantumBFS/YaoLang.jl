@@ -12,6 +12,8 @@ Construct a new `Locations` by merging two or more existing locations.
 merge_locations(x::AbstractLocations, y::AbstractLocations, locations::AbstractLocations...) =
     merge_locations(merge_locations(x, y), locations...)
 
+merge_locations(x::AbstractLocations) = x
+
 """
     Locations <: AbstractLocations
 

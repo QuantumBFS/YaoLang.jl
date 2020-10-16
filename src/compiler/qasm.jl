@@ -379,6 +379,12 @@ function parse(m::Module, record, stmt::Parse.Struct_cx)
     return xctrl(GlobalRef(YaoLang, :X), parse(m, record, stmt.arg2), CtrlLocations(parse(m, record, stmt.arg1)))
 end
 
+function parse(m::Module, record, stmt::Parse.Struct_measure)
+    locs = parse(m, record, stmt.arg1)
+    name = Symbol(stmt.arg2.id.str)
+    return :($name = $(YaoLang.Compiler.Semantic.measure)($locs))
+end
+
 function parse(m::Module, record, stmt::Parse.Struct_iduop)
     op = stmt.op.str
     # NOTE: these are not intrinsic function in QASM
@@ -412,8 +418,12 @@ function parse(m::Module, record, stmt::Parse.Struct_iduop)
 end
 
 function parse(m::Module, record::RegisterRecord, stmt::Parse.Struct_argument)
-    address = Base.parse(Int, stmt.arg.str)
-    return Locations(record[stmt.id.str][address + 1])
+    if isnothing(stmt.arg)
+        return Locations(record[stmt.id.str][:])
+    else
+        address = Base.parse(Int, stmt.arg.str)
+        return Locations(record[stmt.id.str][address + 1])
+    end
 end
 
 function parse(m::Module, record::GateRegisterRecord, stmt::Parse.Struct_argument)
@@ -455,7 +465,7 @@ function parse_exp(stmt::Tuple)
 end
 
 function parse_locations(record, stmt)
-    return Locations(parse_locations!(Int[], record, stmt)...)
+    return merge_locations(parse_locations!([], record, stmt)...)
 end
 
 function parse_locations!(locs::Vector, record, stmt::Tuple)
@@ -466,13 +476,17 @@ function parse_locations!(locs::Vector, record, stmt::Tuple)
 end
 
 function parse_locations!(locs::Vector, record::RegisterRecord, stmt::Parse.Struct_mixeditem)
-    address = Base.parse(Int, stmt.arg.str)
-    push!(locs, record[stmt.id.str][address + 1])
+    if isnothing(stmt.arg)
+        push!(locs, Locations(record[stmt.id.str][:]))
+    else
+        address = Base.parse(Int, stmt.arg.str)
+        push!(locs, Locations(record[stmt.id.str][address + 1]))
+    end
     return locs
 end
 
 function parse_locations!(locs::Vector, record::GateRegisterRecord, stmt::Parse.Struct_mixeditem)
-    push!(locs, record.map[stmt.id.str])
+    push!(locs, Locations(record.map[stmt.id.str]))
     return locs
 end
 
