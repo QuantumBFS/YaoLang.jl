@@ -187,3 +187,14 @@ function RoutineInfo(rs::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
     ci = result.result.src
     return RoutineInfo(YaoIR(ci), P, Sigs, rs)
 end
+
+function Base.show(io::IO, ri::YaoIR)
+    println(io, "quantum blocks:")
+    println(io, ri.blocks)
+    print(io, ri.ci)
+end
+
+function Base.show(io::IO, ri::RoutineInfo)
+    println(io, ri.spec)
+    print(io, ri.code)
+end

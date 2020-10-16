@@ -1,9 +1,5 @@
 export @code_yao
 
-function code_yao(xs...)
-    return
-end
-
 """
     @code_yao <generic circuit call>
 
@@ -12,5 +8,10 @@ calls `code_yao` on the resulting expression.
 """
 macro code_yao(ex)
     (ex isa Expr) && (ex.head === :call) || error("expect a generic circuit call")
-    return IRTools.xcall(Compiler, :code_yao, ex.args...) |> esc
+    ri = gensym(:routine_info)
+    
+    quote
+        $(Expr(:(=), ri, Expr(:call, GlobalRef(Compiler, :RoutineInfo), :(typeof($ex)))))
+        $ri.code
+    end |> esc
 end
