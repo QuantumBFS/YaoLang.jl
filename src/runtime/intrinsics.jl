@@ -1,18 +1,13 @@
-export H, shift
+export X, Y, Z, H
 
-const X = IntrinsicSpec{:X}()
-const Y = IntrinsicSpec{:Y}()
-const Z = IntrinsicSpec{:Z}()
-const H = IntrinsicSpec{:H}()
-const S = IntrinsicSpec{:S}()
-const shift = IntrinsicRoutine{:shift}()
-const Rx = IntrinsicRoutine{:Rx}()
-const Ry = IntrinsicRoutine{:Ry}()
-const Rz = IntrinsicRoutine{:Rz}()
+@intrinsic X
+@intrinsic Y
+@intrinsic Z
+@intrinsic H
+@intrinsic S
+@intrinsic T
 
-Base.adjoint(::IntrinsicSpec{:H}) = H
-Base.adjoint(s::IntrinsicSpec{:shift}) = IntrinsicSpec{:shift}(adjoint(s.variables[1]))
-
-function (p::IntrinsicRoutine{:shift})(theta::Real)
-    return IntrinsicSpec(p, theta)
-end
+@intrinsic shift(θ::Real)
+@intrinsic Rx(θ::Real)
+@intrinsic Ry(θ::Real)
+@intrinsic Rz(θ::Real)

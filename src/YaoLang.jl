@@ -32,13 +32,12 @@ include("compiler/routine.jl")
 include("compiler/interpreter.jl")
 include("compiler/ir.jl")
 include("compiler/codegen/emulation.jl")
-
+include("compiler/intrinsics.jl")
+include("compiler/qasm.jl")
 # include("compiler/optimize.jl")
 # include("compiler/reflection.jl")
 # include("compiler/validation.jl")
 # include("compiler/trace.jl")
-
-include("compiler/qasm.jl")
 # include("compiler/zx_calculus.jl")
 
 # function __init__()

@@ -121,7 +121,7 @@ end
 @semantic_stub ctrl(gate::Operation, loc::Locations, ctrl::CtrlLocations)
 @semantic_stub gate(gate::Operation, loc::Locations)
 @semantic_stub measure(locs::Locations, op; kwargs...)
-@semantic_stub barrier()
+@semantic_stub barrier(locs::Locations)
 
 end # Semantic
 
@@ -179,8 +179,8 @@ macro measure(args...)
     end
 end
 
-macro barrier()
-    return esc(Expr(:call, GlobalRef(Semantic, :barrier)))
+macro barrier(locs)
+    return esc(Expr(:call, GlobalRef(Semantic, :barrier), locs))
 end
 
 macro device(ex::Expr)
@@ -266,10 +266,10 @@ function is_preserved_macro(ex::Expr)
     return ex.args[1] in Semantic.PRESERVED_MACROS
 end
 
-function (spec::RoutineSpec)(r::AbstractRegister, loc::Locations)
+function (spec::RoutineSpec)(r::AbstractRegister, locs::Locations)
     return execute(spec, r, locs)
 end
 
-function (spec::RoutineSpec)(r::AbstractRegister, loc::Locations, ctrl::CtrlLocations)
+function (spec::RoutineSpec)(r::AbstractRegister, locs::Locations, ctrl::CtrlLocations)
     return execute(spec, r, locs, ctrl)
 end
