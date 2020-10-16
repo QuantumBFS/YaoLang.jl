@@ -1,5 +1,7 @@
 module QASM
 
+export @qasm_str
+
 using RBNF
 using ExprTools
 using ..YaoLang
@@ -494,5 +496,20 @@ function scan_registers!(record::RegisterRecord, ast::Parse.Struct_decl)
 end
 
 scan_registers!(record::RegisterRecord, ast) = record
+
+macro qasm_str(source::String)
+    return esc(parse(__module__, source))
+end
+
+macro qasm_str(source::Expr)
+    source.head === :string || error("expect a String")
+
+    args = map(source.args) do x
+        x isa String && return x
+        return Base.eval(__module__, x)
+    end
+
+    return esc(parse(__module__, join(args)))
+end
 
 end # end module
