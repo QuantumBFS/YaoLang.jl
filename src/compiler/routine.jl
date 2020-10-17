@@ -21,6 +21,7 @@ abstract type Operation end
 struct GenericRoutine{name} <: Routine end
 struct IntrinsicRoutine{name} <: Routine end
 
+
 struct IntrinsicSpec{name, Vars} <: Operation
     variables::Vars
 
@@ -81,6 +82,13 @@ end
 
 Base.adjoint(x::Operation) = Adjoint(x)
 Base.adjoint(x::Adjoint) = x.parent
+
+routine_name(x) = routine_name(typeof(x))
+routine_name(::Type{<:GenericRoutine{name}}) where name = name
+routine_name(::Type{<:IntrinsicRoutine{name}}) where name = name
+routine_name(::Type{<:IntrinsicSpec{name}}) where name = name
+routine_name(::Type{<:RoutineSpec{P}}) where P = routine_name(P)
+routine_name(::Type{<:Adjoint{P}}) where P = Symbol(routine_name(P), "_dag")
 
 struct DeviceError <: Exception
     msg::String

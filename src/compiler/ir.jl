@@ -1,6 +1,6 @@
-obtain_code_info(r::RoutineSpec) = obtain_code_info(typeof(r))
+obtain_codeinfo(r::RoutineSpec) = obtain_codeinfo(typeof(r))
 
-function obtain_code_info(::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
+function obtain_codeinfo(::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
     tt = Tuple{P, Sigs.parameters...}
     ms = methods(routine_stub, tt)
     @assert length(ms) == 1
@@ -98,10 +98,19 @@ function permute_stmts(ci::Core.CodeInfo, perm::Vector{Int})
             else
                 push!(code, stmt)
             end
-        elseif stmt isa Core.SlotNumber
-            push!(code, stmt)
         else
-            error("unrecognized statement $stmt :: ($(typeof(stmt)))")
+            # RL: I think
+            # other nodes won't contain SSAValue
+            # let's just ignore them, but if we
+            # find any we can add them here
+            push!(code, stmt)
+            # if stmt isa Core.SlotNumber
+            #     push!(code, stmt)
+            # elseif stmt isa Core.NewvarNode
+            #     push!(code, stmt)
+            # else
+            # end
+            # error("unrecognized statement $stmt :: ($(typeof(stmt)))")
         end
     end
 
@@ -182,7 +191,7 @@ struct RoutineInfo
 end
 
 function RoutineInfo(rs::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
-    mi, ci = obtain_code_info(rs)
+    mi, ci = obtain_codeinfo(rs)
     result = perform_typeinf(mi, ci)
     ci = result.result.src
     return RoutineInfo(YaoIR(ci), P, Sigs, rs)

@@ -49,12 +49,6 @@ git-tree-sha1 = "7fce513fcda766962ff67c5596cb16c463dfd371"
 uuid = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
 version = "0.1.2"
 
-[[IRTools]]
-deps = ["InteractiveUtils", "MacroTools", "Test"]
-path = "dev/IRTools"
-uuid = "7869d1d1-7146-5819-86e3-90919afe41df"
-version = "0.4.1"
-
 [[Inflate]]
 git-tree-sha1 = "f5fc07d4e706b84f72d54eedcc1c13d92fb0871c"
 uuid = "d25df0c9-e2be-5dd7-82c8-3ad0b3e990b9"

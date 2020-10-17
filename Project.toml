@@ -5,7 +5,6 @@ version = "0.3.0"
 
 [deps]
 ExprTools = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
-IRTools = "7869d1d1-7146-5819-86e3-90919afe41df"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LuxurySparse = "d05aeea4-b7d4-55ac-b691-9e7fabb07ba2"
 RBNF = "83ef0002-5b9e-11e9-219b-65bac3c6d69c"
@@ -16,7 +15,6 @@ ZXCalculus = "3525faa3-032d-4235-a8d4-8c2939a218dd"
 
 [compat]
 ExprTools = "0.1"
-IRTools = "0.4"
 LuxurySparse = "0.6"
 RBNF = "0.2"
 TimerOutputs = "0.5"

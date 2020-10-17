@@ -26,15 +26,18 @@ import ..YaoLang
 using YaoLang: AbstractLocations, merge_locations, Locations, CtrlLocations
 
 export Routine, GenericRoutine, IntrinsicRoutine, RoutineSpec, IntrinsicSpec, @ctrl, @measure, @gate, @barrier, @device
+export routine_name
 
 include("compiler/utils.jl")
 include("compiler/routine.jl")
 include("compiler/interpreter.jl")
 include("compiler/ir.jl")
-include("compiler/codegen/emulation.jl")
 include("compiler/intrinsics.jl")
 include("compiler/qasm.jl")
 include("compiler/reflection.jl")
+
+include("compiler/codegen/emulation.jl")
+include("compiler/codegen/qasm.jl")
 # include("compiler/optimize.jl")
 # include("compiler/reflection.jl")
 # include("compiler/validation.jl")

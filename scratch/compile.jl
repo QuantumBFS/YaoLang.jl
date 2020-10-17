@@ -18,7 +18,11 @@ locs = Locations((1, 2, 3))
 ctrl = CtrlLocations((4, ))
 # execute(qft(3), r, locs)
 c = qft(3)
-ri = RoutineInfo(typeof(c))
+
+@code_yao qft(3)
+
+ri = Compiler.RoutineInfo(typeof(c))
+ri.code
 # mi, ci = obtain_code_info(typeof(c))
 
 ci = @code_lowered YaoLang.Compiler.execute(c, r, locs)

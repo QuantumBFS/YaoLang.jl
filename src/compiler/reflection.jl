@@ -10,8 +10,5 @@ macro code_yao(ex)
     (ex isa Expr) && (ex.head === :call) || error("expect a generic circuit call")
     ri = gensym(:routine_info)
     
-    quote
-        $(Expr(:(=), ri, Expr(:call, GlobalRef(Compiler, :RoutineInfo), :(typeof($ex)))))
-        $ri.code
-    end |> esc
+    esc(Expr(:call, GlobalRef(Compiler, :RoutineInfo), :(typeof($ex))))
 end

@@ -16,6 +16,7 @@ second((a, b)) = b
 second(vec::V) where {V<:AbstractArray} = vec[2]
 # NOTE: U(sin(pi/4), sin(pi/8))
 # is not corrently parsed
+
 RBNF.@parser QASMLang begin
     # define ignorances
     ignore{space, comment}
@@ -329,6 +330,22 @@ function parse(m::Module, ast::Parse.Struct_mainprogram)
                 push!(body.args, ex)
             end
         end
+    end
+
+    # if there are classical registers
+    # return them in a NamedTuple
+    ret = Expr(:tuple)
+    for (k, r) in record.map
+        if r.type === :classical
+            name = Symbol(k)
+            push!(ret.args, Expr(:(=), name, name))
+        end
+    end
+
+    if isempty(ret.args)
+        push!(body.args, :(return))
+    else
+        push!(body.args, :(return $ret))
     end
 
     # routines
