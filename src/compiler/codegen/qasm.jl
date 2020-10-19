@@ -101,14 +101,27 @@ function allocate_qreg(ri::RoutineInfo)
     return regs_to_locs, locs_to_reg_addr
 end
 
-function codegen_qasm(ri::RoutineInfo; include_routines=true)
+function scan_edges(ri::RoutineInfo)
+    edges = []
+    append!(edges, ri.edges)
+    for each in ri.edges
+        if each isa RoutineSpec
+            append!(edges, scan_edges(RoutineInfo(each)))
+        else
+            push!(edges, each)
+        end
+    end
+    return unique(edges)
+end
+
+function codegen_qasm(ri::RoutineInfo; routine=false)
     ctx = QASMCtx(ri)
     topscope = Any[]
 
-    if !include_routines
-        for spec in ri.edges
+    if routine
+        for spec in scan_edges(ri)
             if spec <: RoutineSpec
-                append!(topscope, codegen_routine(QASMCtx(RoutineInfo(spec))))
+                push!(topscope, codegen_routine(QASMCtx(RoutineInfo(spec))))
             else
                 append!(topscope, codegen_qasm(spec))
             end
@@ -257,18 +270,7 @@ function codegen_routine(ctx::QASMCtx)
         end
     end
 
-    topscope = []
-    for spec in ctx.ri.edges
-        if spec <: RoutineSpec
-            append!(topscope, codegen_routine(QASMCtx(RoutineInfo(spec))))
-        else
-            append!(topscope, codegen_qasm(spec))
-        end
-    end
-
-    push!(topscope, QASM.Parse.Gate(decl, prog))
-
-    return topscope
+    return QASM.Parse.Gate(decl, prog)
 end
 
 function codegen_expr(ctx::QASMCtx, @nospecialize(stmt))
