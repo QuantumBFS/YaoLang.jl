@@ -27,22 +27,17 @@ end
 
 function quantum_blocks(ci::CodeInfo, cfg::CFG)
     quantum_blocks = UnitRange{Int}[]
+    last_stmt_is_measure_or_barrier = false
 
     for b in cfg.blocks
         start, stop = 0, 0
         for v in b.stmts
             st = ci.code[v]
             if is_quantum_statement(st)
-                head = quantum_stmt_type(st)
-                if head in [:measure, :barrier]
-                    push!(quantum_blocks, start:stop+1)
-                    start = stop = 0
+                if start > 0
+                    stop += 1
                 else
-                    if start > 0
-                        stop += 1
-                    else
-                        start = stop = v
-                    end
+                    start = stop = v
                 end
             else
                 if start > 0

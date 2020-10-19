@@ -38,6 +38,7 @@ end
 # skip it if x is a location
 Locations(x::Locations) = x
 Locations(xs...) = Locations(xs)
+Locations(xs::NTuple{N, <:Locations}) where N = merge_locations(xs...)
 Locations(x::NTuple{N,T}) where {N,T} = throw(LocationError("expect Int, got $T"))
 
 Base.@propagate_inbounds Base.getindex(l::Locations, idx...) = Locations(getindex(l.storage, idx...))

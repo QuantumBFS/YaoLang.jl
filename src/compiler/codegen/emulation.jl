@@ -20,6 +20,10 @@ function execute(op::IntrinsicSpec, ::EchoReg, loc::Locations, ctrl::CtrlLocatio
     @info "executing @ctrl $ctrl $loc => $op"
 end
 
+function YaoAPI.measure(::EchoReg, locs)
+    @info "measure at $locs"
+end
+
 @generated function execute(spec::RoutineSpec, r::ArrayReg, loc::Locations)
     ri = RoutineInfo(spec)
     return replace_with_execute(ri)
@@ -35,6 +39,8 @@ function update_slots(e, element_map)
         return get(element_map, e, e)
     elseif e isa Expr
         return Expr(e.head, map(x->update_slots(x, element_map), e.args)...)
+    elseif e isa Core.NewvarNode
+        return Core.NewvarNode(get(element_map, e.slot, e.slot))
     else
         return e
     end
@@ -133,6 +139,7 @@ function replace_with_execute(ri::RoutineInfo)
 
     for (v, stmt) in enumerate(ri.code.ci.code)
         codeloc = ri.code.ci.codelocs[v]
+        e = nothing
         if is_quantum_statement(stmt)
             type = quantum_stmt_type(stmt)
             if type === :gate
@@ -151,14 +158,44 @@ function replace_with_execute(ri::RoutineInfo)
                 changemap[v] += 2
                 e = Expr(:call, GlobalRef(Compiler, :execute), stmt.args[2], register, local_location, local_ctrl)
             elseif type === :measure
-                error("not supported yet")
-                # Expr(:call, GlobalRef(Compiler, :execute), stmt.args[2], register, stmt.args[3], stmt.args[4])
+                stmt = update_slots(stmt, slotmap)
+
+                if stmt.head === :(=)
+                    cvar = stmt.args[1]
+                    measure = stmt.args[2]
+                else
+                    cvar = nothing
+                    measure = stmt
+                end
+
+                # no location specified
+                if length(measure.args) == 2
+                    measure_locs = locations
+                else
+                    push!(code, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]))
+                    push!(codelocs, codeloc)
+                    changemap[v] += 1
+                    measure_locs = NewSSAValue(length(code))
+                end
+
+                # TODO: handle measure operator
+                measure_ex = Expr(:call, GlobalRef(YaoAPI, :measure), register, measure_locs)
+                if isnothing(cvar)
+                    e = measure_ex
+                else
+                    e = Expr(:(=), cvar, measure_ex)
+                end
+            else
+                # deleted
+                changemap[v] -= 1
             end
         else
             e = update_slots(stmt, slotmap)
         end
-        push!(codelocs, codeloc)
-        push!(code, e)
+        if !isnothing(e)
+            push!(code, e)
+            push!(codelocs, codeloc)
+        end
     end
 
     return setup_codeinfo!(code, codelocs, changemap, slotnames, ri)
@@ -203,6 +240,8 @@ function replace_with_ctrl_execute(ri::RoutineInfo)
                 e = Expr(:call, GlobalRef(Compiler, :execute), stmt.args[2], register, local_location, real_ctrl)
             elseif type === :measure
                 error("measurement should not be controlled by quantum operation")
+            else
+                changemap[v] -= 1
             end
         else
             e = update_slots(stmt, slotmap)
