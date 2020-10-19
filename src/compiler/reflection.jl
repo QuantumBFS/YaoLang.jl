@@ -14,10 +14,8 @@ end
 macro code_qasm(ex)
     (ex isa Expr) && (ex.head === :call) || error("expect a generic circuit call")
     ri = gensym(:routine_info)
-    ctx = gensym(:ctx)
     quote
         $ri = $(Expr(:call, GlobalRef(Compiler, :RoutineInfo), :(typeof($ex))))
-        $ctx = $(Expr(:call, GlobalRef(Compiler, :QASMCtx), ri))
-        $(Expr(:call, GlobalRef(Compiler, :codegen_main), ctx))
+        $(Expr(:call, GlobalRef(Compiler, :codegen_qasm), ri))
     end |> esc
 end

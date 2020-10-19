@@ -180,6 +180,7 @@ end
 
 struct RoutineInfo
     code::YaoIR
+    edges::Vector{Any}
     parent
     signature
     spec
@@ -189,7 +190,16 @@ function RoutineInfo(rs::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
     mi, ci = obtain_codeinfo(rs)
     result = perform_typeinf(mi, ci)
     ci = result.result.src
-    return RoutineInfo(YaoIR(ci), P, Sigs, rs)
+    code = YaoIR(ci)
+
+    edges = Any[]
+    for tt in code.ci.ssavaluetypes
+        T = Core.Compiler.widenconst(tt)
+        if T <: RoutineSpec || T <: IntrinsicSpec
+            push!(edges, T)
+        end
+    end
+    return RoutineInfo(code, edges, P, Sigs, rs)
 end
 
 function Base.show(io::IO, ri::YaoIR)

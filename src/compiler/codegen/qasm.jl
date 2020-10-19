@@ -16,22 +16,17 @@ mutable struct QASMCtx
     src::CodeInfo
     pc::Int
     nstmts::Int
-    record::QASM.RegisterRecord
     cbits::Dict{String, Int}
-    # intrinsics called
-    intrinsics::Vector{Symbol}
     regs_to_locs::Dict{Int, Vector{Int}}
     locs_to_reg_addr::Dict{Int, Tuple{Int, Int}}
 end
 
 function QASMCtx(ri::RoutineInfo)
-    pc = first(first(ri.code.blocks))
+    pc = isempty(ri.code.blocks) ? 1 : first(first(ri.code.blocks))
     nstmts = length(ri.code.ci.code)
     regs_to_locs, locs_to_reg_addr = allocate_qreg(ri)
     QASMCtx(ri, ri.code.ci, pc, nstmts,
-        QASM.RegisterRecord(),
         Dict{String, Int}(),
-        Symbol[],
         regs_to_locs, locs_to_reg_addr
     )
 end
@@ -77,7 +72,7 @@ function allocate_qreg(ri::RoutineInfo)
                     get!(locs_to_regs, each, 1)
                 end
 
-                for each in stmt.args[4]
+                for each in stmt.args[4].storage
                     get!(locs_to_regs, each, 1)
                 end
             else
@@ -105,6 +100,26 @@ function allocate_qreg(ri::RoutineInfo)
 
     return regs_to_locs, locs_to_reg_addr
 end
+
+function codegen_qasm(ri::RoutineInfo; include_routines=true)
+    ctx = QASMCtx(ri)
+    topscope = Any[]
+
+    if !include_routines
+        for spec in ri.edges
+            if spec <: RoutineSpec
+                append!(topscope, codegen_routine(QASMCtx(RoutineInfo(spec))))
+            else
+                append!(topscope, codegen_qasm(spec))
+            end
+        end
+    end
+
+    append!(topscope, codegen_main(ctx))
+    return QASM.Parse.MainProgram(v"2.0", topscope)
+end
+
+codegen_qasm(::Type{<:IntrinsicSpec}) = Any[]
 
 function codegen_main(ctx::QASMCtx)
     prog = Any[]
@@ -144,10 +159,116 @@ function codegen_main(ctx::QASMCtx)
         ))
     end
 
-    return QASM.Parse.MainProgram(v"2.0", prog)
+    return prog
 end
 
-function codegen_routine(ctx::QASMCtx, stmt)
+function codegen_routine(ctx::QASMCtx)
+    ctx.ri.parent <: GenericRoutine || return Any[codegen_qasm(ctx.spec)...]
+
+    nargs = length(ctx.ri.signature.parameters)
+    argnames = string.(ctx.src.slotnames[3:2+nargs])
+    name = routine_name(ctx.ri.parent)
+    cargs = Any[Token{:id}(x) for x in argnames]
+    qargs = Any[]
+    for (_, (r, addr)) in ctx.locs_to_reg_addr
+        push!(qargs, Token{:id}(string("q", r, addr)))
+    end
+
+    decl = QASM.Parse.GateDecl(Token{:id}(string(name)), cargs, qargs)
+    prog = Any[]
+    # only :gate/:ctrl/:barrier
+    for b in ctx.ri.code.blocks
+        for v in b
+            stmt = ctx.src.code[v]::Expr
+            type = quantum_stmt_type(stmt)
+            # NOTE: locations must be constant for QASM
+            if type === :gate
+                gate = stmt.args[2]
+                locs = stmt.args[3]::Locations
+
+                if gate isa Core.Const
+                    gate = gate.val
+                    gt = typeof(gate.val)
+                    cvars = gate.variables
+                elseif gate isa SSAValue
+                    # for QASM gate
+                    # the variables can only
+                    # be slot
+                    gt = ctx.src.ssavaluetypes[gate.id]
+                    gate = ctx.src.code[gate.id]
+                    cvars = Symbol[ctx.src.slotnames[x.id] for x in gate.args[2:end]]
+                else
+                    error("incompatible gate call for QASM")
+                end
+
+                cargs = Any[]
+                for x in cvars
+                    if x isa Symbol
+                        qt = :id
+                    elseif x isa Real
+                        qt = :float64
+                    elseif x isa Int
+                        qt = :int
+                    else
+                        error("invalid type for QASM, got $(typeof(x))")
+                    end
+                    push!(cargs, Token{qt}(string(x)))
+                end
+
+                qargs = Any[]
+                for k in locs
+                    r, addr = ctx.locs_to_reg_addr[k]
+                    push!(qargs, QASM.Parse.Bit(string("q", r, addr)))
+                end
+
+                push!(prog, QASM.Parse.Instruction(
+                        Token{:id}(_qasm_name(routine_name(gt))),
+                        cargs, qargs
+                ))
+            elseif type === :ctrl
+                gate = stmt.args[2]
+                locs = stmt.args[3]::Locations
+                ctrl = stmt.args[4]::CtrlLocations
+                if (gate == YaoLang.X || gate == GlobalRef(YaoLang, :X)) && length(ctrl) == 1 && length(locs) == 1
+                    qargs = Any[]
+                    r, addr = ctx.locs_to_reg_addr[ctrl.storage.storage]
+                    push!(qargs, QASM.Parse.Bit(string("q", r, addr)))
+                    r, addr = ctx.locs_to_reg_addr[locs.storage]
+                    push!(qargs, QASM.Parse.Bit(string("q", r, addr)))
+
+                    push!(prog, QASM.Parse.Instruction(
+                        Token{:id}("CX"),
+                        Any[], qargs
+                    ))
+                else
+                    error("invalid control statement for QASM, got $stmt")
+                end
+            elseif type === :barrier
+                locs = stmt.args[2]::Locations
+                qargs = Any[]
+                for k in locs
+                    r, addr = ctx.locs_to_reg_addr[k]
+                    push!(qargs, QASM.Parse.Bit(string("q", r, addr)))
+                end
+                push!(prog, QASM.Parse.Barrier(qargs))
+            else
+                error("invalid statement for QASM gate, got $stmt")
+            end
+        end
+    end
+
+    topscope = []
+    for spec in ctx.ri.edges
+        if spec <: RoutineSpec
+            append!(topscope, codegen_routine(QASMCtx(RoutineInfo(spec))))
+        else
+            append!(topscope, codegen_qasm(spec))
+        end
+    end
+
+    push!(topscope, QASM.Parse.Gate(decl, prog))
+
+    return topscope
 end
 
 function codegen_expr(ctx::QASMCtx, @nospecialize(stmt))
@@ -158,6 +279,23 @@ function codegen_expr(ctx::QASMCtx, @nospecialize(stmt))
             locs = stmt.args[3]
             return codegen_gate(ctx, gate, locs)
         elseif type === :ctrl
+            gate = stmt.args[2]
+            locs = stmt.args[3]::Locations
+            ctrl = stmt.args[4]::CtrlLocations
+            if gate == YaoLang.X && length(ctrl) == 1 && length(locs) == 1
+                qargs = Any[]
+                r, addr = ctx.locs_to_reg_addr[ctrl.storage.storage]
+                push!(qargs, QASM.Parse.Bit(string("q", r), addr))
+                r, addr = ctx.locs_to_reg_addr[locs.storage]
+                push!(qargs, QASM.Parse.Bit(string("q", r), addr))
+
+                return QASM.Parse.Instruction(
+                    Token{:id}("CX"),
+                    Any[], qargs
+                )
+            else
+                error("invalid control statement for QASM, got: $stmt")
+            end
         elseif type === :measure
             return codegen_measure(ctx, stmt)
         elseif type === :barrier
@@ -193,13 +331,8 @@ function codegen_gate(ctx::QASMCtx, @nospecialize(gate), @nospecialize(locs))
     end
 
     gate isa RoutineSpec || gate isa IntrinsicSpec || error("invalid gate statement")
-    
+
     name = routine_name(gate)
-
-    if gate isa IntrinsicSpec
-        push!(ctx.intrinsics, name)
-    end
-
     # NOTE:
     # all classical arguments in QASM compatible code
     # should be constants, thus we just transform them

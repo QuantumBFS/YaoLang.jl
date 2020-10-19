@@ -240,7 +240,7 @@ end
 function print_qasm(io::IO, stmt::Measure)
     print_kw(io, "measure ")
     print_qasm(io, stmt.qarg)
-    print_kw(io, " ->")
+    print_kw(io, " -> ")
     print_qasm(io, stmt.carg)
     print(io, ";")
 end
