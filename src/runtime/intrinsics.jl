@@ -1,4 +1,4 @@
-export X, Y, Z, H
+export X, Y, Z, H, shift, Rx, Ry, Rz
 
 @intrinsic X
 @intrinsic Y
