@@ -143,7 +143,9 @@ uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [[RBNF]]
 deps = ["DataStructures", "MLStyle", "PrettyPrint"]
-path = "dev/RBNF"
+git-tree-sha1 = "aecac4f04148eb3521c2615ff681ad3e462d98c0"
+repo-rev = "master"
+repo-url = "https://github.com/thautwarm/RBNF.jl.git"
 uuid = "83ef0002-5b9e-11e9-219b-65bac3c6d69c"
 version = "0.2.2"
 

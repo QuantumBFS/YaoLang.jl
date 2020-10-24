@@ -13,21 +13,37 @@ using YaoLang.Compiler
     return 1
 end
 
-r = Compiler.EchoReg();
+function typeinf()
+    locs = Locations((1, 2, 3))
+    ctrl = CtrlLocations((4, ))
+    # execute(qft(3), r, locs)
+    c = qft(3)
+    ir = Compiler.YaoIR(typeof(c))
+    method = methods(Compiler.Semantic.gate, Tuple{typeof(c), typeof(locs)})|>first
+    method_args = Tuple{typeof(Compiler.Semantic.gate), typeof(c), typeof(locs)}
+    mi = Core.Compiler.specialize_method(method, method_args, Core.svec())
+    result = Core.Compiler.InferenceResult(mi)
+    world = Core.Compiler.get_world_counter()
+    interp = YaoLang.Compiler.YaoInterpreter()
+    frame = Core.Compiler.InferenceState(result, Compiler.codeinfo_gate(ir), #=cached=# true, interp)
+    Core.Compiler.typeinf_local(interp, frame)
+    frame.src    
+end
+
+
 locs = Locations((1, 2, 3))
 ctrl = CtrlLocations((4, ))
 # execute(qft(3), r, locs)
 c = qft(3)
+ir = Compiler.YaoIR(typeof(c))
+method = methods(Compiler.Semantic.gate, Tuple{typeof(c), typeof(locs)})|>first
+method_args = Tuple{typeof(Compiler.Semantic.gate), typeof(c), typeof(locs)}
+mi = Core.Compiler.specialize_method(method, method_args, Core.svec())
+result = Core.Compiler.InferenceResult(mi)
+world = Core.Compiler.get_world_counter()
+interp = YaoLang.Compiler.YaoInterpreter()
+frame = Core.Compiler.InferenceState(result, Compiler.codeinfo_gate(ir), #=cached=# true, interp)
+Core.Compiler.typeinf_local(interp, frame)
+frame.src
 
-@code_yao qft(3)
-
-ri = Compiler.RoutineInfo(typeof(c))
-ri.code
-# mi, ci = obtain_code_info(typeof(c))
-
-ci = @code_lowered YaoLang.Compiler.execute(c, r, locs)
-
-ci = @code_lowered YaoLang.Compiler.execute(c, r, locs)
-
-YaoLang.Compiler.execute(c, r, locs, ctrl)
-
+Core.Compiler.get(Core.Compiler.code_cache(interp), mi, nothing)

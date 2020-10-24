@@ -1,6 +1,145 @@
-obtain_codeinfo(r::RoutineSpec) = obtain_codeinfo(typeof(r))
+struct NewCodeInfo
+    src::CodeInfo
+    code::Vector{Any}
+    nvariables::Int
+    codelocs::Vector{Int32}
+    slotnames::Vector{Symbol}
+    changemap::Vector{Int}
+    slotmap::Vector{Int}
+
+    function NewCodeInfo(ci::CodeInfo, nargs::Int)
+        code = []
+        codelocs = Int32[]
+        slotnames = copy(ci.slotnames)
+        changemap = fill(0, length(ci.code))
+        slotmap = fill(0, length(ci.slotnames))
+        new(ci, code, nargs + 1, codelocs, slotnames, changemap, slotmap)
+    end
+end
+
+source_slot(ci::NewCodeInfo, i::Int) = Core.SlotNumber(i + ci.slotmap[i])
+
+function slot(ci::NewCodeInfo, name::Symbol)
+    return Core.SlotNumber(findfirst(isequal(name), ci.slotnames))
+end
+
+function unpack_closure!(ci::NewCodeInfo, closure::Int)
+    spec = Core.SlotNumber(closure)
+    codeloc = ci.src.codelocs[1]
+    # unpack closure
+    # %1 = get variables
+    push!(ci.code, Expr(:call, GlobalRef(Base, :getfield), spec, QuoteNode(:variables)))
+    push!(ci.codelocs, codeloc)
+    ci.changemap[1] += 1
+
+    # %2 = get parent
+    push!(ci.code, Expr(:(=), source_slot(ci, 2), Expr(:call, GlobalRef(Base, :getfield), spec, QuoteNode(:parent))))
+    push!(ci.codelocs, codeloc)
+    # unpack variables
+    for i in 2:ci.nvariables
+        push!(ci.code, Expr(:(=), source_slot(ci, i+1), Expr(:call, GlobalRef(Base, :getindex), NewSSAValue(1), i-1)))
+        push!(ci.codelocs, codeloc)
+    end
+    ci.changemap[1] += ci.nvariables
+    return ci
+end
+
+function insert_slot!(ci::NewCodeInfo, v::Int, slot::Symbol)
+    insert!(ci.slotnames, v, slot)
+    
+    for k in v:length(ci.slotmap)
+        ci.slotmap[k] += 1
+    end
+    return ci
+end
+
+function push_stmt!(ci::NewCodeInfo, stmt, codeloc::Int32 = Int32(1))
+    push!(ci.code, stmt)
+    push!(ci.codelocs, codeloc)
+    return ci
+end
+
+function insert_stmt!(ci::NewCodeInfo, v::Int, stmt)
+    push_stmt!(ci, stmt, ci.src.codelocs[v])
+    ci.changemap[v] += 1
+    return NewSSAValue(length(ci.code))
+end
+
+function update_slots(e, slotmap)
+    if e isa Core.SlotNumber
+        return Core.SlotNumber(e.id + slotmap[e.id])
+    elseif e isa Expr
+        return Expr(e.head, map(x->update_slots(x, slotmap), e.args)...)
+    elseif e isa Core.NewvarNode
+        return Core.NewvarNode(Core.SlotNumber(e.slot.id + slotmap[e.slot.id]))
+    else
+        return e
+    end
+end
+
+function finish(ci::NewCodeInfo)
+    Core.Compiler.renumber_ir_elements!(ci.code, ci.changemap)
+    replace_new_ssavalue!(ci.code)
+    new_ci = copy(ci.src)
+    new_ci.code = ci.code
+    new_ci.codelocs = ci.codelocs
+    new_ci.slotnames = ci.slotnames
+    new_ci.slotflags = [0x00 for _ in new_ci.slotnames]
+    new_ci.inferred = false
+    new_ci.inlineable = true
+    new_ci.ssavaluetypes = length(ci.code)
+    return new_ci
+end
+
+function is_quantum_statement(@nospecialize(e))
+    e isa Expr || return false
+
+    if e.head === :call
+        f = e.args[1]
+        f isa GlobalRef && f.mod === Semantic || return false
+        return true
+    elseif e.head === :(=)
+        return is_quantum_statement(e.args[2])
+    else
+        return false
+    end
+end
+
+function quantum_stmt_type(e::Expr)
+    if e.head === :call
+        return e.args[1].name
+    else
+        return quantum_stmt_type(e.args[2])
+    end
+end
+
+function _replace_new_ssavalue(e)
+    if e isa NewSSAValue
+        return SSAValue(e.id)
+    elseif e isa Expr
+        return Expr(e.head, map(_replace_new_ssavalue, e.args)...)
+    elseif e isa Core.GotoIfNot
+        cond = e.cond
+        if cond isa NewSSAValue
+            cond = SSAValue(cond.id)
+        end
+        return Core.GotoIfNot(cond, e.dest)
+    elseif e isa Core.ReturnNode && isdefined(e, :val) && isa(e.val, NewSSAValue)
+        return Core.ReturnNode(SSAValue(e.val.id))
+    else
+        return e
+    end
+end
+
+function replace_new_ssavalue!(code::Vector)
+    for idx in 1:length(code)
+        code[idx] = _replace_new_ssavalue(code[idx])
+    end
+    return code
+end
 
 function obtain_codeinfo(::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
+    nargs = length(Sigs.parameters)
     tt = Tuple{P, Sigs.parameters...}
     ms = methods(routine_stub, tt)
     @assert length(ms) == 1
@@ -8,22 +147,44 @@ function obtain_codeinfo(::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
     method_args = Tuple{RoutineStub, tt.parameters...}
     mi = Core.Compiler.specialize_method(method, method_args, Core.svec())
     ci = Core.Compiler.retrieve_code_info(mi)
-    convert_to_quantum_head!(ci)
-    return mi, ci
+
+    name = routine_name(P)
+    linetable = Any[]
+    for lineinfo in ci.linetable
+        push!(linetable, Core.LineInfoNode(lineinfo.module, name, lineinfo.file, lineinfo.line, lineinfo.inlined_at))
+    end
+    ci.linetable = linetable
+    return ci, nargs
 end
 
-function perform_typeinf(mi::Core.MethodInstance, ci::CodeInfo)
-    # type infer
-    result = Core.Compiler.InferenceResult(mi)
-    world = Core.Compiler.get_world_counter()
-    interp = YaoLang.Compiler.YaoInterpreter()
-    frame = Core.Compiler.InferenceState(result, ci, #=cached=# true, interp)
-    # opt = Core.Compiler.OptimizationState(frame, Core.Compiler.OptimizationParams(interp), interp)
-    # nargs = Int(opt.nargs) - 1
-    Core.Compiler.typeinf_local(interp, frame)
-    # ir = Core.Compiler.convert_to_ircode(ci, Core.Compiler.copy_exprargs(ci.code), false, nargs, opt)
-    return result
+function create_codeinfo(::Type{Spec}) where {Spec <: RoutineSpec}
+    ci, nargs = obtain_codeinfo(Spec)
+    return create_codeinfo(ci, nargs)
 end
+
+function create_codeinfo(ci::CodeInfo, nargs::Int)
+    new = NewCodeInfo(ci, nargs)
+    insert_slot!(new, 2, :spec)
+    unpack_closure!(new, 2)
+
+    for (v, stmt) in enumerate(ci.code)
+        push_stmt!(new, update_slots(stmt, new.slotmap), ci.codelocs[v])
+    end
+    return finish(new)
+end
+
+# function perform_typeinf(mi::Core.MethodInstance, ci::CodeInfo)
+#     # type infer
+#     result = Core.Compiler.InferenceResult(mi)
+#     world = Core.Compiler.get_world_counter()
+#     interp = YaoLang.Compiler.YaoInterpreter()
+#     frame = Core.Compiler.InferenceState(result, ci, #=cached=# true, interp)
+#     # opt = Core.Compiler.OptimizationState(frame, Core.Compiler.OptimizationParams(interp), interp)
+#     # nargs = Int(opt.nargs) - 1
+#     Core.Compiler.typeinf_local(interp, frame)
+#     # ir = Core.Compiler.convert_to_ircode(ci, Core.Compiler.copy_exprargs(ci.code), false, nargs, opt)
+#     return result
+# end
 
 function quantum_blocks(ci::CodeInfo, cfg::CFG)
     quantum_blocks = UnitRange{Int}[]
@@ -163,6 +324,9 @@ function exit_block!(perms::Vector, cstmts_tape::Vector, qstmts_tape::Vector)
     return perms
 end
 
+# NOTE:
+# YaoIR contains the SSA IR with quantum blocks for function
+# λ(spec, location)
 struct YaoIR
     ci::CodeInfo
     cfg::CFG
@@ -170,36 +334,106 @@ struct YaoIR
     blocks::Vector{UnitRange{Int}}
 end
 
-# this must be typed
-# with quantum head
-function YaoIR(ci::CodeInfo)
+function YaoIR(::Type{Spec}) where {Spec <: RoutineSpec}
+    ci = create_codeinfo(Spec)
     cfg = Core.Compiler.compute_basic_blocks(ci.code)
     ci = group_quantum_stmts(ci, cfg)
     return YaoIR(ci, cfg, quantum_blocks(ci, cfg))
 end
 
-struct RoutineInfo
-    code::YaoIR
-    edges::Vector{Any}
-    parent
-    signature
-    spec
-end
+# handle location mapping
+function codeinfo_gate(ir::YaoIR)
+    new = NewCodeInfo(ir.ci, 1)
+    insert_slot!(new, 3, :locations)
+    locations = slot(new, :locations)
 
-function RoutineInfo(rs::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
-    mi, ci = obtain_codeinfo(rs)
-    result = perform_typeinf(mi, ci)
-    ci = result.result.src
-    code = YaoIR(ci)
+    for (v, stmt) in enumerate(new.src.code)
+        codeloc = new.src.codelocs[v]
+        stmt = update_slots(stmt, new.slotmap)
+        e = nothing
+        if is_quantum_statement(stmt)
+            type = quantum_stmt_type(stmt)
+            if type === :gate
+                local_location = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]))
+                e = Expr(:call, GlobalRef(Semantic, :gate), stmt.args[2], local_location)
+            elseif type === :ctrl
+                local_location = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]))
+                local_ctrl = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[4]))
+                e = Expr(:call, GlobalRef(Semantic, :ctrl), stmt.args[2], local_location, local_ctrl)
+            elseif type === :measure
+                if stmt.head === :(=)
+                    cvar = stmt.args[1]
+                    measure = stmt.args[2]
+                else
+                    cvar = nothing
+                    measure = stmt
+                end
 
-    edges = Any[]
-    for tt in code.ci.ssavaluetypes
-        T = Core.Compiler.widenconst(tt)
-        if T <: RoutineSpec || T <: IntrinsicSpec
-            push!(edges, T)
+                # no location specified
+                if length(measure.args) == 2
+                    measure_locs = locations
+                else
+                    measure_locs = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]))
+                end
+
+                # TODO: handle measure operator
+                measure_ex = Expr(:call, GlobalRef(Semantic, :measure), measure_locs)
+                if isnothing(cvar)
+                    e = measure_ex
+                else
+                    e = Expr(:(=), cvar, measure_ex)
+                end
+            elseif type === :barrier
+                local_location = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[2]))
+                e = Expr(:call, GlobalRef(Semantic, :barrier), local_location)
+            end
+        end
+
+        if isnothing(e)
+            push_stmt!(new, stmt, codeloc)
+        else
+            push_stmt!(new, e, codeloc)
         end
     end
-    return RoutineInfo(code, edges, P, Sigs, rs)
+    return finish(new)
+end
+
+function codeinfo_ctrl(ir::YaoIR)
+    new = NewCodeInfo(ir.ci, 1)
+    insert_slot!(new, 3, :locations)
+    insert_slot!(new, 4, :ctrl)
+    locations = slot(new, :locations)
+    ctrl = slot(new, :ctrl)
+
+    for (v, stmt) in enumerate(new.src.code)
+        codeloc = new.src.codelocs[v]
+        stmt = update_slots(stmt, new.slotmap)
+        e = nothing
+        if is_quantum_statement(stmt)
+            type = quantum_stmt_type(stmt)
+            if type === :gate
+                local_location = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]))
+                e = Expr(:call, GlobalRef(Semantic, :ctrl), stmt.args[2], local_location, ctrl)
+            elseif type === :ctrl
+                local_location = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]))
+                local_ctrl = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[4]))
+                real_ctrl = insert_stmt!(new, v, Expr(:call, GlobalRef(YaoLang, :merge_locations), local_ctrl, ctrl))
+                e = Expr(:call, GlobalRef(Semantic, :ctrl), stmt.args[2], local_location, real_ctrl)
+            elseif type === :measure
+                error("cannot use measure under a quantum control context")
+            elseif type === :barrier
+                local_location = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[2]))
+                e = Expr(:call, GlobalRef(Semantic, :barrier), local_location)
+            end
+        end
+
+        if isnothing(e)
+            push_stmt!(new, stmt, codeloc)
+        else
+            push_stmt!(new, e, codeloc)
+        end
+    end
+    return finish(new)
 end
 
 function Base.show(io::IO, ri::YaoIR)
@@ -208,7 +442,32 @@ function Base.show(io::IO, ri::YaoIR)
     print(io, ri.ci)
 end
 
-function Base.show(io::IO, ri::RoutineInfo)
-    println(io, ri.spec)
-    print(io, ri.code)
-end
+
+# struct RoutineInfo
+#     code::YaoIR
+#     edges::Vector{Any}
+#     parent
+#     signature
+#     spec
+# end
+
+# function RoutineInfo(rs::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
+#     mi, ci = obtain_codeinfo(rs)
+#     result = perform_typeinf(mi, ci)
+#     ci = result.result.src
+#     code = YaoIR(ci)
+
+#     edges = Any[]
+#     for tt in code.ci.ssavaluetypes
+#         T = Core.Compiler.widenconst(tt)
+#         if T <: RoutineSpec || T <: IntrinsicSpec
+#             push!(edges, T)
+#         end
+#     end
+#     return RoutineInfo(code, edges, P, Sigs, rs)
+# end
+
+# function Base.show(io::IO, ri::RoutineInfo)
+#     println(io, ri.spec)
+#     print(io, ri.code)
+# end
