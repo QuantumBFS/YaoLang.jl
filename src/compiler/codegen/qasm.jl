@@ -123,7 +123,9 @@ function codegen_qasm(ri::RoutineInfo; routine=false)
     if routine
         for spec in scan_edges(ri)
             if spec <: RoutineSpec
-                push!(topscope, codegen_routine(QASMCtx(RoutineInfo(spec))))
+                routine_ri = RoutineInfo(spec)
+                perform_typeinf(routine_ri)
+                push!(topscope, codegen_routine(QASMCtx(routine_ri)))
             else
                 append!(topscope, codegen_qasm(spec))
             end
