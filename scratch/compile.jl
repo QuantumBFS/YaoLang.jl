@@ -31,11 +31,17 @@ function typeinf()
 end
 
 
+r = Compiler.EchoReg()
 locs = Locations((1, 2, 3))
 ctrl = CtrlLocations((4, ))
 # execute(qft(3), r, locs)
 c = qft(3)
-ir = Compiler.YaoIR(typeof(c))
+
+ri = @code_yao qft(3)
+ci = Compiler.replace_with_execute(ri)
+ci.slotnames
+Compiler.execute(c, r, locs)
+
 method = methods(Compiler.Semantic.gate, Tuple{typeof(c), typeof(locs)})|>first
 method_args = Tuple{typeof(Compiler.Semantic.gate), typeof(c), typeof(locs)}
 mi = Core.Compiler.specialize_method(method, method_args, Core.svec())
@@ -47,3 +53,4 @@ Core.Compiler.typeinf_local(interp, frame)
 frame.src
 
 Core.Compiler.get(Core.Compiler.code_cache(interp), mi, nothing)
+
