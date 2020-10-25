@@ -27,7 +27,6 @@ Core.Compiler.lock_mi_inference(interp::YaoInterpreter, mi::Core.MethodInstance)
 
 function Core.Compiler.abstract_eval_statement(interp::YaoInterpreter, @nospecialize(e), vtypes::VarTable, sv::InferenceState)
     is_quantum_statement(e) || return Core.Compiler.abstract_eval_statement(interp.native_interpreter, e, vtypes, sv)
-    @show e
     type = quantum_stmt_type(e)
     if type === :measure
         return MeasureResult
@@ -74,12 +73,11 @@ function abstract_call_quantum(interp::YaoInterpreter, type::Symbol, args::Vecto
 
     atypes = Tuple{typeof(sf), atypes.parameters...}
     mi = Core.Compiler.specialize_method(method, atypes, Core.svec())::Core.MethodInstance
-    @show argtypes
     gt = Core.Compiler.widenconst(argtypes[1])
     gt <: IntrinsicSpec && return Core.Compiler.CallMeta(Nothing, nothing)
 
     # RoutineSpec
-    ir = YaoIR(gt)
+    ri = RoutineInfo(gt)
     edges = Any[]
     # TODO: use cached result
     # code = get(code_cache(interp), mi, nothing)
@@ -101,9 +99,9 @@ function abstract_call_quantum(interp::YaoInterpreter, type::Symbol, args::Vecto
         result = Core.Compiler.InferenceResult(mi)
         
         if type === :gate
-            ci = codeinfo_gate(ir)
+            ci = codeinfo_gate(ri)
         elseif type === :ctrl
-            ci = codeinfo_ctrl(ir)
+            ci = codeinfo_ctrl(ri)
         end
 
         frame = Core.Compiler.InferenceState(result, ci, #=cached=#true, interp) # always use the cache for edge targets

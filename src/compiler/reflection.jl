@@ -7,7 +7,7 @@ Evaluates the arguments to the function call, determines their types, and
 calls `code_yao` on the resulting expression.
 """
 macro code_yao(ex)
-    (ex isa Expr) && (ex.head === :call) || error("expect a generic circuit call")    
+    (ex isa Expr) && (ex.head === :call) || error("expect a generic circuit call")
     esc(Expr(:call, GlobalRef(Compiler, :RoutineInfo), :(typeof($ex))))
 end
 

@@ -3,6 +3,7 @@ struct NewCodeInfo
     code::Vector{Any}
     nvariables::Int
     codelocs::Vector{Int32}
+    newslots::Dict{Int, Symbol}
     slotnames::Vector{Symbol}
     changemap::Vector{Int}
     slotmap::Vector{Int}
@@ -10,10 +11,11 @@ struct NewCodeInfo
     function NewCodeInfo(ci::CodeInfo, nargs::Int)
         code = []
         codelocs = Int32[]
+        newslots = Dict{Int, Symbol}()
         slotnames = copy(ci.slotnames)
         changemap = fill(0, length(ci.code))
         slotmap = fill(0, length(ci.slotnames))
-        new(ci, code, nargs + 1, codelocs, slotnames, changemap, slotmap)
+        new(ci, code, nargs + 1, codelocs, newslots, slotnames, changemap, slotmap)
     end
 end
 
@@ -45,9 +47,10 @@ function unpack_closure!(ci::NewCodeInfo, closure::Int)
 end
 
 function insert_slot!(ci::NewCodeInfo, v::Int, slot::Symbol)
+    ci.newslots[v] = slot
     insert!(ci.slotnames, v, slot)
-    
-    for k in v:length(ci.slotmap)
+    prev = length(filter(x->x<v, keys(ci.newslots)))
+    for k in v-prev:length(ci.slotmap)
         ci.slotmap[k] += 1
     end
     return ci
@@ -172,19 +175,6 @@ function create_codeinfo(ci::CodeInfo, nargs::Int)
     end
     return finish(new)
 end
-
-# function perform_typeinf(mi::Core.MethodInstance, ci::CodeInfo)
-#     # type infer
-#     result = Core.Compiler.InferenceResult(mi)
-#     world = Core.Compiler.get_world_counter()
-#     interp = YaoLang.Compiler.YaoInterpreter()
-#     frame = Core.Compiler.InferenceState(result, ci, #=cached=# true, interp)
-#     # opt = Core.Compiler.OptimizationState(frame, Core.Compiler.OptimizationParams(interp), interp)
-#     # nargs = Int(opt.nargs) - 1
-#     Core.Compiler.typeinf_local(interp, frame)
-#     # ir = Core.Compiler.convert_to_ircode(ci, Core.Compiler.copy_exprargs(ci.code), false, nargs, opt)
-#     return result
-# end
 
 function quantum_blocks(ci::CodeInfo, cfg::CFG)
     quantum_blocks = UnitRange{Int}[]
@@ -341,9 +331,32 @@ function YaoIR(::Type{Spec}) where {Spec <: RoutineSpec}
     return YaoIR(ci, cfg, quantum_blocks(ci, cfg))
 end
 
+function Base.show(io::IO, ri::YaoIR)
+    println(io, "quantum blocks:")
+    println(io, ri.blocks)
+    print(io, ri.ci)
+end
+
+struct RoutineInfo
+    code::YaoIR
+    nargs::Int
+    edges::Vector{Any}
+    parent
+    signature
+    spec
+end
+
+function RoutineInfo(rs::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
+    code = YaoIR(rs)
+    edges = Any[]
+    return RoutineInfo(code, length(Sigs.parameters), edges, P, Sigs, rs)
+end
+
+NewCodeInfo(ri::RoutineInfo) = NewCodeInfo(ri.code.ci, ri.nargs)
+
 # handle location mapping
-function codeinfo_gate(ir::YaoIR)
-    new = NewCodeInfo(ir.ci, 1)
+function codeinfo_gate(ri::RoutineInfo)
+    new = NewCodeInfo(ri)
     insert_slot!(new, 3, :locations)
     locations = slot(new, :locations)
 
@@ -398,8 +411,8 @@ function codeinfo_gate(ir::YaoIR)
     return finish(new)
 end
 
-function codeinfo_ctrl(ir::YaoIR)
-    new = NewCodeInfo(ir.ci, 1)
+function codeinfo_ctrl(ri::RoutineInfo)
+    new = NewCodeInfo(ri.code.ci, ri.nargs)
     insert_slot!(new, 3, :locations)
     insert_slot!(new, 4, :ctrl)
     locations = slot(new, :locations)
@@ -436,38 +449,30 @@ function codeinfo_ctrl(ir::YaoIR)
     return finish(new)
 end
 
-function Base.show(io::IO, ri::YaoIR)
-    println(io, "quantum blocks:")
-    println(io, ri.blocks)
-    print(io, ri.ci)
+function Base.show(io::IO, ri::RoutineInfo)
+    println(io, ri.spec)
+    print(io, ri.code)
 end
 
+function typeinf_stub(spec::RoutineSpec) end
 
-# struct RoutineInfo
-#     code::YaoIR
-#     edges::Vector{Any}
-#     parent
-#     signature
-#     spec
-# end
+function perform_typeinf(ri::RoutineInfo)
+    method = first(methods(typeinf_stub))
+    method_args = Tuple{typeof(typeinf_stub), ri.spec}
+    mi = Core.Compiler.specialize_method(method, method_args, Core.svec())
+    result = Core.Compiler.InferenceResult(mi)
+    world = Core.Compiler.get_world_counter()
+    interp = YaoLang.Compiler.YaoInterpreter()
+    frame = Core.Compiler.InferenceState(result, ri.code.ci, #=cached=# true, interp)
+    Core.Compiler.typeinf_local(interp, frame)
 
-# function RoutineInfo(rs::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
-#     mi, ci = obtain_codeinfo(rs)
-#     result = perform_typeinf(mi, ci)
-#     ci = result.result.src
-#     code = YaoIR(ci)
+    for tt in ri.code.ci.ssavaluetypes
+        T = Core.Compiler.widenconst(tt)
+        if T <: RoutineSpec || T <: IntrinsicSpec
+            push!(ri.edges, T)
+        end
+    end
 
-#     edges = Any[]
-#     for tt in code.ci.ssavaluetypes
-#         T = Core.Compiler.widenconst(tt)
-#         if T <: RoutineSpec || T <: IntrinsicSpec
-#             push!(edges, T)
-#         end
-#     end
-#     return RoutineInfo(code, edges, P, Sigs, rs)
-# end
-
-# function Base.show(io::IO, ri::RoutineInfo)
-#     println(io, ri.spec)
-#     print(io, ri.code)
-# end
+    ri.code.ci.inferred = true
+    return ri
+end
