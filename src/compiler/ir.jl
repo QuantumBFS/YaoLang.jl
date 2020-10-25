@@ -101,6 +101,10 @@ function is_quantum_statement(@nospecialize(e))
         f = e.args[1]
         f isa GlobalRef && f.mod === Semantic || return false
         return true
+    elseif e.head === :invoke
+        f = e.args[2]
+        f isa GlobalRef && f.mod === Semantic || return false
+        return true
     elseif e.head === :(=)
         return is_quantum_statement(e.args[2])
     else
@@ -111,6 +115,8 @@ end
 function quantum_stmt_type(e::Expr)
     if e.head === :call
         return e.args[1].name
+    elseif e.head === :invoke
+        return e.args[2].name
     else
         return quantum_stmt_type(e.args[2])
     end
@@ -475,4 +481,21 @@ function perform_typeinf(ri::RoutineInfo)
 
     ri.code.ci.inferred = true
     return ri
+end
+
+# NOTE: these two functions are mainly compile time stubs
+# so we can attach this piece of CodeInfo to certain method
+@generated function Semantic.main(spec::RoutineSpec)
+    ri = RoutineInfo(spec)
+    return ri.code.ci
+end
+
+@generated function Semantic.gate(spec::RoutineSpec, ::Locations)
+    ri = RoutineInfo(spec)
+    return codeinfo_gate(ri)
+end
+
+@generated function Semantic.ctrl(spec::RoutineSpec, ::Locations, ::CtrlLocations)
+    ri = RoutineInfo(spec)
+    return codeinfo_ctrl(ri)
 end

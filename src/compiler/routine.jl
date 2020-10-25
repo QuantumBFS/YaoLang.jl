@@ -126,6 +126,7 @@ macro semantic_stub(ex::Expr)
     end |> esc
 end
 
+@semantic_stub main(gate::Operation)
 @semantic_stub ctrl(gate::Operation, loc::Locations, ctrl::CtrlLocations)
 @semantic_stub gate(gate::Operation, loc::Locations)
 @semantic_stub measure(locs::Locations, op; kwargs...)
