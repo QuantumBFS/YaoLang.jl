@@ -15,10 +15,19 @@ enable_timings() = (TimerOutputs.enable_debug_timings(Compiler); return)
 using ExprTools
 using YaoAPI
 using YaoArrayRegister
+using BitBasis
+using ZXCalculus
 
-using Core: CodeInfo, SSAValue
-using Core.Compiler: InferenceParams, OptimizationParams, AbstractInterpreter, VarTable, InferenceState, CFG, NewSSAValue
-using Core.Compiler: get_world_counter, get_inference_cache
+using Core: CodeInfo, SSAValue, Const, Slot
+using Core.Compiler: InferenceParams, InferenceResult, OptimizationParams, OptimizationState,
+    AbstractInterpreter, VarTable, InferenceState, CFG, NewSSAValue, IRCode,
+    InstructionStream
+using Core.Compiler: get_world_counter, get_inference_cache, may_optimize,
+    isconstType, isconcretetype, widenconst, isdispatchtuple, isinlineable,
+    is_inlineable_constant, copy_exprargs, convert_to_ircode, coverage_enabled,
+    # Julia passes
+    compact!, ssa_inlining_pass!, getfield_elim_pass!, adce_pass!, type_lift_pass!,
+    verify_linetable, verify_ir, slot2reg
 
 using Base.Meta: ParseError
 
@@ -30,14 +39,17 @@ export routine_name
 
 include("compiler/utils.jl")
 include("compiler/routine.jl")
-include("compiler/ir.jl")
-include("compiler/interpreter.jl")
 include("compiler/intrinsics.jl")
 include("compiler/qasm.jl")
-include("compiler/reflection.jl")
 
-include("compiler/codegen/emulation.jl")
-include("compiler/codegen/qasm.jl")
+# compiler internal extensions
+include("compiler/interpreter.jl")
+include("compiler/ir.jl")
+include("compiler/optimize.jl")
+# include("compiler/reflection.jl")
+
+# include("compiler/codegen/emulation.jl")
+# include("compiler/codegen/qasm.jl")
 # include("compiler/optimize.jl")
 # include("compiler/reflection.jl")
 # include("compiler/validation.jl")

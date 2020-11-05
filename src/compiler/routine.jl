@@ -34,23 +34,38 @@ struct IntrinsicSpec{name, Vars} <: Operation
     end
 end
 
-function Base.show(io::IO, x::IntrinsicSpec{name}) where name
+function print_routine(io::IO, x::IntrinsicSpec{name}) where name
     print(io, name)
     if !isempty(x.variables)
         print(io, "(")
         join(io, x.variables, ", ")
         print(io, ")")
     end
+end
+
+function Base.show(io::IO, x::IntrinsicSpec)
+    print_routine(io, x)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", x::IntrinsicSpec)
+    print_routine(io, x)
     printstyled(io, " (intrinsic operation)"; color=operation_annotation_color)
-    return
 end
 
 function Base.show(io::IO, fn::GenericRoutine{name}) where name
+    print(io, name)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", fn::GenericRoutine{name}) where name
     print(io, name)
     printstyled(io, " (generic routine with ", length(methods(fn).ms), " methods)"; color=operation_annotation_color)
 end
 
 function Base.show(io::IO, fn::IntrinsicRoutine{name}) where name
+    print(io, name)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", fn::IntrinsicRoutine{name}) where name
     print(io, name)
     printstyled(io, " (intrinsic routine)"; color=operation_annotation_color)
 end

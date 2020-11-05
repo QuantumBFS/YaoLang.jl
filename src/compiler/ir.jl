@@ -96,27 +96,30 @@ end
 
 function is_quantum_statement(@nospecialize(e))
     e isa Expr || return false
-
+    e.head === :quantum && return true
     if e.head === :call
         f = e.args[1]
-        f isa GlobalRef && f.mod === Semantic || return false
-        return true
+        f isa Function && parentmodule(f) === Semantic && return true
+        f isa GlobalRef && f.mod === Semantic && return true
     elseif e.head === :invoke
         f = e.args[2]
-        f isa GlobalRef && f.mod === Semantic || return false
-        return true
+        f isa Function && parentmodule(f) === Semantic && return true
+        f isa GlobalRef && f.mod === Semantic && return true
     elseif e.head === :(=)
         return is_quantum_statement(e.args[2])
-    else
-        return false
     end
+    return false
 end
 
 function quantum_stmt_type(e::Expr)
     if e.head === :call
+        e.args[1] isa Function && return nameof(e.args[1])
         return e.args[1].name
     elseif e.head === :invoke
+        e.args[2] isa Function && return nameof(e.args[2])
         return e.args[2].name
+    elseif e.head === :quantum
+        return e.args[1]
     else
         return quantum_stmt_type(e.args[2])
     end
@@ -166,12 +169,8 @@ function obtain_codeinfo(::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
     return ci, nargs
 end
 
-function create_codeinfo(::Type{Spec}) where {Spec <: RoutineSpec}
-    ci, nargs = obtain_codeinfo(Spec)
-    return create_codeinfo(ci, nargs)
-end
-
-function create_codeinfo(ci::CodeInfo, nargs::Int)
+function create_codeinfo(::typeof(Semantic.main), S::Type{<:RoutineSpec})
+    ci, nargs = obtain_codeinfo(S)
     new = NewCodeInfo(ci, nargs)
     insert_slot!(new, 2, :spec)
     unpack_closure!(new, 2)
@@ -182,188 +181,20 @@ function create_codeinfo(ci::CodeInfo, nargs::Int)
     return finish(new)
 end
 
-function quantum_blocks(ci::CodeInfo, cfg::CFG)
-    quantum_blocks = UnitRange{Int}[]
-    last_stmt_is_measure_or_barrier = false
-
-    for b in cfg.blocks
-        start, stop = 0, 0
-        for v in b.stmts
-            st = ci.code[v]
-            if is_quantum_statement(st)
-                if start > 0
-                    stop += 1
-                else
-                    start = stop = v
-                end
-            else
-                if start > 0
-                    push!(quantum_blocks, start:stop)
-                    start = stop = 0
-                end
-            end
-        end
-
-        if start > 0
-            push!(quantum_blocks, start:stop)
-        end
-    end
-    return quantum_blocks
-end
-
-function replace_from_perm(stmt, perm)
-    stmt isa Core.SSAValue && return Core.SSAValue(findfirst(isequal(stmt.id), perm))
-
-    if stmt isa Expr
-        return Expr(stmt.head, map(x->replace_from_perm(x, perm), stmt.args)...)
+function _extract_measure(e)
+    if e.head === :(=)
+        return e.args[1], e.args[2]
     else
-        return stmt
+        return nothing, e
     end
 end
 
-function permute_stmts(ci::Core.CodeInfo, perm::Vector{Int})
-    code = []
-    ssavaluetypes = ci.ssavaluetypes isa Vector ? ci.ssavaluetypes[perm] : ci.ssavaluetypes
-
-    for v in perm
-        stmt = ci.code[v]
-
-        if stmt isa Expr
-            ex = replace_from_perm(stmt, perm)
-            push!(code, ex)
-        elseif stmt isa Core.GotoIfNot
-            if stmt.cond isa Core.SSAValue
-                cond = Core.SSAValue(findfirst(isequal(stmt.cond.id), perm))
-            else
-                # TODO: figure out which case is this
-                # and maybe apply permute to this
-                cond = stmt.cond
-            end
-
-            dest = findfirst(isequal(stmt.dest), perm)
-            push!(code, Core.GotoIfNot(cond, dest))
-        elseif stmt isa Core.GotoNode
-            push!(code, Core.GotoNode(findfirst(isequal(stmt.label), perm)))
-        elseif stmt isa Core.ReturnNode
-            if stmt.val isa Core.SSAValue
-                push!(code, Core.ReturnNode(Core.SSAValue(findfirst(isequal(stmt.val.id), perm))))
-            else
-                push!(code, stmt)
-            end
-        else
-            # RL: I think
-            # other nodes won't contain SSAValue
-            # let's just ignore them, but if we
-            # find any we can add them here
-            push!(code, stmt)
-            # if stmt isa Core.SlotNumber
-            #     push!(code, stmt)
-            # elseif stmt isa Core.NewvarNode
-            #     push!(code, stmt)
-            # else
-            # end
-            # error("unrecognized statement $stmt :: ($(typeof(stmt)))")
-        end
-    end
-
-    ret = copy(ci)
-    ret.code = code
-    ret.ssavaluetypes = ssavaluetypes
-    return ret
-end
-
-function group_quantum_stmts_perm(ci::CodeInfo, cfg::CFG)
-    perms = Int[]
-    cstmts_tape = Int[]
-    qstmts_tape = Int[]
-
-    for b in cfg.blocks
-        for v in b.stmts
-            e = ci.code[v]
-            if is_quantum_statement(e)
-                if quantum_stmt_type(e) in [:measure, :barrier]
-                    exit_block!(perms, cstmts_tape, qstmts_tape)
-                    push!(perms, v)
-                else
-                    push!(qstmts_tape, v)
-                end
-            elseif e isa Core.ReturnNode || e isa Core.GotoIfNot || e isa Core.GotoNode
-                exit_block!(perms, cstmts_tape, qstmts_tape)
-                push!(cstmts_tape, v)
-            elseif e isa Expr && e.head === :enter
-                exit_block!(perms, cstmts_tape, qstmts_tape)
-                push!(cstmts_tape, v)
-            else
-                push!(cstmts_tape, v)
-            end
-        end
-
-        exit_block!(perms, cstmts_tape, qstmts_tape)
-    end
-
-    append!(perms, cstmts_tape)
-    append!(perms, qstmts_tape)
-    
-    return perms # permute_stmts(ci, perms)
-end
-
-function group_quantum_stmts(ci::CodeInfo, cfg::CFG)
-    perm = group_quantum_stmts_perm(ci, cfg)
-    return permute_stmts(ci, perm)
-end
-
-function exit_block!(perms::Vector, cstmts_tape::Vector, qstmts_tape::Vector)
-    append!(perms, cstmts_tape)
-    append!(perms, qstmts_tape)
-    empty!(cstmts_tape)
-    empty!(qstmts_tape)
-    return perms
-end
-
-# NOTE:
-# YaoIR contains the SSA IR with quantum blocks for function
-# λ(spec, location)
-struct YaoIR
-    ci::CodeInfo
-    cfg::CFG
-    # range of stmts contains pure quantum stmts
-    blocks::Vector{UnitRange{Int}}
-end
-
-function YaoIR(::Type{Spec}) where {Spec <: RoutineSpec}
-    ci = create_codeinfo(Spec)
-    cfg = Core.Compiler.compute_basic_blocks(ci.code)
-    ci = group_quantum_stmts(ci, cfg)
-    return YaoIR(ci, cfg, quantum_blocks(ci, cfg))
-end
-
-function Base.show(io::IO, ri::YaoIR)
-    println(io, "quantum blocks:")
-    println(io, ri.blocks)
-    print(io, ri.ci)
-end
-
-struct RoutineInfo
-    code::YaoIR
-    nargs::Int
-    edges::Vector{Any}
-    parent
-    signature
-    spec
-end
-
-function RoutineInfo(rs::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
-    code = YaoIR(rs)
-    edges = Any[]
-    return RoutineInfo(code, length(Sigs.parameters), edges, P, Sigs, rs)
-end
-
-NewCodeInfo(ri::RoutineInfo) = NewCodeInfo(ri.code.ci, ri.nargs)
-
-# handle location mapping
-function codeinfo_gate(ri::RoutineInfo)
-    new = NewCodeInfo(ri)
+function create_codeinfo(::typeof(Semantic.gate), S::Type{<:RoutineSpec})
+    ci, nargs = obtain_codeinfo(S)
+    new = NewCodeInfo(ci, nargs)
+    insert_slot!(new, 2, :spec)
     insert_slot!(new, 3, :locations)
+    unpack_closure!(new, 2)
     locations = slot(new, :locations)
 
     for (v, stmt) in enumerate(new.src.code)
@@ -380,14 +211,7 @@ function codeinfo_gate(ri::RoutineInfo)
                 local_ctrl = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[4]))
                 e = Expr(:call, GlobalRef(Semantic, :ctrl), stmt.args[2], local_location, local_ctrl)
             elseif type === :measure
-                if stmt.head === :(=)
-                    cvar = stmt.args[1]
-                    measure = stmt.args[2]
-                else
-                    cvar = nothing
-                    measure = stmt
-                end
-
+                cvar, measure = _extract_measure(stmt)
                 # no location specified
                 if length(measure.args) == 2
                     measure_locs = locations
@@ -417,10 +241,13 @@ function codeinfo_gate(ri::RoutineInfo)
     return finish(new)
 end
 
-function codeinfo_ctrl(ri::RoutineInfo)
-    new = NewCodeInfo(ri.code.ci, ri.nargs)
+function create_codeinfo(::typeof(Semantic.ctrl), S::Type{<:RoutineSpec})
+    ci, nargs = obtain_codeinfo(S)
+    new = NewCodeInfo(ci, nargs)
+    insert_slot!(new, 2, :spec)
     insert_slot!(new, 3, :locations)
     insert_slot!(new, 4, :ctrl)
+    unpack_closure!(new, 2)
     locations = slot(new, :locations)
     ctrl = slot(new, :ctrl)
 
@@ -455,47 +282,99 @@ function codeinfo_ctrl(ri::RoutineInfo)
     return finish(new)
 end
 
-function Base.show(io::IO, ri::RoutineInfo)
-    println(io, ri.spec)
-    print(io, ri.code)
-end
-
-function typeinf_stub(spec::RoutineSpec) end
-
-function perform_typeinf(ri::RoutineInfo)
-    method = first(methods(typeinf_stub))
-    method_args = Tuple{typeof(typeinf_stub), ri.spec}
-    mi = Core.Compiler.specialize_method(method, method_args, Core.svec())
-    result = Core.Compiler.InferenceResult(mi)
-    world = Core.Compiler.get_world_counter()
-    interp = YaoLang.Compiler.YaoInterpreter()
-    frame = Core.Compiler.InferenceState(result, ri.code.ci, #=cached=# true, interp)
-    Core.Compiler.typeinf_local(interp, frame)
-
-    for tt in ri.code.ci.ssavaluetypes
-        T = Core.Compiler.widenconst(tt)
-        if T <: RoutineSpec || T <: IntrinsicSpec
-            push!(ri.edges, T)
-        end
-    end
-
-    ri.code.ci.inferred = true
-    return ri
-end
 
 # NOTE: these two functions are mainly compile time stubs
 # so we can attach this piece of CodeInfo to certain method
 @generated function Semantic.main(spec::RoutineSpec)
-    ri = RoutineInfo(spec)
-    return ri.code.ci
+    return create_codeinfo(Semantic.main, spec)
 end
 
 @generated function Semantic.gate(spec::RoutineSpec, ::Locations)
-    ri = RoutineInfo(spec)
-    return codeinfo_gate(ri)
+    return create_codeinfo(Semantic.gate, spec)
 end
 
 @generated function Semantic.ctrl(spec::RoutineSpec, ::Locations, ::CtrlLocations)
-    ri = RoutineInfo(spec)
-    return codeinfo_ctrl(ri)
+    return create_codeinfo(Semantic.ctrl, spec)
 end
+
+function _prepare_frame(f, spec, args...)
+    method = methods(f, Tuple{spec, args...})|>first
+    atypes = Tuple{typeof(f), spec, args...}
+    mi = Core.Compiler.specialize_method(method, atypes, Core.svec())
+    result = Core.Compiler.InferenceResult(mi, Any[Core.Const(f), spec, args...])
+    world = Core.Compiler.get_world_counter()
+    interp = YaoLang.Compiler.YaoInterpreter(;zxcalculus=false)
+    frame = Core.Compiler.InferenceState(result, #=cached=# true, interp)
+    return interp, frame
+end
+
+
+# # NOTE:
+# # YaoIR contains the SSA IR with quantum blocks for function
+# # λ(spec, location)
+# struct YaoIR
+#     target # nothing for hardware agnoistic
+#     ci::CodeInfo
+#     cfg::CFG
+#     # range of stmts contains pure quantum stmts
+#     blocks::Vector{UnitRange{Int}}
+# end
+
+# YaoIR(spec::Type{<:RoutineSpec}) = YaoIR(nothing, Semantic.main, spec)
+# YaoIR(spec::Type{<:RoutineSpec}, loc) = YaoIR(nothing, Semantic.gate, spec, loc)
+# YaoIR(spec::Type{<:RoutineSpec}, loc, ctrl) = YaoIR(nothing, Semantic.ctrl, spec, loc, ctrl)
+
+# function YaoIR(target::Union{Nothing, Type{<:AbstractRegister}}, f, spec::Type{<:RoutineSpec}, args...)
+#     method = methods(f, Tuple{spec, args...})|>first
+#     atypes = Tuple{typeof(f), spec, args...}
+#     mi = Core.Compiler.specialize_method(method, atypes, Core.svec())
+#     result = Core.Compiler.InferenceResult(mi, Any[Core.Const(f), spec, args...])
+#     world = Core.Compiler.get_world_counter()
+#     interp = YaoLang.Compiler.YaoInterpreter()
+#     frame = Core.Compiler.InferenceState(result, #=cached=# true, interp)
+#     Core.Compiler.typeinf_local(interp, frame)
+#     ci = frame.src
+#     code = []
+#     for (v, st) in enumerate(ci.code)
+#         if st isa Expr && st.head === :invoke
+#             push!(code, Expr(:call, st.args[2:end]...))
+#         # elseif (st isa Core.ReturnNode) && !isdefined(st, :val)
+#         #     # replace unreachable
+#         #     push!(code, Core.ReturnNode(Compiler.unreachable))
+#         else
+#             push!(code, st)
+#         end
+#     end
+#     ci.code = code
+#     cfg = Core.Compiler.compute_basic_blocks(ci.code)
+#     ci = group_quantum_stmts(ci, cfg)
+#     return YaoIR(target, frame.src, cfg, quantum_blocks(ci, cfg))
+# end
+
+# # function Base.show(io::IO, ri::YaoIR)
+# #     println(io, "quantum blocks:")
+# #     println(io, ri.blocks)
+# #     print(io, ri.ci)
+# # end
+
+# struct RoutineInfo
+#     code::YaoIR
+#     nargs::Int
+#     edges::Vector{Any}
+#     parent
+#     signature
+#     spec
+# end
+
+# function RoutineInfo(rs::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
+#     code = YaoIR(rs)
+#     edges = Any[]
+#     return RoutineInfo(code, length(Sigs.parameters), edges, P, Sigs, rs)
+# end
+
+# # NewCodeInfo(ri::RoutineInfo) = NewCodeInfo(ri.code.ci, ri.nargs)
+
+# # function Base.show(io::IO, ri::RoutineInfo)
+# #     println(io, ri.spec)
+# #     print(io, ri.code)
+# # end

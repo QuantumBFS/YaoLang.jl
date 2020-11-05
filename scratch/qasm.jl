@@ -133,7 +133,7 @@ gate post q { }
 u3(0.3,0.2,0.1) q[0];
 h q[1];
 cx q[1],q[2];
-barrier q;
+// barrier q;
 cx q[0],q[1];
 h q[0];
 measure q[0] -> c0[0];
@@ -144,6 +144,95 @@ post q[2];
 measure q[2] -> c2[0];
 """
 
-ri = @code_yao circuit()
+spec = circuit()
+spec = qft(3)
+interp, frame = Compiler._prepare_frame(Compiler.Semantic.main, typeof(spec));
+# Core.Compiler.typeinf(interp, frame)
 
-circuit()(Compiler.EchoReg(), Locations(1:10))
+Core.Compiler.typeinf_nocycle(interp, frame)
+# with no active ip's, frame is done
+frames = frame.callers_in_cycle
+isempty(frames) && push!(frames, frame)
+for caller in frames
+    @assert !(caller.dont_work_on_me)
+    caller.dont_work_on_me = true
+end
+
+for caller in frames
+    Core.Compiler.finish(caller, interp)
+end
+# collect results for the new expanded frame
+results = Tuple{Core.Compiler.InferenceResult, Bool}[ ( frames[i].result,
+    frames[i].cached || frames[i].parent !== nothing ) for i in 1:length(frames) ]
+
+valid_worlds = frame.valid_worlds
+cached = frame.cached
+caller, doopt = results[1]
+opt = caller.src
+def = opt.linfo.def
+nargs = Int(opt.nargs) - 1
+
+# run_passes
+ci = opt.src
+sv = opt
+preserve_coverage = Core.Compiler.coverage_enabled(sv.mod)
+ir = Core.Compiler.convert_to_ircode(ci, Core.Compiler.copy_exprargs(ci.code), preserve_coverage, nargs, sv)
+ir = Core.Compiler.slot2reg(ir, ci, nargs, sv)
+ir = Core.Compiler.compact!(ir)
+ir = Core.Compiler.ssa_inlining_pass!(ir, ir.linetable, sv.inlining, ci.propagate_inbounds)
+ir = Core.Compiler.compact!(ir)
+ir = Core.Compiler.getfield_elim_pass!(ir)
+ir = Core.Compiler.adce_pass!(ir)
+ir = Compiler.group_quantum_stmts!(ir)
+ir = Compiler.propagate_consts_bb!(ir)
+ir = Core.Compiler.compact!(ir)
+ir = Core.Compiler.compact!(ir)
+
+for i in 1:7
+    ir[Core.SSAValue(i)] = nothing
+end
+
+Core.Compiler.insert_node!(ir, 12, Nothing, Expr(:test, 4), true)
+ir
+
+using ZXCalculus
+
+qc = QCircuit(3)
+push_gate!(qc, Val(:Rz), 1, 0.3)
+push_gate!(qc, Val(:Ry), 1, 0.3)
+push_gate!(qc, Val(:Rz), 1, 0.3)
+push_gate!(qc, Val(:H), 1, 0.3)
+push_gate!(qc, Val(:CNOT), 3, 2)
+push_gate!(qc, Val(:CNOT), 2, 1)
+
+
+
+ir = Compiler.convert_to_yaoir(ir)
+ir = Compiler.run_zx_passes(ir)
+Core.Compiler.compact!(ir.ir)
+
+
+ir.stmts[2][:inst] = nothing
+Core.Compiler.insert_node!(ir, 2, Nothing, Expr(:test))
+
+compact = Core.Compiler.IncrementalCompact(ir)
+for _ in compact; end
+compact.result[1][:inst] = nothing
+ir = Core.Compiler.finish(compact)
+
+for each in compact
+    @show each
+end
+
+Core.Compiler.compact!(ir)
+
+Core.Compiler.insert_node!(ir, 2, Nothing, Expr(:test))
+ic = Core.Compiler.IncrementalCompact(ir)
+Core.Compiler.getindex(ic, 3)
+Base.iterate(ic::Core.Compiler.IncrementalCompact) = Core.Compiler.iterate(ic)
+Base.iterate(ic::Core.Compiler.IncrementalCompact, st) = Core.Compiler.iterate(ic, st)
+
+for _ in ic; end
+ir = Core.Compiler.complete(ic)
+
+ir[1]

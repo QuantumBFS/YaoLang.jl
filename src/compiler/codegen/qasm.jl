@@ -22,7 +22,7 @@ mutable struct QASMCtx
 end
 
 function QASMCtx(ri::RoutineInfo)
-    @assert ri.code.ci.inferred
+    # @assert ri.code.ci.inferred
     pc = isempty(ri.code.blocks) ? 1 : first(first(ri.code.blocks))
     nstmts = length(ri.code.ci.code)
     regs_to_locs, locs_to_reg_addr = allocate_qreg(ri)
@@ -116,7 +116,6 @@ function scan_edges(ri::RoutineInfo)
 end
 
 function codegen_qasm(ri::RoutineInfo; routine=false)
-    perform_typeinf(ri)
     ctx = QASMCtx(ri)
     topscope = Any[]
 
