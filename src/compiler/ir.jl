@@ -304,78 +304,7 @@ function _prepare_frame(f, spec, args...)
     mi = Core.Compiler.specialize_method(method, atypes, Core.svec())
     result = Core.Compiler.InferenceResult(mi, Any[Core.Const(f), spec, args...])
     world = Core.Compiler.get_world_counter()
-    interp = YaoLang.Compiler.YaoInterpreter(;zxcalculus=false)
+    interp = YaoLang.Compiler.YaoInterpreter(;)
     frame = Core.Compiler.InferenceState(result, #=cached=# true, interp)
     return interp, frame
 end
-
-
-# # NOTE:
-# # YaoIR contains the SSA IR with quantum blocks for function
-# # λ(spec, location)
-# struct YaoIR
-#     target # nothing for hardware agnoistic
-#     ci::CodeInfo
-#     cfg::CFG
-#     # range of stmts contains pure quantum stmts
-#     blocks::Vector{UnitRange{Int}}
-# end
-
-# YaoIR(spec::Type{<:RoutineSpec}) = YaoIR(nothing, Semantic.main, spec)
-# YaoIR(spec::Type{<:RoutineSpec}, loc) = YaoIR(nothing, Semantic.gate, spec, loc)
-# YaoIR(spec::Type{<:RoutineSpec}, loc, ctrl) = YaoIR(nothing, Semantic.ctrl, spec, loc, ctrl)
-
-# function YaoIR(target::Union{Nothing, Type{<:AbstractRegister}}, f, spec::Type{<:RoutineSpec}, args...)
-#     method = methods(f, Tuple{spec, args...})|>first
-#     atypes = Tuple{typeof(f), spec, args...}
-#     mi = Core.Compiler.specialize_method(method, atypes, Core.svec())
-#     result = Core.Compiler.InferenceResult(mi, Any[Core.Const(f), spec, args...])
-#     world = Core.Compiler.get_world_counter()
-#     interp = YaoLang.Compiler.YaoInterpreter()
-#     frame = Core.Compiler.InferenceState(result, #=cached=# true, interp)
-#     Core.Compiler.typeinf_local(interp, frame)
-#     ci = frame.src
-#     code = []
-#     for (v, st) in enumerate(ci.code)
-#         if st isa Expr && st.head === :invoke
-#             push!(code, Expr(:call, st.args[2:end]...))
-#         # elseif (st isa Core.ReturnNode) && !isdefined(st, :val)
-#         #     # replace unreachable
-#         #     push!(code, Core.ReturnNode(Compiler.unreachable))
-#         else
-#             push!(code, st)
-#         end
-#     end
-#     ci.code = code
-#     cfg = Core.Compiler.compute_basic_blocks(ci.code)
-#     ci = group_quantum_stmts(ci, cfg)
-#     return YaoIR(target, frame.src, cfg, quantum_blocks(ci, cfg))
-# end
-
-# # function Base.show(io::IO, ri::YaoIR)
-# #     println(io, "quantum blocks:")
-# #     println(io, ri.blocks)
-# #     print(io, ri.ci)
-# # end
-
-# struct RoutineInfo
-#     code::YaoIR
-#     nargs::Int
-#     edges::Vector{Any}
-#     parent
-#     signature
-#     spec
-# end
-
-# function RoutineInfo(rs::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
-#     code = YaoIR(rs)
-#     edges = Any[]
-#     return RoutineInfo(code, length(Sigs.parameters), edges, P, Sigs, rs)
-# end
-
-# # NewCodeInfo(ri::RoutineInfo) = NewCodeInfo(ri.code.ci, ri.nargs)
-
-# # function Base.show(io::IO, ri::RoutineInfo)
-# #     println(io, ri.spec)
-# #     print(io, ri.code)
-# # end

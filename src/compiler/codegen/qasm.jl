@@ -336,6 +336,7 @@ function codegen_gate(target::TargetQASM, ci::CodeInfo, st::QASMCodeGenState)
         locs = obtain_ssa_const(st.stmt.args[3], ci)
     end
 
+    gt <: IntrinsicSpec || gt <: RoutineSpec || error("invalid gate type: $gate::$gt")
     name = gate_name(gt)
     cargs = codegen_cargs(target, ci, gate, st)
     qargs = Any[]
@@ -374,13 +375,7 @@ function codegen_cargs(target::TargetQASMGate, ci::CodeInfo, @nospecialize(gate)
 
         cargs = Any[]
         for each in vars
-            if each isa SlotNumber
-                push!(cargs, Token{:unnamed}(string(ci.slotnames[each.id])))
-            elseif each isa SSAValue
-                push!(cargs, Token{:unnamed}(st.ssa_cname_map[each.id]))
-            else # constant
-                push!(cargs, Token{:unnamed}(string(each)))
-            end
+            push!(cargs, codegen_exp(target, ci, each, st))
         end
         return cargs
     elseif gate isa RoutineSpec || gate isa IntrinsicSpec
@@ -392,6 +387,67 @@ function codegen_cargs(target::TargetQASMGate, ci::CodeInfo, @nospecialize(gate)
     end
 end
 
+# NOTE: toplevel program does not allow non-constant
+# classical function calls
+function codegen_exp(target::TargetQASM, ci::CodeInfo, @nospecialize(stmt), st::QASMCodeGenState)
+    if stmt isa SlotNumber
+        return Token{:id}(string(ci.slotnames[stmt.id]))
+    end
+    
+    if stmt isa SSAValue
+        if haskey(st.ssa_cname_map, stmt.id)
+            return Token{:id}(st.ssa_cname_map[stmt.id])
+        else
+            return codegen_exp(target, ci, ci.code[stmt.id], st)
+        end
+    end
+
+    if stmt isa Int
+        return Token{:int}(string(stmt))
+    elseif stmt isa AbstractFloat
+        return Token{:float64}(string(Float64(stmt)))
+    end
+
+    stmt isa Expr || error("classical expression for QASM cannot contain control flow, got $stmt")
+
+    if stmt.head === :call
+        if stmt.args[1] isa GlobalRef
+            mod, fn_name = stmt.args[1].mod, stmt.args[1].name
+            fn = Core.Compiler.abstract_eval_global(mod, fn_name).val
+            fn === Any && error("cannot determine function call: $stmt")
+        else
+            fn = stmt.args[1]
+            fn_name = nameof(fn)
+        end
+        args = stmt.args[2:end]
+    elseif stmt.head === :invoke
+        fn = stmt.args[2]
+        fn_name = stmt.args[1].def.name
+        args = stmt.args[3:end]
+    else
+        error("incompatible expression for QASM: $stmt")
+    end
+
+    if length(args) == 1
+        return QASM.Parse.FnExp(fn_name, codegen_exp(target, ci, args[1], st))
+    elseif length(args) == 2 # binop
+        if (fn === +) || (fn === Core.Intrinsics.add_float) || (fn === Core.Intrinsics.add_int)
+            token = Token{:reserved}("+")
+        elseif (fn === -) || (fn === Core.Intrinsics.sub_float) || (fn === Core.Intrinsics.sub_int)
+            token = Token{:reserved}("-")
+        elseif (fn === *) || (fn === Core.Intrinsics.mul_float) || (fn === Core.Intrinsics.mul_int)
+            token = Token{:reserved}("*")
+        elseif (fn === /) || (fn === Core.Intrinsics.div_float)
+            token = Token{:reserved}("/")
+        else
+            error("incompatible binop for QASM: $fn")
+            # token = Token{:reserved}(fn_name)
+        end
+        return (codegen_exp(target, ci, args[1], st), token, codegen_exp(target, ci, args[2], st))
+    else
+        error("incompatible function call for QASM: $stmt")
+    end
+end
 
 function codegen_ctrl(::TargetQASM, ci::CodeInfo, st::QASMCodeGenState)
     # NOTE: QASM compatible code should have constant location
@@ -535,6 +591,11 @@ function validate(target::TargetQASM, ci::CodeInfo)
     end
 end
 
+# NOTE:
+# valid function in QASM compatible program:
+# basic math functions:
+# fn = ("sin" | "cos" | "tan" | "exp" | "ln" | "sqrt")
+# binop = ('+' | '-' | '*' | '/')
 function validate_call(::TargetQASM, ci::CodeInfo, stmt::Expr)
     if stmt.args[1] isa GlobalRef
         stmt.mod === Base

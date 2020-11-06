@@ -17,7 +17,6 @@ function run_passes(ci::CodeInfo, nargs::Int, sv::OptimizationState, passes::Vec
     ir = convert_to_ircode(ci, copy_exprargs(ci.code), preserve_coverage, nargs, sv)
     ir = slot2reg(ir, ci, nargs, sv)
     ir = compact!(ir)
-    
     ir = ssa_inlining_pass!(ir, ir.linetable, sv.inlining, ci.propagate_inbounds)
     ir = compact!(ir)
     ir = getfield_elim_pass!(ir)
@@ -500,6 +499,7 @@ function run_zx_passes(ir::YaoIR)
     n = count_qubits(ir)
     # NOTE: we can't optimize
     # non-constant location program
+    iszero(n) && return ir
     isnothing(n) && return ir
 
     compact = Core.Compiler.IncrementalCompact(ir.ir, true)

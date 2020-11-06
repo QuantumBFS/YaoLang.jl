@@ -27,7 +27,9 @@ Base.convert(::Type{String}, t::Token) = t.str
 Base.convert(::Type{Int}, t::Token{:int}) = Base.parse(Int, t.str)
 Base.convert(::Type{Float64}, t::Token{:float64}) = Base.parse(Float64, t.str)
 Base.convert(::Type{Symbol}, t::Token{:id}) = Symbol(t.str)
+Base.convert(::Type{Symbol}, t::Token{:reserved}) = Symbol(t.str)
 Base.convert(::Type{String}, t::Token{:str}) = String(t.str[2:end-1])
+
 # NOTE: U(sin(pi/4), sin(pi/8))
 # is not corrently parsed
 
@@ -336,7 +338,7 @@ struct FnExp
 end
 
 function print_qasm(io::IO, stmt::FnExp)
-    print(io, fn)
+    print_kw(io, stmt.fn)
     print(io, "(")
     print_qasm(io, stmt.arg)
     print(io, ")")
@@ -361,7 +363,6 @@ RBNF.typename(::Type{QASMLang}, name::Symbol) = Symbol(:S_, name)
 RBNF.@parser QASMLang begin
     # define ignorances
     ignore{space, comment}
-    reserved = ["include", "measure", "barrier", "if", "->"]
 
     @grammar
     # define grammars
@@ -369,26 +370,26 @@ RBNF.@parser QASMLang begin
     program = statement{*}
     statement = (regdecl | gate | opaque | qop | ifstmt | barrier | inc)
     # stmts
-    ifstmt::IfStmt := ["if", '(', left = id, "==", right = int, ')', body = qop]
-    opaque::Opaque := ["opaque", name = id, ['(', [cargs = idlist].?, ')'].?, qargs = idlist, ';']
-    barrier::Barrier := ["barrier", qargs = bitlist, ';']
-    regdecl::RegDecl := [type = "qreg" | "creg", name = id, '[', size = int, ']', ';']
-    inc::Include := ["include", file = str, ';']
+    ifstmt::IfStmt := [:if, '(', left = id, :(==), right = int, ')', body = qop]
+    opaque::Opaque := [:opaque, name = id, ['(', [cargs = idlist].?, ')'].?, qargs = idlist, ';']
+    barrier::Barrier := [:barrier, qargs = bitlist, ';']
+    regdecl::RegDecl := [type = :qreg | :creg, name = id, '[', size = int, ']', ';']
+    inc::Include := [:include, file = str, ';']
     # gate
     gate::Gate := [decl = gatedecl, [body = goplist].?, '}']
-    gatedecl::GateDecl := ["gate", name = id, ['(', [cargs = idlist].?, ')'].?, qargs = idlist, '{']
+    gatedecl::GateDecl := [:gate, name = id, ['(', [cargs = idlist].?, ')'].?, qargs = idlist, '{']
 
     goplist = (uop | barrier){*}
 
     # qop
     qop = (uop | measure | reset)
-    reset::Reset := ["reset", qarg = bit, ';']
-    measure::Measure := ["measure", qarg = bit, "->", carg = bit, ';']
+    reset::Reset := [:reset, qarg = bit, ';']
+    measure::Measure := [:measure, qarg = bit, :(->), carg = bit, ';']
 
     uop = (inst | ugate | csemantic_gate)
     inst::Instruction := [name = id, ['(', [cargs = explist].?, ')'].?, qargs = bitlist, ';']
-    ugate::UGate := ['U', '(', z1 = exp, ',', y = exp, ',', z2 = exp, ')', qarg = bit, ';']
-    csemantic_gate::CXGate := ["CX", ctrl = bit, ',', qarg = bit, ';']
+    ugate::UGate := [:U, '(', z1 = exp, ',', y = exp, ',', z2 = exp, ')', qarg = bit, ';']
+    csemantic_gate::CXGate := [:CX, ctrl = bit, ',', qarg = bit, ';']
 
     idlist = @direct_recur begin
         init = [id]
@@ -406,15 +407,15 @@ RBNF.@parser QASMLang begin
         prefix = [recur..., (',', exp) % second]
     end
 
-    item = (float64 | int | "pi" | id | fnexp) | (['(', exp, ')'] % second) | neg
+    item = (float64 | int | :pi | id | fnexp) | (['(', exp, ')'] % second) | neg
     fnexp::FnExp := [fn = fn, '(', arg = exp, ')']
     neg::Negative := ['-', value = exp]
     exp = @direct_recur begin
         init = item
         prefix = (recur, binop, item)
     end
-    fn = ("sin" | "cos" | "tan" | "exp" | "ln" | "sqrt")
-    binop = ('+' | '-' | '*' | '/')
+    fn = (:sin | :cos | :tan | :exp | :ln | :sqrt)
+    binop = (:+ | :- | :* | :/)
 
     # define tokens
     @token
@@ -469,6 +470,7 @@ end
 parse(::Ctx, x::RBNF.Token) = parse(x)
 
 parse(x::RBNF.Token{:unnamed}) = Symbol(x.str)
+parse(x::RBNF.Token{:reserved}) = Symbol(x.str)
 
 function parse(x::RBNF.Token{:id})
     x.str == "pi" && return Base.pi
@@ -642,6 +644,10 @@ function parse(ctx::Ctx, stmt::Parse.Instruction)
         gate = Expr(:call, GlobalRef(ctx.m, Symbol(op)), parse_list(ctx, stmt.cargs)...)
         semantic_gate(gate, locs)
     end
+end
+
+function parse(ctx::Ctx, stmt::Parse.FnExp)
+    return Expr(:call, stmt.fn, parse(ctx, stmt.arg))
 end
 
 function parse_locations(ctx, stmts::Vector)

@@ -98,6 +98,7 @@ end
 Base.adjoint(x::Operation) = Adjoint(x)
 Base.adjoint(x::Adjoint) = x.parent
 
+routine_name(::Type) = nothing
 routine_name(x) = routine_name(typeof(x))
 routine_name(::Type{<:GenericRoutine{name}}) where name = name
 routine_name(::Type{<:IntrinsicRoutine{name}}) where name = name
