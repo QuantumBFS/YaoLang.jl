@@ -223,6 +223,8 @@ function print_qasm(io::IO, stmt::Gate)
     println(io, "}")
 end
 
+Base.show(io::IO, x::Gate) = print_qasm(io, x)
+
 struct Reset
     qarg
 end

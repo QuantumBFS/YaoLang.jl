@@ -11,12 +11,13 @@ Base.setindex!(ir::Core.Compiler.IRCode, v, idx) = Core.Compiler.setindex!(ir, v
 
 
 # TODO: we might need a better interface for this when we have more passes
-function run_passes(ci::CodeInfo, nargs::Int, sv::OptimizationState, zxcalculus::Bool)
+function run_passes(ci::CodeInfo, nargs::Int, sv::OptimizationState, passes::Vector{Symbol})
     # NOTE: these parts are copied from Core.Compiler
     preserve_coverage = coverage_enabled(sv.mod)
     ir = convert_to_ircode(ci, copy_exprargs(ci.code), preserve_coverage, nargs, sv)
     ir = slot2reg(ir, ci, nargs, sv)
     ir = compact!(ir)
+    
     ir = ssa_inlining_pass!(ir, ir.linetable, sv.inlining, ci.propagate_inbounds)
     ir = compact!(ir)
     ir = getfield_elim_pass!(ir)
@@ -30,9 +31,14 @@ function run_passes(ci::CodeInfo, nargs::Int, sv::OptimizationState, zxcalculus:
     ir = propagate_consts_bb!(ir)
     ir = compact!(ir)
 
-    if zxcalculus
+    # run quantum passes
+    if !isempty(passes)
         ir = convert_to_yaoir(ir)
-        ir = run_zx_passes(ir)::YaoIR
+        
+        if :zx in passes
+            ir = run_zx_passes(ir)::YaoIR
+        end
+
         ir = ir.ir
     end
 
@@ -51,7 +57,7 @@ end
 function optimize(opt::OptimizationState, params::YaoOptimizationParams, @nospecialize(result))
     def = opt.linfo.def
     nargs = Int(opt.nargs) - 1
-    ir = run_passes(opt.src, nargs, opt, params.zxcalculus)
+    ir = run_passes(opt.src, nargs, opt, params.passes)
     force_noinline = Core.Compiler._any(@nospecialize(x) -> Core.Compiler.isexpr(x, :meta) && x.args[1] === :noinline, ir.meta)
 
     # compute inlining and other related optimizations

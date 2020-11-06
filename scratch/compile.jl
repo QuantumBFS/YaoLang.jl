@@ -46,7 +46,7 @@ frame = Core.Compiler.InferenceState(result, ci, #=cached=# true, interp)
 Core.Compiler.typeinf_local(interp, frame)
 frame.src
 
-
+Core.Compiler.builtin_tfunction
 
 function typeinf()
     locs = Locations((1, 2, 3))

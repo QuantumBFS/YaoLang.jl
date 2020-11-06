@@ -13,12 +13,13 @@ timings() = (TimerOutputs.print_timer(to); println())
 enable_timings() = (TimerOutputs.enable_debug_timings(Compiler); return)
 
 using ExprTools
+using MLStyle
 using YaoAPI
 using YaoArrayRegister
 using BitBasis
 using ZXCalculus
 
-using Core: CodeInfo, SSAValue, Const, Slot
+using Core: CodeInfo, SSAValue, Const, Slot, GotoIfNot, GotoNode, SlotNumber, Argument
 using Core.Compiler: InferenceParams, InferenceResult, OptimizationParams, OptimizationState,
     AbstractInterpreter, VarTable, InferenceState, CFG, NewSSAValue, IRCode,
     InstructionStream
@@ -46,15 +47,15 @@ include("compiler/qasm.jl")
 include("compiler/interpreter.jl")
 include("compiler/ir.jl")
 include("compiler/optimize.jl")
-# include("compiler/reflection.jl")
 
-# include("compiler/codegen/emulation.jl")
-# include("compiler/codegen/qasm.jl")
-# include("compiler/optimize.jl")
-# include("compiler/reflection.jl")
+# code generators
+include("compiler/codegen/emulation.jl")
+include("compiler/codegen/qasm.jl")
+
+include("compiler/reflection.jl")
+include("compiler/tools.jl")
 # include("compiler/validation.jl")
 # include("compiler/trace.jl")
-# include("compiler/zx_calculus.jl")
 
 # function __init__()
 #     TimerOutputs.reset_timer!(to)
@@ -64,6 +65,14 @@ end
 
 using .Compiler
 export @device, @gate, @ctrl, @measure, @barrier
+
+# reflections
+export @code_yao, @code_qasm
+
+export gate_count
+
+using .Compiler.QASM: @qasm_str
+export @qasm_str
 
 include("runtime/intrinsics.jl")
 

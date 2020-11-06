@@ -1,6 +1,6 @@
 using YaoLang
-using YaoLang.Compiler
-using YaoLang.Compiler.QASM
+# using YaoLang.Compiler
+# using YaoLang.Compiler.QASM
 using RBNF
 
 qasm_1 = """OPENQASM 2.0;
@@ -145,9 +145,16 @@ measure q[2] -> c2[0];
 """
 
 spec = circuit()
+spec = u3(0.3, 0.2, 0.1)
 spec = qft(3)
 interp, frame = Compiler._prepare_frame(Compiler.Semantic.main, typeof(spec));
-# Core.Compiler.typeinf(interp, frame)
+Core.Compiler.typeinf(interp, frame)
+Compiler.codegen(Compiler.TargetQASMGate(), frame.src)
+
+Core.Compiler.typeinf(interp, frame)
+
+
+Compiler.codegen(Compiler.TargetQASM(), ci)
 
 Core.Compiler.typeinf_nocycle(interp, frame)
 # with no active ip's, frame is done

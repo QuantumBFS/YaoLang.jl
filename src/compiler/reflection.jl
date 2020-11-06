@@ -1,39 +1,135 @@
 export @code_yao, @code_qasm
 
-"""
-    @code_yao <generic routine call>
-
-Evaluates the arguments to the function call, determines their types, and
-calls `code_yao` on the resulting expression.
-"""
-macro code_yao(ex)
-    (ex isa Expr) && (ex.head === :call) || error("expect a generic circuit call")
-    esc(Expr(:call, GlobalRef(Compiler, :RoutineInfo), :(typeof($ex))))
+function code_qasm(spec::RoutineSpec; optimize=false, gate=false, passes=Symbol[])
+    ci, _ = code_yao(Semantic.main, spec; optimize, passes)
+    target = gate ? TargetQASMGate() : TargetQASMTopLevel()
+    return codegen(target, ci)
 end
 
-function code_qasm_m(ex, routine=false)
-    (ex isa Expr) && (ex.head === :call) || error("expect a generic circuit call")
-    ri = gensym(:routine_info)
-    quote
-        $ri = $(Expr(:call, GlobalRef(Compiler, :RoutineInfo), :(typeof($ex))))
-        $(GlobalRef(Compiler, :codegen_qasm))($ri; routine=$routine)
+function code_qasm_m(exs...)
+    options = []
+    call = nothing
+
+    for ex in exs
+        if ex isa Expr && ex.head === :(=)
+            option = ex.args[1]
+            option in [:optimize, :gate, :passes] || error("invalid option: $option")
+            push!(options, Expr(:kw, option, ex.args[2]))
+        elseif ex isa Expr && ex.head === :call
+            call = ex
+        end
+    end
+
+    isnothing(call) && error("expect a routine call")
+    
+    return quote
+        $code_qasm($call; $(options...))
     end
 end
 
-
 """
-    @code_qasm [routine=false] <generic routine call>
+    @code_qasm [optimize=false, gate=false, passes=:zx] <generic routine call>
 
-Return the corresponding QASM code of given routine call. It will only
-generates the QASM for the generic routine by default. One can also generate
-all the routine get called by setting `routine=true`.
+Return the corresponding QASM code of given routine call. One can see the optimized
+qasm by setting `optimize` to `true`. See [@code_yao](@ref) for detailed configuration on YaoLang passes
+via `passes` keyword.
+
+By default, the QASM code generation assumes the given routine evaluates
+in toplevel. One can set `gate` to `true` to generate given routine as a
+QASM gate routine.
 """
-macro code_qasm(ex)
-    esc(code_qasm_m(ex))
+macro code_qasm(exs...)
+    esc(code_qasm_m(exs...))
 end
 
-macro code_qasm(option, ex)
-    option isa Expr && option.head === :(=) && option.args[1] === :routine || error("invalid option $option")
-    option.args[2] isa Bool || error("option value should be a constant Bool")
-    return esc(code_qasm_m(ex, option.args[2]))
+function code_yao(f, spec::RoutineSpec, args...; optimize::Bool=false, passes=Symbol[])
+    if passes isa Symbol
+        passes = [passes]
+    end
+
+    if optimize
+        passes = isempty(passes) ? default_passes() : filter(x->x!==:julia, passes)
+        run_optimizer = true
+    elseif :julia in passes
+        run_optimizer = true
+        passes = filter(x->x!==:julia, passes)
+    else
+        if !isempty(passes)
+            passes = filter(x->x!==:julia, passes)
+            run_optimizer = true
+        else
+            run_optimizer = false
+        end
+    end
+
+    args_t = Base.typesof(spec, args...)
+    atypes = Base.typesof(f, spec, args...)
+    matches = methods(f, args_t)
+    length(matches) == 1 || error("call is ambiguous")
+    method = first(matches)
+    mi = Core.Compiler.specialize_method(method, atypes, Core.svec())
+
+    ccall(:jl_typeinf_begin, Cvoid, ())
+    result = Core.Compiler.InferenceResult(mi)
+    world = Core.Compiler.get_world_counter()
+    interp = YaoLang.Compiler.YaoInterpreter(;passes=passes)
+
+    # NOTE: we need to run optimizer manually on current frame
+    # if cache is false
+    frame = Core.Compiler.InferenceState(result, #=cached=# false, interp)
+    Core.Compiler.typeinf(interp, frame)
+    if run_optimizer
+        opt = OptimizationState(frame, OptimizationParams(interp), interp)
+        Compiler.optimize(opt, YaoOptimizationParams(interp), result.result)
+        opt.src.inferred = true
+    end
+    ccall(:jl_typeinf_end, Cvoid, ())
+    frame.inferred || return (nothing, Any)
+    return (frame.src, widenconst(result.result))
+end
+
+function code_yao_m(exs...)
+    options = []
+    call = nothing
+    head = :main
+    args = []
+    for ex in exs
+        if ex isa Expr && ex.head === :(=)
+            ex.args[1] in [:optimize, :passes] || error("invalid option: $ex")
+            push!(options, Expr(:kw, ex.args...))
+        elseif ex isa Expr && ex.head === :call
+            if ex.args[1] in (:gate, :ctrl)
+                head = ex.args[1]
+                call = ex.args[2]
+                args = ex.args[3:end]
+            else
+                call = ex
+            end
+        end
+    end
+
+    return Expr(:call, code_yao,
+        Expr(:parameters, options...),
+        GlobalRef(Semantic, head), call, args...
+    )
+end
+
+"""
+    @code_yao [ optimize=false， passes=[:julia, :zx] ] <generic routine call>
+
+Return the quantum CodeInfo generated by YaoLang compiler for a given
+generic routine call. One can also retreive the `gate`, `ctrl` call with
+location mapping of a given routine specialization.
+
+One can trun on optimization by setting `optimize=true`, this will call
+all the optimization passes to simplify your program. 
+One can also configure passes to run via keyword `passes`.
+
+## Valid Optimization Passes
+
+- `:julia`: Julia's default optimization passes for classical programs
+- `:zx`: YaoLang's ZX calculus based passes
+"""
+macro code_yao(exs...)
+    return esc(code_yao_m(exs...))
 end
