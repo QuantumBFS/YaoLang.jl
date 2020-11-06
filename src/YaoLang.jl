@@ -19,7 +19,7 @@ using YaoArrayRegister
 using BitBasis
 using ZXCalculus
 
-using Core: CodeInfo, SSAValue, Const, Slot, GotoIfNot, GotoNode, SlotNumber, Argument
+using Core: CodeInfo, SSAValue, Const, Slot, GotoIfNot, GotoNode, SlotNumber, Argument, ReturnNode
 using Core.Compiler: InferenceParams, InferenceResult, OptimizationParams, OptimizationState,
     AbstractInterpreter, VarTable, InferenceState, CFG, NewSSAValue, IRCode,
     InstructionStream

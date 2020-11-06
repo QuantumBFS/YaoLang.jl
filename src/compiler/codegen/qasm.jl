@@ -9,16 +9,29 @@ struct TargetQASMTopLevel <: TargetQASM end
 struct TargetQASMGate <: TargetQASM end
 
 struct RegMap
-    cbits::Dict{String, Int}
+    cbits::Dict{Any, Tuple{String, Int}}
     regs_to_locs::Dict{Int, Vector{Int}}
     locs_to_reg_addr::Dict{Int, Tuple{Int, Int}}
 end
 
 function RegMap(target, ci::CodeInfo)
     locs_to_regs = Dict{Int, Int}()
-    cbits = Dict{String, Int}()
+    # ssa/slot => (name, size)
+    cbits = Dict{Any, Tuple{String, Int}}()
 
     for (v, stmt) in enumerate(ci.code)
+        if stmt isa ReturnNode && isdefined(stmt, :val) && stmt.val isa SSAValue
+            ret = ci.code[stmt.val.id]
+            if ret isa Expr && ret.head === :new && ret.args[1] <: NamedTuple
+                cnames = ret.args[1].parameters[1]
+                for i in 1:length(cnames)
+                    x = ret.args[i+1]::SSAValue
+                    _, size = cbits[x.id]
+                    cbits[x.id] = (string(cnames[i]), size)
+                end
+            end
+        end
+
         is_quantum_statement(stmt) || continue
         qt = quantum_stmt_type(stmt)
 
@@ -28,13 +41,14 @@ function RegMap(target, ci::CodeInfo)
                 measure_ex = stmt.args[2]
                 locs = obtain_ssa_const(measure_ex.args[2], ci)::Locations
                 name = string(ci.slotnames[slot.id])
+                cbits[slot] = (name, length(locs))
             else
                 locs = obtain_ssa_const(stmt.args[2], ci)::Locations
                 name = creg_name(v)
+                cbits[v] = (name, length(locs))
             end
             # allocate new register for measurements
             allocate_new_qreg!(locs_to_regs, locs)
-            cbits[name] = length(locs)
         elseif qt === :barrier
             locs = obtain_ssa_const(stmt.args[2], ci)::Locations
             record_locations!(target, locs_to_regs, locs)
@@ -179,11 +193,11 @@ function codegen(target::TargetQASMTopLevel, ci::CodeInfo)
         ))
     end
 
-    for (c, len) in st.regmap.cbits
+    for (_, (name, size)) in st.regmap.cbits
         pushfirst!(prog, QASM.Parse.RegDecl(
             Token{:reserved}("creg"),
-            Token{:id}(c),
-            Token{:int}(string(len))
+            Token{:id}(name),
+            Token{:int}(string(size))
         ))
     end
 
@@ -416,10 +430,10 @@ function codegen_measure(::TargetQASM, ci::CodeInfo, st::QASMCodeGenState)
         slot = st.stmt.args[1]::SlotNumber
         measure_ex = st.stmt.args[2]
         locs = obtain_ssa_const(measure_ex.args[2], ci)::Locations
-        cname = string(ci.slotnames[slot.id])
+        cname, _ = st.regmap.cbits[slot]
     else
         locs = obtain_ssa_const(st.stmt.args[2], ci)::Locations
-        cname = creg_name(st.pc)
+        cname, _ = st.regmap.cbits[st.pc]
     end
 
     r, addr = st.regmap.locs_to_reg_addr[first(locs)]
@@ -505,4 +519,25 @@ function codegen_ifnot(target::TargetQASM, ci::CodeInfo, st::QASMCodeGenState)
     st.stmt = stmt′
     body = codegen_stmt(target, ci, st)
     return QASM.Parse.IfStmt(Token{:id}(cname), Token{:int}(string(right)), body)
+end
+
+function validate(target::TargetQASM, ci::CodeInfo)
+    for (v, stmt) in enumerate(ci)
+        if is_quantum_statement(stmt)
+        elseif stmt isa GotoIfNot
+        elseif stmt isa Expr
+            if stmt.head === :call
+                validate_call(target, ci, stmt)
+            end
+        end
+        stmt_type = ci.ssavaluetypes[v]
+        
+    end
+end
+
+function validate_call(::TargetQASM, ci::CodeInfo, stmt::Expr)
+    if stmt.args[1] isa GlobalRef
+        stmt.mod === Base
+        stmt.name in []
+    end
 end

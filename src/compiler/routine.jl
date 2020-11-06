@@ -290,6 +290,10 @@ function is_preserved_macro(ex::Expr)
     return ex.args[1] in Semantic.PRESERVED_MACROS
 end
 
+function (spec::RoutineSpec)(r::AbstractRegister)
+    return execute(spec, r)
+end
+
 function (spec::RoutineSpec)(r::AbstractRegister, locs::Locations)
     return execute(spec, r, locs)
 end

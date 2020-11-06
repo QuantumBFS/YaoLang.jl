@@ -166,6 +166,7 @@ function obtain_codeinfo(::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
         push!(linetable, Core.LineInfoNode(lineinfo.module, name, lineinfo.file, lineinfo.line, lineinfo.inlined_at))
     end
     ci.linetable = linetable
+    ci.edges = Core.MethodInstance[mi]
     return ci, nargs
 end
 
