@@ -7,16 +7,20 @@ struct EchoReg{B} <: AbstractRegister{B} end
 Base.show(io::IO, x::EchoReg) = print(io, "echo register")
 EchoReg() = EchoReg{1}()
 
-@generated function execute(spec::RoutineSpec, r::EchoReg, loc::Locations)
+@generated function execute(spec::RoutineSpec, ::EchoReg)
+    return codegen_ast(Semantic.main, spec)
+end
+
+@generated function execute(spec::RoutineSpec, ::EchoReg, ::Locations)
     return codegen_ast(Semantic.gate, spec)
 end
 
-@generated function execute(spec::RoutineSpec, r::EchoReg, loc::Locations, ctrl::CtrlLocations)
+@generated function execute(spec::RoutineSpec, ::EchoReg, ::Locations, ::CtrlLocations)
     return codegen_ast(Semantic.ctrl, spec)
 end
 
 # this doesn't work yet, need to eval a typed IR
-# @generated function optimized_execute(spec::RoutineSpec, r::EchoReg, loc::Locations)
+# @generated function optimized_execute(spec::RoutineSpec, ::EchoReg, loc::Locations)
 #     ci = create_codeinfo(Semantic.gate, spec)
 #     ir = YaoIR(r, Semantic.gate, spec, loc)
 #     ir = optimize(ir)
@@ -39,11 +43,15 @@ function YaoAPI.measure(::EchoReg, locs)
     @info "measure at $locs"
 end
 
-@generated function execute(spec::RoutineSpec, r::ArrayReg, loc::Locations)
+@generated function execute(spec::RoutineSpec, ::ArrayReg)
+    return codegen_ast(Semantic.main, spec)
+end
+
+@generated function execute(spec::RoutineSpec, ::ArrayReg, ::Locations)
     return codegen_ast(Semantic.gate, spec)
 end
 
-@generated function execute(spec::RoutineSpec, r::ArrayReg, loc::Locations, ctrl::CtrlLocations)
+@generated function execute(spec::RoutineSpec, ::ArrayReg, ::Locations, ::CtrlLocations)
     return codegen_ast(Semantic.ctrl, spec)
 end
 

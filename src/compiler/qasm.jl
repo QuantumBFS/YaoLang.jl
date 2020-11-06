@@ -95,7 +95,14 @@ function print_qasm(io::IO, x::MainProgram)
     println(io)
 
     for k in 1:length(x.prog)
-        print_qasm(io, x.prog[k])
+        stmt = x.prog[k]
+        print_qasm(io, stmt)
+        
+        # print extra line
+        # when there is a gate decl
+        if stmt isa Gate
+            println(io)
+        end
         
         if k != length(x.prog)
             println(io)
@@ -220,7 +227,7 @@ function print_qasm(io::IO, stmt::Gate)
         print_qasm(io, stmt.body[k])
         println(io)
     end
-    println(io, "}")
+    print(io, "}")
 end
 
 Base.show(io::IO, x::Gate) = print_qasm(io, x)
