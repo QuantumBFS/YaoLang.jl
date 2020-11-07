@@ -458,12 +458,15 @@ GateRegisterRecord() = GateRegisterRecord(Dict(), 0)
 
 struct Ctx
     m::Module
+    source::LineNumberNode
     record
 end
 
-function parse(m::Module, source::String)
+parse(m::Module, source::String) = parse(m::Module, LineNumberNode(0), source)
+
+function parse(m::Module, l::LineNumberNode, source::String)
     ast = Parse.load(source)
-    return parse(m, ast)
+    return parse(m, l, ast)
 end
 
 # tokens don't need context
@@ -492,7 +495,9 @@ function parse_list(ctx::Ctx, xs::Vector)
     [parse(ctx, each) for each in xs]
 end
 
-function parse(m::Module, ast::Parse.MainProgram)
+parse(m::Module, ast::Parse.MainProgram) = parse(m, LineNumberNode(0), ast)
+
+function parse(m::Module, l::LineNumberNode, ast::Parse.MainProgram)
     # check sure minimum compatibility
     @assert v"2.0.0" <= ast.version < v"3.0.0"
 
@@ -500,7 +505,7 @@ function parse(m::Module, ast::Parse.MainProgram)
     body = Expr(:block)
     routines = []
     record = scan_registers(ast)
-    ctx = Ctx(m, record)
+    ctx = Ctx(m, l, record)
 
     for stmt in ast.prog
         if stmt isa Parse.RegDecl
@@ -508,7 +513,12 @@ function parse(m::Module, ast::Parse.MainProgram)
         elseif stmt isa Parse.Gate
             push!(routines, parse(ctx, stmt))
         elseif stmt isa Parse.Include
-            push!(code.args, parse(ctx, read(stmt.file.str[2:end-1], String)))
+            file = stmt.file.str[2:end-1]
+            # use relative path to current file if not in REPL
+            if !isnothing(l.file) && !isinteractive()
+                file = joinpath(dirname(string(l.file)), file)
+            end
+            push!(code.args, parse(ctx, read(file, String)))
         else
             ex = parse(ctx, stmt)
             if !isnothing(ex)
@@ -557,7 +567,7 @@ function parse(ctx::Ctx, stmt::Parse.Gate)
     args = parse_list(ctx, stmt.decl.cargs)
     record = parse_gate_registers(stmt.decl.qargs)
     body = Expr(:block)
-    new_ctx = Ctx(ctx.m, record)
+    new_ctx = Ctx(ctx.m, ctx.source, record)
 
     for each in stmt.body
         push!(body.args, parse(new_ctx, each))
@@ -715,7 +725,7 @@ end
 scan_registers!(record::RegisterRecord, ast) = record
 
 macro qasm_str(source::String)
-    return esc(parse(__module__, source))
+    return esc(parse(__module__, __source__, source))
 end
 
 macro qasm_str(source::Expr)
@@ -726,7 +736,7 @@ macro qasm_str(source::Expr)
         return Base.eval(__module__, x)
     end
 
-    return esc(parse(__module__, join(args)))
+    return esc(parse(__module__, __source__, join(args)))
 end
 
 macro include_str(path)
