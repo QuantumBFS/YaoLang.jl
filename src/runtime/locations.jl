@@ -47,7 +47,6 @@ Base.iterate(l::Locations) = iterate(l.storage)
 Base.iterate(l::Locations, st) = iterate(l.storage, st)
 Base.eltype(::Type{T}) where {T<:Locations} = Int
 Base.eltype(x::Locations) = Int
-Base.show(io::IO, x::Locations) = print(io, "Locations(", x.storage, ")")
 Base.Tuple(x::Locations) = (x.storage...,)
 
 struct LocationError <: Exception
@@ -138,20 +137,57 @@ end
 # skip itself
 CtrlLocations(x::CtrlLocations) = x
 CtrlLocations(x::Locations) = CtrlLocations(x, trues(length(x)))
-CtrlLocations(x::LocationStorageTypes, cfg::Tuple) =
+CtrlLocations(x::LocationStorageTypes, cfg::Union{Tuple, Vector, BitVector}) =
     CtrlLocations(Locations(x), BitVector(map(Bool, cfg)))
 CtrlLocations(xs...) = CtrlLocations(Locations(xs...))
 
 Base.length(l::CtrlLocations) = length(l.storage)
 
+function Base.show(io::IO, x::Locations)
+    print(io, "Locations(")
+    print_locations(io, x)
+    print(io, ")")
+end
+
 function Base.show(io::IO, x::CtrlLocations)
     print(io, "CtrlLocations(")
-    if all(x.configs)
-        print(io, x.storage.storage)
-    else
-        join(io, map((l, c) -> c ? string(l) : "!" * string(l), x.storage.storage, x.configs), ", ")
-    end
+    print_locations(io, x)
     print(io, ")")
+end
+
+function print_locations(io::IO, x::Locations)
+    if x.storage isa AbstractRange
+        return printstyled(io, x.storage; color=:light_blue)
+    end
+
+    nlocations = length(x)
+    for i in 1:nlocations
+        printstyled(io, x.storage[i]; color=:light_blue)
+
+        if i != nlocations
+            print(io, ", ")
+        end
+    end
+end
+
+function print_locations(io::IO, x::CtrlLocations)
+    if all(x.configs)
+        print_locations(io, x.storage)
+    else
+        nlocations = length(x)
+        for i in 1:nlocations
+            l = x.storage.storage[i]
+            if x.configs[i]
+                printstyled(io, l; color=:light_blue)
+            else
+                printstyled(io, "!", l; color=:light_blue)
+            end
+
+            if i != nlocations
+                print(io, ", ")
+            end
+        end
+    end
 end
 
 function merge_locations(l1::CtrlLocations, l2::CtrlLocations)

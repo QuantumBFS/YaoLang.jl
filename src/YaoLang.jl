@@ -15,7 +15,6 @@ enable_timings() = (TimerOutputs.enable_debug_timings(Compiler); return)
 using ExprTools
 using MLStyle
 using YaoAPI
-using YaoArrayRegister
 using BitBasis
 using ZXCalculus
 

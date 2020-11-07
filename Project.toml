@@ -12,7 +12,6 @@ MLStyle = "d8e11817-5142-5d16-987a-aa16d5891078"
 RBNF = "83ef0002-5b9e-11e9-219b-65bac3c6d69c"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 YaoAPI = "0843a435-28de-4971-9e8b-a9641b2983a8"
-YaoArrayRegister = "e600142f-9330-5003-8abb-0ebd767abc51"
 ZXCalculus = "3525faa3-032d-4235-a8d4-8c2939a218dd"
 
 [compat]

@@ -1,6 +1,6 @@
 using YaoLang
-# using YaoLang.Compiler
-# using YaoLang.Compiler.QASM
+using YaoLang.Compiler
+using YaoLang.Compiler.QASM
 using RBNF
 
 qasm_1 = """OPENQASM 2.0;
@@ -87,9 +87,16 @@ u3(0.1, 0.2, 0.3) q[0];
 u3(0.1 + 0.2, 0.2, 0.3) q[0];
 """
 
-
-
 ast = QASM.Parse.load(qasm_5)
+QASM.parse(Main, ast)
+
+qasm_6 = """OPENQASM 2.0;
+gate custom(lambda) a {
+    u1(sin(lambda)) a;
+}
+"""
+
+ast = QASM.Parse.load(qasm_6)
 QASM.parse(Main, ast)
 
 qasm"""OPENQASM 2.0;
@@ -122,6 +129,18 @@ gate cx c,t { CX c,t; }
 // idle gate (identity)
 """
 
+qasm"""OPENQASM 2.0;
+gate custom(lambda) a {
+    u1(sin(lambda) + 1) a;
+}
+"""
+
+ast = QASM.Parse.load("""OPENQASM 2.0;
+gate custom(lambda) a {
+    u1(sin(lambda) + 1) a;
+}
+""")
+
 circuit = qasm"""OPENQASM 2.0;
 // include "qelib1.inc";
 qreg q[3];
@@ -145,9 +164,12 @@ measure q[2] -> c2[0];
 """
 
 spec = circuit()
+spec(Compiler.EchoReg(), Locations(1:3))
+
 spec = u3(0.3, 0.2, 0.1)
 spec = qft(3)
-interp, frame = Compiler._prepare_frame(Compiler.Semantic.main, typeof(spec));
+spec = u1(0.1)
+interp, frame = Compiler._prepare_frame(Compiler.Semantic.gate, typeof(spec), Locations{Int64});
 Core.Compiler.typeinf(interp, frame)
 Compiler.codegen(Compiler.TargetQASMGate(), frame.src)
 

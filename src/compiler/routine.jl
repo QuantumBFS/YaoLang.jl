@@ -145,7 +145,9 @@ end
 @semantic_stub main(gate::Operation)
 @semantic_stub ctrl(gate::Operation, loc::Locations, ctrl::CtrlLocations)
 @semantic_stub gate(gate::Operation, loc::Locations)
-@semantic_stub measure(locs::Locations, op; kwargs...)
+# NOTE: other measurement options are just syntax sugars
+# TODO: check in typeinf
+@semantic_stub measure(locs::Locations)
 @semantic_stub barrier(locs::Locations)
 
 end # Semantic
@@ -291,14 +293,14 @@ function is_preserved_macro(ex::Expr)
     return ex.args[1] in Semantic.PRESERVED_MACROS
 end
 
-function (spec::RoutineSpec)(r::AbstractRegister)
-    return execute(spec, r)
+@inline function (spec::RoutineSpec)(r::AbstractRegister)
+    return execute(Semantic.main, r, spec)
 end
 
-function (spec::RoutineSpec)(r::AbstractRegister, locs::Locations)
-    return execute(spec, r, locs)
+@inline function (spec::RoutineSpec)(r::AbstractRegister, locs::Locations)
+    return execute(Semantic.gate, r, spec, locs)
 end
 
-function (spec::RoutineSpec)(r::AbstractRegister, locs::Locations, ctrl::CtrlLocations)
-    return execute(spec, r, locs, ctrl)
+@inline function (spec::RoutineSpec)(r::AbstractRegister, locs::Locations, ctrl::CtrlLocations)
+    return execute(Semantic.ctrl, r, spec, locs, ctrl)
 end

@@ -6,19 +6,24 @@ using YaoLang.Compiler
     for k in 2:n
         @ctrl k 1 => shift(2π / 2^k)
     end
-
+    @barrier 1:n
     if n > 1
         2:n => qft(n - 1)
     end
     return 1
 end
 
-r = Compiler.EchoReg()
-locs = Locations((1, 2, 3))
+r = YaoLang.EchoReg()
+locs = Locations((2, 3, 4))
 ctrl = CtrlLocations((4, ))
 # execute(qft(3), r, locs)
 c = qft(3)
+
 spec = qft(3)
+ci = Compiler.create_codeinfo(Compiler.Semantic.main, typeof(spec))
+Compiler.replace_with_execute(ci)
+
+spec(r, locs)
 ir = Compiler.YaoIR(typeof(spec))
 
 ci = ir.ci
