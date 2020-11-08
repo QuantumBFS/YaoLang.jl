@@ -4,120 +4,100 @@ CurrentModule = YaoLang.Compiler
 
 ## Introduction
 
-YaoLang is a domain specific language (DSL) built based on
-Julia builtin expression with extended semantic on quantum control, measure and position. Its (extended) syntax is very simple:
+YaoLang is a **Julia compiler extension**. It compiles a subset of Julia programs
+to quantum device. As a language aims to solve the two language problem, we want to
+provide our solution to the two language problem in quantum programming.
 
-### Semantics
+YaoLang extends the native Julia semantics via macros and interpret
+these extra semantics via custom interpreter based on Julia's own interpreter
+during Julia's own type inference stage then runs our own specific
+optimization passes after Julia compiler optimizes the classical parts.
 
-The semantic of YaoLang tries to make use of Julia semantic as much as possible so you don't feel this
-is not Julian. But since the quantum circuit has some
-special semantic that Julia expression cannot express
-directly, the semantic of Julia expression is extended in YaoLang.
+The YaoLang project aims to:
 
-The point of this new IR is it make use of Julia native
-control flow directly instead of unroll the loop and conditions into a Julia type, such as `Chain`, `Kron`,
-`ConditionBlock` in QBIR, which improves the performance and provide possibility of further compiler
-optimization by analysis done on quantum circuit and classical control flows.
+1. compiles native Julia program to quantum devices and quantum device simulators
+2. provide an infrastructure for quantum compilation related research.
 
-#### Gate Position
-gate positions are specific with `=>` at each line,
-the `=>` operator inside function calls will not be
-parsed, e.g
+## Features
+### Writing Hybrid Programs
 
+One of the major goal of YaoLang is to represent hybrid programs, which means programs mixed with
+classical functions and quantum routines. This is something happens very frequently in practical
+quantum computation and all the actual program controls quantum devices can be seen as such a hybrid
+program.
 
-```jl
-1 => H # apply Hadamard gate on the 1st qubit
-foo(1=>H) # it means normal Julia pair
-1=>foo(x, y, z) # it will parse foo(x, y, z) as a quantum gate/circuit, but will error later if type inference finds they are not.
-```
+In YaoLang, you can use ANY classical Julia program semantics, such as control flows, function calls,
+and even other Julia packages. It is fully compatible with native Julia code. The compiler will only
+check if the program is compatible with your target machine or not. Here is a QFT example written using
+classical control flow:
 
-all the gate or circuit's position should be specified by its complete locations, e.g
-
-```jl
-1:n => qft(n) # right
-1 => qft(n) # wrong
-```
-
-but single qubit gates can use multi-location argument
-to represent repeated locations, e.g
-
-```jl
-1:n => H # apply H on 1:n locations
-```
-
-#### Control
-
-[`@ctrl`](@ref) is parsed as a keyword (means you cannot overload it) in each program, like QBIR, its first argument is the control
-location with signs as control configurations and the second argument is a normal gate position argument introduce above.
-
-#### Measure
-
-[`@measure`](@ref) is another reserved special function parsed that has specific semantic in the IR (measure the locations passed to it).
-
-### Usage
-
-using it is pretty simple, just use [`@device`](@ref) macro to annotate a "device" function, like CUDA programming, this device function should not return anything but `nothing`.
-
-The compiler will compile this function definition to
-a generic circuit `Circuit` with the same name. A generic circuit is a generic quantum program that can
-be overload with different Julia types, e.g
-
-```jl
+```julia
 @device function qft(n::Int)
     1 => H
     for k in 2:n
-        @ctrl k 1=>shift(2π/2^k)
+        @ctrl k 1 => shift(2π / 2^k)
     end
 
     if n > 1
-        2:n => qft(n-1)
+        2:n => qft(n - 1)
     end
 end
 ```
 
-**There is no need to worry about global position**: everything can be defined locally and we will infer the correct global location
-later either in compile time or runtime.
+We don't have a real quantum device that supports running YaoLang natively, but ideally we can. Given Julia
+itself is actually Just-Ahead-of-Time (JAOT) compiled, there will not be any latency issue when we actually controls the quantum device - YaoLang as a subset of JuliaLang is static itself. It requires
+one to write type-stable Julia program in most cases except for native Julia simulator backend.
 
-note: all the quantum gates should be annotate with its corresponding locations, or the compiler will not
-treat it as a quantum gate but instead of the original Julia expression.
+### QASM Support
 
-## Why?
+You can call QASM code like other Julia FFIs - simple and elegant:
 
-There are a few reasons that we need a fully compiled DSL now.
+```julia
+julia> circuit = qasm"""OPENQASM 2.0;
+       include "qelib1.inc";
+       gate custom(lambda) a {
+           u1(sin(lambda) + 1) a;
+       }
+       // comment
+       gate g a
+       {
+           U(0,0,0) a;
+       }
 
-### 1. Extensibility
+       qreg q[4];
+       creg c1[1];
+       U(-1.0, pi/2+3, 3.0) q[2];
+       CX q[1], q[2];
+       custom(0.3) q[3];
+       barrier q;
+       h q[0];
+       measure q[0] -> c1[0];
+       if(c1==1) z q[2];
+       u3(0.1 + 0.2, 0.2, 0.3) q[0];
+       """
+##qasm#702 (generic routine with 1 methods)
 
-Things in YaoBlocks like
-
+julia> YaoLang.@echo circuit()
+[ Info: executing 3 => Rz(-1.0)
+[ Info: executing 3 => Ry(4.570796326794897)
+[ Info: executing 3 => Rz(3.0)
+[ Info: executing @ctrl 2 3 => X
+[ Info: executing 4 => Rz(0)
+[ Info: executing 4 => Ry(0)
+[ Info: executing 4 => Rz(1.2955202066613396)
+[ Info: executing @barrier 1:4
+[ Info: executing 1 => H
+[ Info: executing @measure 1
+[ Info: executing 1 => Rz(0.30000000000000004)
+[ Info: executing 1 => Ry(0.2)
+[ Info: executing 1 => Rz(0.3)
+(c1 = 0,)
 ```
-function apply!(r::AbstractRegister, pb::PutBlock{N}) where {N}
-    _check_size(r, pb)
-    instruct!(r, mat_matchreg(r, pb.content), pb.locs)
-    return r
-end
 
-# specialization
-for G in [:X, :Y, :Z, :T, :S, :Sdag, :Tdag]
-    GT = Expr(:(.), :ConstGate, QuoteNode(Symbol(G, :Gate)))
-    @eval function apply!(r::AbstractRegister, pb::PutBlock{N,C,<:$GT}) where {N,C}
-        _check_size(r, pb)
-        instruct!(r, Val($(QuoteNode(G))), pb.locs)
-        return r
-    end
-end
-```
+this string literal `@qasm_str` (See [string literal section of Julia documentation](https://docs.julialang.org/en/v1/manual/metaprogramming/#Non-Standard-String-Literals)) will create a YaoLang routine
+for all the gate declaration and in the and creates a anoymous YaoLang routine for the toplevel QASM program.
 
-cannot be easily extended without define new dispatch on specialized instruction. Similarly, as long as there is a new instruction in low level, one need to redefine the dispatch in `YaoBlocks` however this is not necessary!
+### Hybrid Program Optimization
 
-### 2. Work with classical computers
-Programs defined in such way are just "normal" Julia programs, but quantum devices can be used as accelerator in a similar way comparing to GPU as an optimization.
-
-### 3. More elegant and better performance
-In YaoBlocks, a large quantum circuit can easily lost its structure if it is controlled, unless the programmer specialize the control block manually. Now we can map local locations into its callee location using the brand new API, thus anything in theory is composable can be executed in such way.
-
-
-## API References
-
-```@autodocs
-Modules = [YaoLang]
-```
+YaoLang can optimize your hybrid program using both Julia and its custom compiler optimization pass.
+See optimization section for more details.
