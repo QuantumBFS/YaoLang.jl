@@ -228,20 +228,6 @@ qasm"""OPENQASM 2.0;
 include "qelib1.inc";
 """
 
-@macroexpand qasm"""OPENQASM 2.0;
-gate u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }
-"""
-
-# gate cu3(theta,phi,lambda) c, t
-# {
-#   // implements controlled-U(theta,phi,lambda) with  target t and control c
-#   u1((lambda-phi)/2) t;
-#   cx c,t;
-#   u3(-theta/2,0,-(phi+lambda)/2) t;
-#   cx c,t;
-#   u3(theta/2,phi,0) t;
-# }
-
 @testset "qasm gate codegen" begin
     ast = @code_qasm gate=true cu3(0.1, 0.2, 0.3)
     @test ast isa Parse.Gate

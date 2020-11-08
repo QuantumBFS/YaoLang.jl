@@ -120,8 +120,22 @@ function trace_m(ex)
     end
 end
 
+function echo_m(ex)
+    ex isa Expr && ex.head === :call || error("expect a function call")
+    tape = gensym(:tape)
+    if ex.args[1] in (:gate, :ctrl)
+        return Expr(:call, Compiler.execute, GlobalRef(Compiler.Semantic, ex.args[1]), EchoReg(), ex.args[2:end]...)
+    else
+        return Expr(:call, Compiler.execute, GlobalRef(Compiler.Semantic, :main), EchoReg(), ex)
+    end
+end
+
 macro trace(ex)
     esc(trace_m(ex))
+end
+
+macro echo(ex)
+    esc(echo_m(ex))
 end
 
 # NOTE: we glue ArrayReg in a seperate package
