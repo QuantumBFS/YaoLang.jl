@@ -76,4 +76,6 @@ export @qasm_str
 using .Compiler: Gate
 export Gate
 
+include("runtime/intrinsics.jl")
+
 end # module

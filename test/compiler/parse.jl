@@ -1,3 +1,5 @@
+module TestParse
+
 using Test
 using YaoLang
 using YaoLang.Compiler
@@ -303,3 +305,5 @@ end
     @test ast.body[6].name == "Ry"
     @test ast.body[6].cargs[1].str == "0"    
 end
+
+end # TestParse

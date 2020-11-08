@@ -1,3 +1,5 @@
+module TestUtils
+
 using Test
 using YaoLang
 using YaoLang.Compiler
@@ -50,3 +52,5 @@ YaoLang.Compiler.gate_count(demo_circ_simp())
         ),
     )
 end
+
+end # TestUtils
