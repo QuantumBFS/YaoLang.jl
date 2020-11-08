@@ -1,4 +1,7 @@
-export X, Y, Z, H, shift, Rx, Ry, Rz
+module Gate
+
+using ..Compiler: @intrinsic
+export X, Y, Z, H, S, T, shift, Rx, Ry, Rz
 
 @intrinsic X
 @intrinsic Y
@@ -11,6 +14,8 @@ export X, Y, Z, H, shift, Rx, Ry, Rz
 @intrinsic Rx(θ::Real)
 @intrinsic Ry(θ::Real)
 @intrinsic Rz(θ::Real)
+
+end
 
 struct EchoReg{B} <: AbstractRegister{B} end
 Base.show(io::IO, x::EchoReg) = print(io, "echo register")

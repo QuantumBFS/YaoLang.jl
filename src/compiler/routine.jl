@@ -21,6 +21,7 @@ abstract type Operation end
 struct GenericRoutine{name} <: Routine end
 struct IntrinsicRoutine{name} <: Routine end
 
+Base.parent(x::Routine) = x
 
 struct IntrinsicSpec{name, Vars} <: Operation
     variables::Vars
@@ -33,6 +34,8 @@ struct IntrinsicSpec{name, Vars} <: Operation
         new{name, typeof(xs)}(xs)
     end
 end
+
+Base.parent(::IntrinsicSpec{name}) where name = IntrinsicRoutine{name}()
 
 function print_routine(io::IO, x::IntrinsicSpec{name}) where name
     print(io, name)
@@ -83,6 +86,11 @@ end
 function Base.hash(routine::RoutineSpec{P, Vars}, key) where {P, Vars}
     return hash(Tuple{P, Vars}, key)
 end
+
+Base.parent(x::RoutineSpec) = x.parent
+
+Base.:(==)(::IntrinsicRoutine{A}, ::IntrinsicRoutine{A}) where A = true
+Base.:(==)(::GenericRoutine{A}, ::GenericRoutine{A}) where A = true
 
 # NOTE: the reason we don't use a gensym
 # here for stub function is 

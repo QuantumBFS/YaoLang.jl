@@ -499,8 +499,8 @@ function run_zx_passes(ir::YaoIR)
     n = count_qubits(ir)
     # NOTE: we can't optimize
     # non-constant location program
-    iszero(n) && return ir
     isnothing(n) && return ir
+    iszero(n) && return ir
 
     compact = Core.Compiler.IncrementalCompact(ir.ir, true)
     for b in ir.qb

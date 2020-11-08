@@ -12,13 +12,18 @@ function gate_count(ci::CodeInfo)
         qt = quantum_stmt_type(stmt)
 
         if qt === :gate || qt === :ctrl
-            gc = get!(count, qt, Dict{Symbol, Int}())
+            gc = get!(count, qt, IdDict{Any, Int}())
             if stmt.head === :invoke
-                _, gt = obtain_gate_stmt(stmt.args[3], ci)
+                gate, gt = obtain_gate_stmt(stmt.args[3], ci)
             elseif stmt.head === :call
-                _, gt = obtain_gate_stmt(stmt.args[2], ci)
+                gate, gt = obtain_gate_stmt(stmt.args[2], ci)
             end
-            gc[routine_name(gt)] = get(gc, routine_name(gt), 0) + 1
+
+            if gate isa IntrinsicSpec && isempty(gate.variables)
+                gc[gate] = get(gc, gate, 0) + 1
+            else
+                gc[parent(gate)] = get(gc, parent(gate), 0) + 1
+            end
         else
             count[qt] = get(count, qt, 0) + 1
         end

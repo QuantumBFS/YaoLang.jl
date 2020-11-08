@@ -165,10 +165,17 @@ function obtain_gate_stmt(@nospecialize(x), ci::CodeInfo)
         if gt isa Const
             return gt.val, widenconst(gt)
         else
-            return stmt, gt
+            return stmt, widenconst(gt)
         end
     elseif x isa Const
         return x.val, typeof(x.val)
+    elseif x isa GlobalRef
+        gate = Core.Compiler.abstract_eval_global(x.mod, x.name)
+        # TODO: move this to parsing time
+        if gate === Any
+            throw(UndefVarError(x.name))
+        end
+        return gate.val, widenconst(gate)
     else
         # special value
         return x, typeof(x)
@@ -381,7 +388,7 @@ function codegen_cargs(target::TargetQASMGate, ci::CodeInfo, @nospecialize(gate)
     elseif gate isa RoutineSpec || gate isa IntrinsicSpec
         # constant parameters
         # non-constant parameters in toplevel is not allowed
-        return Any[Token{:unnamed}(string(x)) for x in gate.variables]
+        return Any[codegen_exp(target, ci, x, st) for x in gate.variables]
     else
         error("invalid instruction: $gate")
     end
@@ -428,6 +435,10 @@ function codegen_exp(target::TargetQASM, ci::CodeInfo, @nospecialize(stmt), st::
         error("incompatible expression for QASM: $stmt")
     end
 
+    if fn === Core.Intrinsics.neg_float
+        fn_name = :(-)
+    end
+
     if length(args) == 1
         return QASM.Parse.FnExp(fn_name, codegen_exp(target, ci, args[1], st))
     elseif length(args) == 2 # binop
@@ -465,7 +476,7 @@ function codegen_ctrl(::TargetQASM, ci::CodeInfo, st::QASMCodeGenState)
         ctrl = obtain_ssa_const(st.stmt.args[4], ci)::CtrlLocations
     end
 
-    if gate === YaoLang.X && length(ctrl) == 1 && length(locs) == 1
+    if gate === Gate.X && length(ctrl) == 1 && length(locs) == 1
         ctrl.configs[1] || error("inverse ctrl is not supported in QASM backend yet")
         qargs = Any[]
         r, addr = st.regmap.locs_to_reg_addr[ctrl.storage.storage]

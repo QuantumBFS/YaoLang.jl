@@ -355,7 +355,15 @@ end
 
 # exp
 function print_qasm(io::IO, stmt::Tuple)
-    foreach(print_qasm(io), stmt)
+    if get(io, :parathesis, false)
+        print(io, "(")
+    end
+
+    foreach(print_qasm(IOContext(io, :parathesis=>true)), stmt)
+    
+    if get(io, :parathesis, false)
+        print(io, ")")
+    end
 end
 
 RBNF.typename(::Type{QASMLang}, name::Symbol) = Symbol(:S_, name)
@@ -515,10 +523,11 @@ function parse(m::Module, l::LineNumberNode, ast::Parse.MainProgram)
         elseif stmt isa Parse.Include
             file = stmt.file.str[2:end-1]
             # use relative path to current file if not in REPL
-            if !isnothing(l.file) && !isinteractive()
+            # isinteractive can be true in IDEs
+            if !isnothing(l.file) && !(isinteractive() && isempty(PROGRAM_FILE))
                 file = joinpath(dirname(string(l.file)), file)
             end
-            push!(code.args, parse(ctx, read(file, String)))
+            push!(code.args, parse(m, l, read(file, String)))
         else
             ex = parse(ctx, stmt)
             if !isnothing(ex)
@@ -594,16 +603,16 @@ function parse(ctx::Ctx, stmt::Parse.UGate)
     code = Expr(:block)
     locs = parse(ctx, stmt.qarg)
     push!(code.args,
-        semantic_gate(Expr(:call, GlobalRef(YaoLang, :Rz), parse(ctx, stmt.z1)), locs))
+        semantic_gate(Expr(:call, GlobalRef(Gate, :Rz), parse(ctx, stmt.z1)), locs))
     push!(code.args,
-        semantic_gate(Expr(:call, GlobalRef(YaoLang, :Ry), parse(ctx, stmt.y)), locs))
+        semantic_gate(Expr(:call, GlobalRef(Gate, :Ry), parse(ctx, stmt.y)), locs))
     push!(code.args,
-        semantic_gate(Expr(:call, GlobalRef(YaoLang, :Rz), parse(ctx, stmt.z2)), locs))
+        semantic_gate(Expr(:call, GlobalRef(Gate, :Rz), parse(ctx, stmt.z2)), locs))
     return code
 end
 
 function parse(ctx::Ctx, stmt::Parse.CXGate)
-    return semantic_ctrl(GlobalRef(YaoLang, :X), parse(ctx, stmt.qarg), CtrlLocations(parse(ctx, stmt.ctrl)))
+    return semantic_ctrl(GlobalRef(Gate, :X), parse(ctx, stmt.qarg), CtrlLocations(parse(ctx, stmt.ctrl)))
 end
 
 function parse(ctx::Ctx, stmt::Parse.IfStmt)
@@ -639,17 +648,17 @@ function parse(ctx::Ctx, stmt::Parse.Instruction)
     locs = parse_locations(ctx, stmt.qargs)
 
     if op == "x"
-        semantic_gate(YaoLang.X, locs)
+        semantic_gate(Gate.X, locs)
     elseif op == "y"
-        semantic_gate(YaoLang.Y, locs)
+        semantic_gate(Gate.Y, locs)
     elseif op == "z"
-        semantic_gate(YaoLang.Z, locs)
+        semantic_gate(Gate.Z, locs)
     elseif op == "h"
-        semantic_gate(YaoLang.H, locs)
+        semantic_gate(Gate.H, locs)
     elseif op == "s"
-        semantic_gate(YaoLang.S, locs)
+        semantic_gate(Gate.S, locs)
     elseif op == "ccx"
-        semantic_ctrl(YaoLang.X, locs[3], CtrlLocations(locs[1:2]))
+        semantic_ctrl(Gate.X, locs[3], CtrlLocations(locs[1:2]))
     else # some user defined routine
         gate = Expr(:call, GlobalRef(ctx.m, Symbol(op)), parse_list(ctx, stmt.cargs)...)
         semantic_gate(gate, locs)
@@ -684,7 +693,7 @@ function parse(ctx::Ctx, stmt::Parse.Bit)
     end
 end
 
-parse(ctx::Ctx, stmt::Parse.Negative) = -parse(ctx, stmt.value)
+parse(ctx::Ctx, stmt::Parse.Negative) = Expr(:call, -, parse(ctx, stmt.value))
 
 function parse(ctx::Ctx, stmt::Tuple)
     length(stmt) == 3 || throw(Meta.ParseError("unrecognized expression: $stmt"))

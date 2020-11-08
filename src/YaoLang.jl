@@ -32,7 +32,7 @@ using Core.Compiler: get_world_counter, get_inference_cache, may_optimize,
 using Base.Meta: ParseError
 
 import ..YaoLang
-using YaoLang: AbstractLocations, merge_locations, Locations, CtrlLocations
+using YaoLang: AbstractLocations, merge_locations, Locations, CtrlLocations, Gate
 
 export Routine, GenericRoutine, IntrinsicRoutine, RoutineSpec, IntrinsicSpec, @ctrl, @measure, @gate, @barrier, @device
 export routine_name
@@ -73,6 +73,7 @@ export gate_count
 using .Compiler.QASM: @qasm_str
 export @qasm_str
 
+export Gate
 include("runtime/intrinsics.jl")
 
 end # module
