@@ -7,7 +7,7 @@ The next DSL for Yao and quantum programs.
 
 **disclaimer: this package is still at alpha stage and things are very like to be broken and changed during this phase.**
 
-![demo](demo.gif)
+**this package requires Julia 1.6+**
 
 This package is currently in release alpha, and is not included in [Yao](https://github.com/QuantumBFS/Yao.jl), expect some adventures and rough edges. Please feel free to open an issue.
 
@@ -16,7 +16,7 @@ This package is currently in release alpha, and is not included in [Yao](https:/
 <p>
 YaoLang is a &nbsp;
     <a href="https://julialang.org">
-        <img src="https://julialang.org/favicon.ico" width="16em">
+        <img src="https://raw.githubusercontent.com/JuliaLang/julia-logo-graphics/master/images/julia.ico" width="16em">
         Julia Language
     </a>
     &nbsp; package. To install YaoLang,
@@ -25,7 +25,7 @@ YaoLang is a &nbsp;
 </p>
 
 ```julia
-pkg> add YaoLang
+pkg> add YaoLang#master
 ```
 
 ## License

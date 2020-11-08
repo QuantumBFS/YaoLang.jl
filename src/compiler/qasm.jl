@@ -3,77 +3,435 @@ module QASM
 export @qasm_str
 
 using RBNF
+using ExprTools
+using ..YaoLang
+
+module Parse
+
+using RBNF
+using RBNF: Token
 
 struct QASMLang end
 
 second((a, b)) = b
 second(vec::V) where {V<:AbstractArray} = vec[2]
 
+# roses are red
+# violets are blue
+# pirates are good
+RBNF.crate(::Type{Symbol}) = gensym(:qasm)
+RBNF.crate(::Type{VersionNumber}) = VersionNumber("0.0.0")
+
+Base.convert(::Type{VersionNumber}, t::Token) = VersionNumber(t.str)
+Base.convert(::Type{String}, t::Token) = t.str
+Base.convert(::Type{Int}, t::Token{:int}) = Base.parse(Int, t.str)
+Base.convert(::Type{Float64}, t::Token{:float64}) = Base.parse(Float64, t.str)
+Base.convert(::Type{Symbol}, t::Token{:id}) = Symbol(t.str)
+Base.convert(::Type{Symbol}, t::Token{:reserved}) = Symbol(t.str)
+Base.convert(::Type{String}, t::Token{:str}) = String(t.str[2:end-1])
+
+# NOTE: U(sin(pi/4), sin(pi/8))
+# is not corrently parsed
+
+print_kw(io::IO, xs...) = printstyled(io, xs...; color=:light_blue)
+
+function print_list(io::IO, list::Vector)
+    for k in eachindex(list)
+        print_qasm(io, list[k])
+
+        if k != lastindex(list)
+            print(io, ", ")
+        end
+    end
+end
+
+print_list(io::IO, x) = print_qasm(io, x)
+
+print_qasm(ast) = print_qasm(stdout, ast)
+print_qasm(io::IO) = x->print_qasm(io, x)
+print_qasm(io::IO, ::Nothing) = nothing
+
+print_qasm(io::IO, t::Token) = print(io, t.str)
+
+function print_qasm(io::IO, t::Token{:reserved})
+    print_kw(io, t.str)
+end
+
+function print_qasm(io::IO, stmt::RBNF.Token{:id})
+    printstyled(io, stmt.str; color=:light_cyan)
+end
+
+function print_qasm(io::IO, stmt::RBNF.Token{:float64})
+    printstyled(io, stmt.str; color=:green)
+end
+
+function print_qasm(io::IO, stmt::RBNF.Token{:int})
+    printstyled(io, stmt.str; color=:green)
+end
+
+# NOTE:
+# In order to preserve some line number
+# we usually don't annote types to AST
+
+# work around JuliaLang/julia/issues/38091
+function _force_any(x)
+    if isnothing(x)
+        return Any[]
+    else
+        return Vector{Any}(x)
+    end
+end
+
+struct MainProgram
+    version::VersionNumber
+    prog::Vector{Any}
+
+    MainProgram(version, prog) = new(version, Vector{Any}(prog))
+end
+
+Base.show(io::IO, x::MainProgram) = print_qasm(io, x)
+
+function print_qasm(io::IO, x::MainProgram)
+    printstyled(io, "OPENQASM "; bold=true)
+    printstyled(io, x.version.major, ".", x.version.minor; color=:yellow)
+    println(io)
+
+    for k in 1:length(x.prog)
+        stmt = x.prog[k]
+        print_qasm(io, stmt)
+        
+        # print extra line
+        # when there is a gate decl
+        if stmt isa Gate
+            println(io)
+        end
+        
+        if k != length(x.prog)
+            println(io)
+        end
+    end
+end
+
+struct IfStmt
+    left
+    right
+    body
+end
+
+function print_qasm(io::IO, stmt::IfStmt)
+    print_kw(io, "if ")
+    print(io, "(")
+    print_qasm(io, stmt.left)
+    print(io, " == ")
+    print_qasm(io, stmt.right)
+    print(io, ") ")
+    print_qasm(io, stmt.body)
+end
+
+
+struct Opaque
+    name
+    cargs::Vector{Any}
+    qargs::Vector{Any}
+
+    function Opaque(name, cargs, qargs)
+        new(name, _force_any(cargs), _force_any(qargs))
+    end
+end
+
+function print_qasm(io::IO, stmt::Opaque)
+    print_kw(io, "opaque ")
+    if !isempty(stmt.cargs)
+        print(io, "(")
+        print_list(io, stmt.cargs)
+        print(io, ") ")
+    end
+    print_list(io, stmt.qargs)
+    print(io, ";")
+end
+
+struct Barrier
+    qargs::Vector{Any}
+
+    function Barrier(qargs)
+        new(_force_any(qargs))
+    end
+end
+
+function print_qasm(io::IO, stmt::Barrier)
+    print_kw(io, "barrier ")
+    print_list(io, stmt.qargs)
+    print(io, ";")
+end
+
+struct RegDecl
+    type
+    name
+    size
+end
+
+function print_qasm(io::IO, stmt::RegDecl)
+    print_qasm(io, stmt.type)
+    print(io, " ")
+    print_qasm(io, stmt.name)
+    print(io, "[")
+    print_qasm(io, stmt.size)
+    print(io, "];")
+end
+
+struct Include
+    file
+end
+
+function print_qasm(io::IO, stmt::Include)
+    print_kw(io, "include ")
+    print_qasm(io, stmt.file)
+    print(io, ";")
+end
+
+struct GateDecl
+    name
+    # we remove type annotations for now
+    # due to JuliaLang/julia/issues/38091
+    cargs::Vector{Any}
+    qargs::Vector{Any}
+    
+    function GateDecl(name, cargs, qargs)
+        new(name, _force_any(cargs), _force_any(qargs))
+    end
+end
+
+function print_qasm(io::IO, stmt::GateDecl)
+    print_kw(io, "gate ")
+    print_qasm(io, stmt.name)
+
+    if !isempty(stmt.cargs)
+        print(io, "(")
+        print_list(io, stmt.cargs)
+        print(io, ")")
+    end
+
+    print(io, " ")
+    print_list(io, stmt.qargs)
+    print(io, " {")
+end
+
+struct Gate
+    decl::GateDecl
+    body::Vector{Any}
+end
+
+function print_qasm(io::IO, stmt::Gate)
+    print_qasm(io, stmt.decl)
+    println(io)
+    for k in 1:length(stmt.body)
+        print(io, " "^2)
+        print_qasm(io, stmt.body[k])
+        println(io)
+    end
+    print(io, "}")
+end
+
+Base.show(io::IO, x::Gate) = print_qasm(io, x)
+
+struct Reset
+    qarg
+end
+
+function print_qasm(io::IO, stmt::Reset)
+    print_kw(io, "reset ")
+    print_qasm(io, stmt.qarg)
+end
+
+struct Measure
+    qarg
+    carg
+end
+
+function print_qasm(io::IO, stmt::Measure)
+    print_kw(io, "measure ")
+    print_qasm(io, stmt.qarg)
+    print_kw(io, " -> ")
+    print_qasm(io, stmt.carg)
+    print(io, ";")
+end
+
+struct Instruction
+    name::String
+    cargs::Vector{Any}
+    qargs::Vector{Any}
+
+    function Instruction(name, cargs, qargs)
+        new(name, _force_any(cargs), _force_any(qargs))
+    end
+end
+
+function print_qasm(io::IO, stmt::Instruction)
+    printstyled(io, stmt.name; color=:light_magenta)
+
+    if !isempty(stmt.cargs)
+        print(io, "(")
+        print_list(io, stmt.cargs)
+        print(io, ")")
+    end
+    print(io, " ")
+    print_list(io, stmt.qargs)
+    print(io, ";")
+end
+
+struct UGate
+    z1
+    y
+    z2
+    qarg
+end
+
+function print_qasm(io::IO, stmt::UGate)
+    print_kw(io, "U")
+    print(io, "(")
+    print_qasm(io, stmt.z1)
+    print(io, ", ")
+    print_qasm(io, stmt.y)
+    print(io, ", ")
+    print_qasm(io, stmt.z2)
+    print(io, ") ")
+    print_qasm(io, stmt.qarg)
+    print(io, ";")
+end
+
+struct CXGate
+    ctrl
+    qarg
+end
+
+function print_qasm(io::IO, stmt::CXGate)
+    print_kw(io, "CX ")
+    print_qasm(io, stmt.ctrl)
+    print(io, ", ")
+    print_qasm(io, stmt.qarg)
+    print(io, ";")
+end
+
+struct Bit
+    name
+    address
+end
+
+function Bit(name::String, address::Int)
+    Bit(Token{:id}(name), Token{:int}(string(address)))
+end
+
+Bit(name::String) = Bit(Token{:id}(name), nothing)
+
+function print_qasm(io::IO, stmt::Bit)
+    print_qasm(io, stmt.name)
+    if !isnothing(stmt.address)
+        print(io, "[")
+        print_qasm(io, stmt.address)
+        print(io, "]")
+    end
+end
+
+struct FnExp
+    fn::Symbol
+    arg
+end
+
+function print_qasm(io::IO, stmt::FnExp)
+    print_kw(io, stmt.fn)
+    print(io, "(")
+    print_qasm(io, stmt.arg)
+    print(io, ")")
+end
+
+struct Negative
+    value
+end
+
+function print_qasm(io::IO, stmt::Negative)
+    print(io, "-")
+    print_qasm(io, stmt.value)
+end
+
+# exp
+function print_qasm(io::IO, stmt::Tuple)
+    if get(io, :parathesis, false)
+        print(io, "(")
+    end
+
+    foreach(print_qasm(IOContext(io, :parathesis=>true)), stmt)
+    
+    if get(io, :parathesis, false)
+        print(io, ")")
+    end
+end
+
+RBNF.typename(::Type{QASMLang}, name::Symbol) = Symbol(:S_, name)
+
 RBNF.@parser QASMLang begin
     # define ignorances
-    ignore{space}
+    ignore{space, comment}
 
     @grammar
     # define grammars
-    mainprogram := ["OPENQASM", ver = real, ';', prog = program]
+    mainprogram::MainProgram := ["OPENQASM", version = float64, ';', prog = program]
     program = statement{*}
-    statement = (decl | gate | opaque | qop | ifstmt | barrier | inc)
+    statement = (regdecl | gate | opaque | qop | ifstmt | barrier | inc)
     # stmts
-    ifstmt := ["if", '(', l = id, "==", r = nninteger, ')', body = qop]
-    opaque := ["opaque", id = id, ['(', [arglist1 = idlist].?, ')'].?, arglist2 = idlist, ';']
-    barrier := ["barrier", value = mixedlist]
-    decl := [regtype = "qreg" | "creg", id = id, '[', int = nninteger, ']', ';']
-    inc := ["include", file = str, ';']
+    ifstmt::IfStmt := [:if, '(', left = id, :(==), right = int, ')', body = qop]
+    opaque::Opaque := [:opaque, name = id, ['(', [cargs = idlist].?, ')'].?, qargs = idlist, ';']
+    barrier::Barrier := [:barrier, qargs = bitlist, ';']
+    regdecl::RegDecl := [type = :qreg | :creg, name = id, '[', size = int, ']', ';']
+    inc::Include := [:include, file = str, ';']
     # gate
-    gate := [decl = gatedecl, [goplist = goplist].?, '}']
-    gatedecl := ["gate", id = id, ['(', [arglist1 = idlist].?, ')'].?, arglist2 = idlist, '{']
+    gate::Gate := [decl = gatedecl, [body = goplist].?, '}']
+    gatedecl::GateDecl := [:gate, name = id, ['(', [cargs = idlist].?, ')'].?, qargs = idlist, '{']
 
-    goplist = (uop | barrier_ids){*}
-    barrier_ids := ["barrier", ids = idlist, ';']
+    goplist = (uop | barrier){*}
+
     # qop
     qop = (uop | measure | reset)
-    reset := ["reset", arg = argument, ';']
-    measure := ["measure", arg1 = argument, "->", arg2 = argument, ';']
+    reset::Reset := [:reset, qarg = bit, ';']
+    measure::Measure := [:measure, qarg = bit, :(->), carg = bit, ';']
 
-    uop = (iduop | u | cx)
-    iduop := [op = id, ['(', [lst1 = explist].?, ')'].?, lst2 = mixedlist, ';']
-    u := ['U', '(', exprs = explist, ')', arg = argument, ';']
-    cx := ["CX", arg1 = argument, ',', arg2 = argument, ';']
+    uop = (inst | ugate | csemantic_gate)
+    inst::Instruction := [name = id, ['(', [cargs = explist].?, ')'].?, qargs = bitlist, ';']
+    ugate::UGate := [:U, '(', z1 = exp, ',', y = exp, ',', z2 = exp, ')', qarg = bit, ';']
+    csemantic_gate::CXGate := [:CX, ctrl = bit, ',', qarg = bit, ';']
 
     idlist = @direct_recur begin
-        init = id
-        prefix = (recur, (',', id) % second)
+        init = [id]
+        prefix = [recur..., (',', id) % second]
     end
 
-    mixeditem := [id = id, ['[', arg = nninteger, ']'].?]
-    mixedlist = @direct_recur begin
-        init = mixeditem
-        prefix = (recur, (',', mixeditem) % second)
+    bit::Bit := [name = id, ['[', address = int, ']'].?]
+    bitlist = @direct_recur begin
+        init = [bit]
+        prefix = [recur..., (',', bit) % second]
     end
-
-    argument := [id = id, ['[', (arg = nninteger), ']'].?]
 
     explist = @direct_recur begin
-        init = exp
-        prefix = (recur, (',', exp) % second)
+        init = [exp]
+        prefix = [recur..., (',', exp) % second]
     end
 
-    atom = (real | nninteger | "pi" | id | fnexp) | (['(', exp, ')'] % second) | neg
-    fnexp := [fn = fn, '(', arg = exp, ')']
-    neg := ['-', value = exp]
+    item = (float64 | int | :pi | id | fnexp) | (['(', exp, ')'] % second) | neg
+    fnexp::FnExp := [fn = fn, '(', arg = exp, ')']
+    neg::Negative := ['-', value = exp]
     exp = @direct_recur begin
-        init = atom
-        prefix = (recur, binop, atom)
+        init = item
+        prefix = (recur, binop, item)
     end
-    fn = ("sin" | "cos" | "tan" | "exp" | "ln" | "sqrt")
-    binop = ('+' | '-' | '*' | '/')
+    fn = (:sin | :cos | :tan | :exp | :ln | :sqrt)
+    binop = (:+ | :- | :* | :/)
 
     # define tokens
     @token
     id := r"\G[a-z]{1}[A-Za-z0-9_]*"
-    real := r"\G([0-9]+\.[0-9]*|[0-9]*\.[0.9]+)([eE][-+]?[0-9]+)?"
-    nninteger := r"\G([1-9]+[0-9]*|0)"
+    float64 := r"\G([0-9]+\.[0-9]*|[0-9]*\.[0.9]+)([eE][-+]?[0-9]+)?"
+    int := r"\G([1-9]+[0-9]*|0)"
     space := r"\G\s+"
+    comment := r"\G//.*"
     str := @quote ("\"", "\\\"", "\"")
 end
 
@@ -82,164 +440,328 @@ function load(src::String)
     return ast
 end
 
-macro qasm_str(src)
-    return qasm_m(__module__, src)
+end # module Parse
+
+mutable struct VirtualRegister
+    type::Symbol
+    address::UnitRange{Int}
 end
 
-function qasm_m(m, src::String)
-    return load(src)
+mutable struct RegisterRecord
+    map::Dict{String, VirtualRegister}
+    nqubits::Int
+    ncbits::Int
 end
 
-function qasm_m(m, ex::Expr)
-    ex.head === :$ || throw(Meta.ParseError("invalid expression $ex"))
-    return load(Base.eval(m, ex.args[1]))
+mutable struct GateRegisterRecord
+    map::Dict
+    total::Int
 end
 
-end # end module
+Base.getindex(x::RegisterRecord, key) = x.map[key]
+Base.getindex(x::VirtualRegister, xs...) = x.address[xs...]
 
-using IRTools
+RegisterRecord() = RegisterRecord(Dict{String, UnitRange{Int}}(), 0, 0)
+GateRegisterRecord() = GateRegisterRecord(Dict(), 0)
 
-function scan_registers(ast::QASM.Struct_mainprogram)
-    return scan_registers!(
-        Dict(:classical => Dict(), :quantum => Dict(), :nqubits => 0, :ncbit => 0),
-        ast,
+struct Ctx
+    m::Module
+    source::LineNumberNode
+    record
+end
+
+parse(m::Module, source::String) = parse(m::Module, LineNumberNode(0), source)
+
+function parse(m::Module, l::LineNumberNode, source::String)
+    ast = Parse.load(source)
+    return parse(m, l, ast)
+end
+
+# tokens don't need context
+parse(::Ctx, x::RBNF.Token) = parse(x)
+
+parse(x::RBNF.Token{:unnamed}) = Symbol(x.str)
+parse(x::RBNF.Token{:reserved}) = Symbol(x.str)
+
+function parse(x::RBNF.Token{:id})
+    x.str == "pi" && return Base.pi
+    return Symbol(x.str)
+end
+
+function parse(x::RBNF.Token{:float64})
+    return Base.parse(Float64, x.str)
+end
+
+function parse(x::RBNF.Token{:int})
+    return Base.parse(Int, x.str)
+end
+
+parse_list(::Ctx, ::Nothing) = Any[]
+parse_list(ctx::Ctx, x) = Any[parse(ctx, x)]
+
+function parse_list(ctx::Ctx, xs::Vector)
+    [parse(ctx, each) for each in xs]
+end
+
+parse(m::Module, ast::Parse.MainProgram) = parse(m, LineNumberNode(0), ast)
+
+function parse(m::Module, l::LineNumberNode, ast::Parse.MainProgram)
+    # check sure minimum compatibility
+    @assert v"2.0.0" <= ast.version < v"3.0.0"
+
+    code = Expr(:block)
+    body = Expr(:block)
+    routines = []
+    record = scan_registers(ast)
+    ctx = Ctx(m, l, record)
+
+    for stmt in ast.prog
+        if stmt isa Parse.RegDecl
+            continue
+        elseif stmt isa Parse.Gate
+            push!(routines, parse(ctx, stmt))
+        elseif stmt isa Parse.Include
+            file = stmt.file.str[2:end-1]
+            # use relative path to current file if not in REPL
+            # isinteractive can be true in IDEs
+            if !isnothing(l.file) && !(isinteractive() && isempty(PROGRAM_FILE))
+                file = joinpath(dirname(string(l.file)), file)
+            end
+            push!(code.args, parse(m, l, read(file, String)))
+        else
+            ex = parse(ctx, stmt)
+            if !isnothing(ex)
+                push!(body.args, ex)
+            end
+        end
+    end
+
+    # if there are classical registers
+    # return them in a NamedTuple
+    ret = Expr(:tuple)
+    for (k, r) in record.map
+        if r.type === :classical
+            name = Symbol(k)
+            push!(ret.args, Expr(:(=), name, name))
+        end
+    end
+
+    if !isempty(body.args)
+        if isempty(ret.args)
+            push!(body.args, :(return))
+        else
+            push!(body.args, :(return $ret))
+        end
+    end
+
+    # routines
+    for each in routines
+        push!(code.args, each)
+    end
+
+    # create an anoymous routine
+    # if there are global statements
+    if !isempty(body.args)
+        def = Dict{Symbol, Any}(
+            :name => gensym(:qasm),
+            :body => body,
+        )
+        push!(code.args, YaoLang.Compiler.device_def(def))
+    end
+    return code
+end
+
+function parse(ctx::Ctx, stmt::Parse.Gate)
+    name = parse(stmt.decl.name)
+    args = parse_list(ctx, stmt.decl.cargs)
+    record = parse_gate_registers(stmt.decl.qargs)
+    body = Expr(:block)
+    new_ctx = Ctx(ctx.m, ctx.source, record)
+
+    for each in stmt.body
+        push!(body.args, parse(new_ctx, each))
+    end
+
+    def = Dict(:name=>name, :args=>args, :body=>body)
+    return YaoLang.Compiler.device_def(def)
+end
+
+function parse_gate_registers(stmt::Vector)
+    record = GateRegisterRecord()
+    for each in stmt
+        haskey(record.map, each.str) && throw(Meta.ParseError("duplicated register name $(each.str)"))
+        record.total += 1
+        record.map[each.str] = record.total
+    end
+    return record
+end
+
+semantic_gate(gate, locs) = Expr(:call, GlobalRef(YaoLang.Compiler.Semantic, :gate), gate, locs)
+semantic_ctrl(gate, locs, ctrl) = Expr(:call, GlobalRef(YaoLang.Compiler.Semantic, :ctrl), gate, locs, ctrl)
+
+function parse(ctx::Ctx, stmt::Parse.UGate)
+    code = Expr(:block)
+    locs = parse(ctx, stmt.qarg)
+    push!(code.args,
+        semantic_gate(Expr(:call, GlobalRef(Gate, :Rz), parse(ctx, stmt.z1)), locs))
+    push!(code.args,
+        semantic_gate(Expr(:call, GlobalRef(Gate, :Ry), parse(ctx, stmt.y)), locs))
+    push!(code.args,
+        semantic_gate(Expr(:call, GlobalRef(Gate, :Rz), parse(ctx, stmt.z2)), locs))
+    return code
+end
+
+function parse(ctx::Ctx, stmt::Parse.CXGate)
+    return semantic_ctrl(GlobalRef(Gate, :X), parse(ctx, stmt.qarg), CtrlLocations(parse(ctx, stmt.ctrl)))
+end
+
+function parse(ctx::Ctx, stmt::Parse.IfStmt)
+    return :(
+        if $(parse(ctx, stmt.left)) == $(parse(ctx, stmt.right))
+            $(parse(ctx, stmt.body))
+        end
     )
 end
 
-function scan_registers!(record::Dict, ast::QASM.Struct_mainprogram)
-    for node in ast.prog
-        scan_registers!(record, node)
-    end
-    return record
+function parse(ctx::Ctx, stmt::Parse.Measure)
+    locs = parse(ctx, stmt.qarg)
+    name = parse(ctx, stmt.carg)
+    return Expr(:(=), name, Expr(:call, GlobalRef(YaoLang.Compiler.Semantic, :measure), locs))
 end
 
-function scan_registers!(record::Dict, ast::QASM.Struct_decl)
-    if ast.regtype.str == "qreg"
-        record[:quantum][ast.id.str] = (record[:nqubits]+1):(record[:nqubits]+Meta.parse(ast.int.str))
-        record[:nqubits] += Meta.parse(ast.int.str)
-    else # classical
-        record[:classical][ast.id.str] = (record[:ncbits]+1):(record[:ncbits]+Meta.parse(ast.int.str))
-        record[:ncbits] += Meta.parse(ast.int.str)
-    end
-    return record
-end
-scan_registers!(record::Dict, ast) = record
-
-function YaoIR(m::Module, ast::QASM.Struct_mainprogram, fname = gensym(:qasm))
-    prog = ast.prog
-    regs = scan_registers(ast)
-    qregs = regs[:quantum]
-    cregs = regs[:classical]
-
-    ir = IRTools.IR()
-    IRTools.return!(ir, nothing)
-    push!(ir, Expr(:quantum, :register, :new, gensym(:register)))
-    for stmt in prog
-        if stmt isa QASM.Struct_iduop
-            op = stmt.op.str
-            op_locs = extract_locs(stmt.lst2, qregs)
-            op_args = extract_args(stmt.lst1)
-            yao_stmt = to_YaoLang_stmt(op, op_locs, op_args)
-            push!(ir, yao_stmt)
-        elseif stmt isa QASM.Struct_u
-            ex1 = stmt.exprs[1][1]
-            ex2 = stmt.exprs[1][2]
-            ex3 = stmt.exprs[2]
-            theta = eval(Meta.parse(eval_expr(ex1)))
-            phi = eval(Meta.parse(eval_expr(ex2)))
-            lambda = eval(Meta.parse(eval_expr(ex3)))
-            op_locs = extract_locs(stmt.arg, qregs)
-            op_args = (theta, phi, lambda)
-            yao_stmts = to_YaoLang_stmt("U", op_locs, op_args)
-            for yao_stmt in yao_stmts
-                push!(ir, yao_stmt)
-            end
-        elseif stmt isa QASM.Struct_cx
-            locs = [extract_locs(stmt.arg1, qregs)[], extract_locs(stmt.arg2, qregs)[]]
-            yao_stmt = to_YaoLang_stmt("CX", locs)
-            push!(ir, yao_stmt)
-        end
-    end
-
-    yaoir = YaoIR(m, fname, Any[], Any[], ir, nothing, false, false)
-    update_slots!(yaoir)
-    yaoir.pure_quantum = is_pure_quantum(yaoir)
-    return yaoir
+function parse(ctx::Ctx, stmt::Parse.Barrier)
+    return Expr(:call,
+        GlobalRef(YaoLang.Compiler.Semantic, :barrier),
+        parse_locations(ctx, stmt.qargs)
+    )
 end
 
-function to_YaoLang_stmt(op, locs, args = nothing)
-    if op == "h"
-        return Expr(:quantum, :gate, :H, locs[1])
-    elseif op == "x"
-        return Expr(:quantum, :gate, :X, locs[1])
+function parse(ctx::Ctx, stmt::Parse.Instruction)
+    op = stmt.name
+    # NOTE: these are not intrinsic function in QASM
+    # users need qelib1.inc to get the definition
+    # but for convenience we treat them as intrinsic
+    # function here in YaoLang, since they are predefined
+    # as stdlib in YaoLang.
+
+    # isnothing(stmt.lst1) || throw(Meta.ParseError("$op gate should not have classical parameters"))
+    locs = parse_locations(ctx, stmt.qargs)
+
+    if op == "x"
+        semantic_gate(Gate.X, locs)
     elseif op == "y"
-        return Expr(:quantum, :gate, :Y, locs[1])
+        semantic_gate(Gate.Y, locs)
     elseif op == "z"
-        return Expr(:quantum, :gate, :Z, locs[1])
+        semantic_gate(Gate.Z, locs)
+    elseif op == "h"
+        semantic_gate(Gate.H, locs)
     elseif op == "s"
-        return Expr(:quantum, :gate, :S, locs[1])
-    elseif op == "sdg"
-        return Expr(:quantum, :gate, :Sdag, locs[1])
-    elseif op == "t"
-        return Expr(:quantum, :gate, :T, locs[1])
-    elseif op == "tdg"
-        return Expr(:quantum, :gate, :Tdag, locs[1])
-    elseif op == "rx"
-        return Expr(:quantum, :gate, IRTools.xcall(YaoLang, :Rx, args[1]), locs[1])
-    elseif op == "ry"
-        return Expr(:quantum, :gate, IRTools.xcall(YaoLang, :Ry, args[1]), locs[1])
-    elseif op == "rz"
-        return Expr(:quantum, :gate, IRTools.xcall(YaoLang, :Rz, args[1]), locs[1])
-    elseif op == "cz"
-        return Expr(:quantum, :ctrl, :Z, locs[2], locs[1])
-    elseif op == "cx"
-        return Expr(:quantum, :ctrl, :X, locs[2], locs[1])
+        semantic_gate(Gate.S, locs)
     elseif op == "ccx"
-        return Expr(:quantum, :ctrl, :X, locs[3], (locs[1], locs[2]))
-    elseif op == "U"
-        return (
-            Expr(:quantum, :gate, IRTools.xcall(YaoLang, :Rz, args[3]), locs[1]),
-            Expr(:quantum, :gate, IRTools.xcall(YaoLang, :Ry, args[2]), locs[1]),
-            Expr(:quantum, :gate, IRTools.xcall(YaoLang, :Rz, args[1]), locs[1]),
-        )
-    elseif op == "CX"
-        return Expr(:quantum, :ctrl, :X, locs[2], locs[1])
-    else
-        return
+        semantic_ctrl(Gate.X, locs[3], CtrlLocations(locs[1:2]))
+    else # some user defined routine
+        gate = Expr(:call, GlobalRef(ctx.m, Symbol(op)), parse_list(ctx, stmt.cargs)...)
+        semantic_gate(gate, locs)
     end
 end
 
-function eval_expr(ex)
-    s = ""
-    if ex isa QASM.Struct_neg
-        return "-" * eval_expr(ex.value)
-    end
-    if ex isa QASM.RBNF.Token
-        if ex.str == "pi"
-            return s * "π"
-        end
-        return s * ex.str
-    end
-    for sub_ex in ex
-        s = s * eval_expr(sub_ex)
-    end
-    return "(" * s * ")"
+function parse(ctx::Ctx, stmt::Parse.FnExp)
+    return Expr(:call, stmt.fn, parse(ctx, stmt.arg))
 end
 
-function extract_args(lst)
-    # TODO: Analyse the AST
+function parse_locations(ctx, stmts::Vector)
+    locs = map(stmts) do stmt
+        parse(ctx, stmt)
+    end
+    return merge_locations(locs...)
 end
 
-function extract_locs(lst, qregs)
-    if lst isa QASM.Struct_mixeditem
-        if lst.arg isa Nothing
-            return collect(qregs[lst.id.str])
+function parse(ctx::Ctx, stmt::Parse.Bit)
+    record = ctx.record
+    if record isa RegisterRecord
+        r = record[stmt.name.str]
+        r.type === :classical && return Symbol(stmt.name.str)
+
+        if isnothing(stmt.address)
+            return Locations(r[:])
         else
-            return [qregs[lst.id.str][Meta.parse(lst.arg.str)+1]]
+            address = parse(stmt.address)
+            return Locations(r[address + 1])
         end
-    elseif lst isa QASM.Struct_argument
-        return [qregs[lst.id.str][Meta.parse(lst.arg.str)+1]]
     else
-        return [extract_locs(lst[1], qregs); extract_locs(lst[2], qregs)]
+        return Locations(record.map[stmt.name.str])
     end
 end
+
+parse(ctx::Ctx, stmt::Parse.Negative) = Expr(:call, -, parse(ctx, stmt.value))
+
+function parse(ctx::Ctx, stmt::Tuple)
+    length(stmt) == 3 || throw(Meta.ParseError("unrecognized expression: $stmt"))
+    stmt[2]::RBNF.Token
+    if stmt[2].str in ("+" , "-" , "*" , "/")
+        return Expr(:call, Symbol(stmt[2].str), parse(ctx, stmt[1]), parse(ctx, stmt[3]))
+    else
+        throw(Meta.ParseError("unrecognized expression: $stmt"))
+    end
+end
+
+function scan_registers(ast::Parse.MainProgram)
+    return scan_registers!(RegisterRecord(), ast)
+end
+
+function scan_registers!(record::RegisterRecord, ast::Parse.MainProgram)
+    for stmt in ast.prog
+        scan_registers!(record, stmt)
+    end
+    return record
+end
+
+function scan_registers!(record::RegisterRecord, ast::Parse.RegDecl)
+    nbits = parse(ast.size)
+    nqubits = record.nqubits
+    ncbits = record.ncbits
+
+    if ast.type.str == "qreg"
+        record.map[ast.name.str] = VirtualRegister(:quantum, (nqubits+1):(nqubits+nbits))
+        record.nqubits += nbits
+    else # classical
+        record.map[ast.name.str] = VirtualRegister(:classical, (ncbits+1):(ncbits+nbits))
+        record.ncbits += nbits
+    end
+    return record
+end
+
+scan_registers!(record::RegisterRecord, ast) = record
+
+macro qasm_str(source::String)
+    return esc(parse(__module__, __source__, source))
+end
+
+macro qasm_str(source::Expr)
+    source.head === :string || error("expect a String")
+
+    args = map(source.args) do x
+        x isa String && return x
+        return Base.eval(__module__, x)
+    end
+
+    return esc(parse(__module__, __source__, join(args)))
+end
+
+macro include_str(path)
+    if path isa Expr
+        path.head === :string || error("expect a String")
+        file = map(path.args) do x
+            x isa String && return x
+            return Base.eval(__module__, x)
+        end |> join
+    elseif path isa String
+        file = path
+    else
+        error("expect a String")
+    end
+
+    return esc(parse(__module__, read(file, String)))
+end
+
+end # end module
