@@ -38,7 +38,7 @@ end
 # skip it if x is a location
 Locations(x::Locations) = x
 Locations(xs...) = Locations(xs)
-Locations(xs::NTuple{N, <:Locations}) where N = merge_locations(xs...)
+Locations(xs::NTuple{N,<:Locations}) where {N} = merge_locations(xs...)
 Locations(x::NTuple{N,T}) where {N,T} = throw(LocationError("expect Int, got $T"))
 
 Base.@propagate_inbounds Base.getindex(l::Locations, idx...) = Locations(getindex(l.storage, idx...))
@@ -137,7 +137,7 @@ end
 # skip itself
 CtrlLocations(x::CtrlLocations) = x
 CtrlLocations(x::Locations) = CtrlLocations(x, trues(length(x)))
-CtrlLocations(x::LocationStorageTypes, cfg::Union{Tuple, Vector, BitVector}) =
+CtrlLocations(x::LocationStorageTypes, cfg::Union{Tuple,Vector,BitVector}) =
     CtrlLocations(Locations(x), BitVector(map(Bool, cfg)))
 CtrlLocations(xs...) = CtrlLocations(Locations(xs...))
 
@@ -157,12 +157,12 @@ end
 
 function print_locations(io::IO, x::Locations)
     if x.storage isa AbstractRange
-        return printstyled(io, x.storage; color=:light_blue)
+        return printstyled(io, x.storage; color = :light_blue)
     end
 
     nlocations = length(x)
     for i in 1:nlocations
-        printstyled(io, x.storage[i]; color=:light_blue)
+        printstyled(io, x.storage[i]; color = :light_blue)
 
         if i != nlocations
             print(io, ", ")
@@ -178,9 +178,9 @@ function print_locations(io::IO, x::CtrlLocations)
         for i in 1:nlocations
             l = x.storage.storage[i]
             if x.configs[i]
-                printstyled(io, l; color=:light_blue)
+                printstyled(io, l; color = :light_blue)
             else
-                printstyled(io, "!", l; color=:light_blue)
+                printstyled(io, "!", l; color = :light_blue)
             end
 
             if i != nlocations

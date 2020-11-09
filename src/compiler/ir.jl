@@ -3,7 +3,7 @@ struct NewCodeInfo
     code::Vector{Any}
     nvariables::Int
     codelocs::Vector{Int32}
-    newslots::Dict{Int, Symbol}
+    newslots::Dict{Int,Symbol}
     slotnames::Vector{Symbol}
     changemap::Vector{Int}
     slotmap::Vector{Int}
@@ -11,7 +11,7 @@ struct NewCodeInfo
     function NewCodeInfo(ci::CodeInfo, nargs::Int)
         code = []
         codelocs = Int32[]
-        newslots = Dict{Int, Symbol}()
+        newslots = Dict{Int,Symbol}()
         slotnames = copy(ci.slotnames)
         changemap = fill(0, length(ci.code))
         slotmap = fill(0, length(ci.slotnames))
@@ -35,11 +35,25 @@ function unpack_closure!(ci::NewCodeInfo, closure::Int)
     ci.changemap[1] += 1
 
     # %2 = get parent
-    push!(ci.code, Expr(:(=), source_slot(ci, 2), Expr(:call, GlobalRef(Base, :getfield), spec, QuoteNode(:parent))))
+    push!(
+        ci.code,
+        Expr(
+            :(=),
+            source_slot(ci, 2),
+            Expr(:call, GlobalRef(Base, :getfield), spec, QuoteNode(:parent)),
+        ),
+    )
     push!(ci.codelocs, codeloc)
     # unpack variables
     for i in 2:ci.nvariables
-        push!(ci.code, Expr(:(=), source_slot(ci, i+1), Expr(:call, GlobalRef(Base, :getindex), NewSSAValue(1), i-1)))
+        push!(
+            ci.code,
+            Expr(
+                :(=),
+                source_slot(ci, i + 1),
+                Expr(:call, GlobalRef(Base, :getindex), NewSSAValue(1), i - 1),
+            ),
+        )
         push!(ci.codelocs, codeloc)
     end
     ci.changemap[1] += ci.nvariables
@@ -49,7 +63,7 @@ end
 function insert_slot!(ci::NewCodeInfo, v::Int, slot::Symbol)
     ci.newslots[v] = slot
     insert!(ci.slotnames, v, slot)
-    prev = length(filter(x->x<v, keys(ci.newslots)))
+    prev = length(filter(x -> x < v, keys(ci.newslots)))
     for k in v-prev:length(ci.slotmap)
         ci.slotmap[k] += 1
     end
@@ -72,7 +86,7 @@ function update_slots(e, slotmap)
     if e isa Core.SlotNumber
         return Core.SlotNumber(e.id + slotmap[e.id])
     elseif e isa Expr
-        return Expr(e.head, map(x->update_slots(x, slotmap), e.args)...)
+        return Expr(e.head, map(x -> update_slots(x, slotmap), e.args)...)
     elseif e isa Core.NewvarNode
         return Core.NewvarNode(Core.SlotNumber(e.slot.id + slotmap[e.slot.id]))
     else
@@ -150,20 +164,29 @@ function replace_new_ssavalue!(code::Vector)
     return code
 end
 
-function obtain_codeinfo(::Type{RoutineSpec{P, Sigs}}) where {P, Sigs}
+function obtain_codeinfo(::Type{RoutineSpec{P,Sigs}}) where {P,Sigs}
     nargs = length(Sigs.parameters)
-    tt = Tuple{P, Sigs.parameters...}
+    tt = Tuple{P,Sigs.parameters...}
     ms = methods(routine_stub, tt)
     @assert length(ms) == 1
     method = first(ms)
-    method_args = Tuple{RoutineStub, tt.parameters...}
+    method_args = Tuple{RoutineStub,tt.parameters...}
     mi = Core.Compiler.specialize_method(method, method_args, Core.svec())
     ci = Core.Compiler.retrieve_code_info(mi)
 
     name = routine_name(P)
     linetable = Any[]
     for lineinfo in ci.linetable
-        push!(linetable, Core.LineInfoNode(lineinfo.module, name, lineinfo.file, lineinfo.line, lineinfo.inlined_at))
+        push!(
+            linetable,
+            Core.LineInfoNode(
+                lineinfo.module,
+                name,
+                lineinfo.file,
+                lineinfo.line,
+                lineinfo.inlined_at,
+            ),
+        )
     end
     ci.linetable = linetable
     ci.edges = Core.MethodInstance[mi]
@@ -205,11 +228,23 @@ function create_codeinfo(::typeof(Semantic.gate), S::Type{<:RoutineSpec})
         if is_quantum_statement(stmt)
             type = quantum_stmt_type(stmt)
             if type === :gate
-                local_location = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]))
+                local_location = insert_stmt!(
+                    new,
+                    v,
+                    Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]),
+                )
                 e = Expr(:call, GlobalRef(Semantic, :gate), stmt.args[2], local_location)
             elseif type === :ctrl
-                local_location = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]))
-                local_ctrl = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[4]))
+                local_location = insert_stmt!(
+                    new,
+                    v,
+                    Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]),
+                )
+                local_ctrl = insert_stmt!(
+                    new,
+                    v,
+                    Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[4]),
+                )
                 e = Expr(:call, GlobalRef(Semantic, :ctrl), stmt.args[2], local_location, local_ctrl)
             elseif type === :measure
                 cvar, measure = _extract_measure(stmt)
@@ -217,7 +252,11 @@ function create_codeinfo(::typeof(Semantic.gate), S::Type{<:RoutineSpec})
                 if length(measure.args) == 2
                     measure_locs = locations
                 else
-                    measure_locs = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]))
+                    measure_locs = insert_stmt!(
+                        new,
+                        v,
+                        Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]),
+                    )
                 end
 
                 # TODO: handle measure operator
@@ -228,7 +267,11 @@ function create_codeinfo(::typeof(Semantic.gate), S::Type{<:RoutineSpec})
                     e = Expr(:(=), cvar, measure_ex)
                 end
             elseif type === :barrier
-                local_location = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[2]))
+                local_location = insert_stmt!(
+                    new,
+                    v,
+                    Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[2]),
+                )
                 e = Expr(:call, GlobalRef(Semantic, :barrier), local_location)
             end
         end
@@ -259,17 +302,37 @@ function create_codeinfo(::typeof(Semantic.ctrl), S::Type{<:RoutineSpec})
         if is_quantum_statement(stmt)
             type = quantum_stmt_type(stmt)
             if type === :gate
-                local_location = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]))
+                local_location = insert_stmt!(
+                    new,
+                    v,
+                    Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]),
+                )
                 e = Expr(:call, GlobalRef(Semantic, :ctrl), stmt.args[2], local_location, ctrl)
             elseif type === :ctrl
-                local_location = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]))
-                local_ctrl = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[4]))
-                real_ctrl = insert_stmt!(new, v, Expr(:call, GlobalRef(YaoLang, :merge_locations), local_ctrl, ctrl))
+                local_location = insert_stmt!(
+                    new,
+                    v,
+                    Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[3]),
+                )
+                local_ctrl = insert_stmt!(
+                    new,
+                    v,
+                    Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[4]),
+                )
+                real_ctrl = insert_stmt!(
+                    new,
+                    v,
+                    Expr(:call, GlobalRef(YaoLang, :merge_locations), local_ctrl, ctrl),
+                )
                 e = Expr(:call, GlobalRef(Semantic, :ctrl), stmt.args[2], local_location, real_ctrl)
             elseif type === :measure
                 error("cannot use measure under a quantum control context")
             elseif type === :barrier
-                local_location = insert_stmt!(new, v, Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[2]))
+                local_location = insert_stmt!(
+                    new,
+                    v,
+                    Expr(:call, GlobalRef(Base, :getindex), locations, stmt.args[2]),
+                )
                 e = Expr(:call, GlobalRef(Semantic, :barrier), local_location)
             end
         end
@@ -299,12 +362,12 @@ end
 end
 
 function _prepare_frame(f, spec, args...)
-    method = methods(f, Tuple{spec, args...})|>first
-    atypes = Tuple{typeof(f), spec, args...}
+    method = methods(f, Tuple{spec,args...}) |> first
+    atypes = Tuple{typeof(f),spec,args...}
     mi = Core.Compiler.specialize_method(method, atypes, Core.svec())
     result = Core.Compiler.InferenceResult(mi, Any[Core.Const(f), spec, args...])
     world = Core.Compiler.get_world_counter()
     interp = YaoLang.Compiler.YaoInterpreter(;)
-    frame = Core.Compiler.InferenceState(result, #=cached=# true, interp)
+    frame = Core.Compiler.InferenceState(result, true, interp) #=cached=#
     return interp, frame
 end

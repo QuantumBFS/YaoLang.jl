@@ -1,6 +1,6 @@
 export @code_yao, @code_qasm
 
-function code_qasm(spec::RoutineSpec; optimize=false, gate=false, passes=Symbol[])
+function code_qasm(spec::RoutineSpec; optimize = false, gate = false, passes = Symbol[])
     ci, _ = code_yao(Semantic.main, spec; optimize, passes)
     target = gate ? TargetQASMGate() : TargetQASMTopLevel()
     return codegen(target, ci)
@@ -21,7 +21,7 @@ function code_qasm_m(exs...)
     end
 
     isnothing(call) && error("expect a routine call")
-    
+
     return quote
         $code_qasm($call; $(options...))
     end
@@ -42,20 +42,20 @@ macro code_qasm(exs...)
     esc(code_qasm_m(exs...))
 end
 
-function code_yao(f, spec::RoutineSpec, args...; optimize::Bool=false, passes=Symbol[])
+function code_yao(f, spec::RoutineSpec, args...; optimize::Bool = false, passes = Symbol[])
     if passes isa Symbol
         passes = [passes]
     end
 
     if optimize
-        passes = isempty(passes) ? default_passes() : filter(x->x!==:julia, passes)
+        passes = isempty(passes) ? default_passes() : filter(x -> x !== :julia, passes)
         run_optimizer = true
     elseif :julia in passes
         run_optimizer = true
-        passes = filter(x->x!==:julia, passes)
+        passes = filter(x -> x !== :julia, passes)
     else
         if !isempty(passes)
-            passes = filter(x->x!==:julia, passes)
+            passes = filter(x -> x !== :julia, passes)
             run_optimizer = true
         else
             run_optimizer = false
@@ -72,11 +72,11 @@ function code_yao(f, spec::RoutineSpec, args...; optimize::Bool=false, passes=Sy
     ccall(:jl_typeinf_begin, Cvoid, ())
     result = Core.Compiler.InferenceResult(mi)
     world = Core.Compiler.get_world_counter()
-    interp = YaoLang.Compiler.YaoInterpreter(;passes=passes)
+    interp = YaoLang.Compiler.YaoInterpreter(; passes = passes)
 
     # NOTE: we need to run optimizer manually on current frame
     # if cache is false
-    frame = Core.Compiler.InferenceState(result, #=cached=# false, interp)
+    frame = Core.Compiler.InferenceState(result, false, interp) #=cached=#
     Core.Compiler.typeinf(interp, frame)
     if run_optimizer
         opt = OptimizationState(frame, OptimizationParams(interp), interp)
@@ -108,9 +108,13 @@ function code_yao_m(exs...)
         end
     end
 
-    return Expr(:call, code_yao,
+    return Expr(
+        :call,
+        code_yao,
         Expr(:parameters, options...),
-        GlobalRef(Semantic, head), call, args...
+        GlobalRef(Semantic, head),
+        call,
+        args...,
     )
 end
 

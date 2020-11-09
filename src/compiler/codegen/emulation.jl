@@ -19,11 +19,22 @@
     return codegen_ast(Semantic.main, spec)
 end
 
-@generated function execute(::typeof(Semantic.gate), ::AbstractRegister, spec::RoutineSpec, ::Locations)
+@generated function execute(
+    ::typeof(Semantic.gate),
+    ::AbstractRegister,
+    spec::RoutineSpec,
+    ::Locations,
+)
     return codegen_ast(Semantic.gate, spec)
 end
 
-@generated function execute(::typeof(Semantic.ctrl), ::AbstractRegister, spec::RoutineSpec, ::Locations, ::CtrlLocations)
+@generated function execute(
+    ::typeof(Semantic.ctrl),
+    ::AbstractRegister,
+    spec::RoutineSpec,
+    ::Locations,
+    ::CtrlLocations,
+)
     return codegen_ast(Semantic.ctrl, spec)
 end
 
@@ -68,14 +79,30 @@ function replace_with_execute(ci::CodeInfo)
         if is_quantum_statement(stmt)
             t = quantum_stmt_type(stmt)
             if t === :measure
-                cvar, measure =  _extract_measure(stmt)
-                e = Expr(:call, GlobalRef(Compiler, :execute), GlobalRef(Semantic, t), register, measure.args[2:end]...)
+                cvar, measure = _extract_measure(stmt)
+                e = Expr(
+                    :call,
+                    GlobalRef(Compiler, :execute),
+                    GlobalRef(Semantic, t),
+                    register,
+                    measure.args[2:end]...,
+                )
                 if !isnothing(cvar)
                     e = Expr(:(=), cvar, e)
                 end
                 push_stmt!(new, e, codeloc)
             else
-                push_stmt!(new, Expr(:call, GlobalRef(Compiler, :execute), GlobalRef(Semantic, t), register, stmt.args[2:end]...), codeloc)
+                push_stmt!(
+                    new,
+                    Expr(
+                        :call,
+                        GlobalRef(Compiler, :execute),
+                        GlobalRef(Semantic, t),
+                        register,
+                        stmt.args[2:end]...,
+                    ),
+                    codeloc,
+                )
             end
         else
             push_stmt!(new, stmt, codeloc)

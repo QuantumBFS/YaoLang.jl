@@ -37,19 +37,8 @@ YaoLang.Compiler.gate_count(demo_circ_simp())
 
 @testset "gate_count" begin
     @test gate_count(demo_circ_simp()) == Dict(
-        :ctrl => IdDict(
-            Z=>1,
-            X=>4,
-        ),
-
-        :gate => IdDict(
-            T => 2,
-            H => 8,
-            Rx => 1,
-            X => 2,
-            S => 4,
-            shift=>2,
-        ),
+        :ctrl => IdDict(Z => 1, X => 4),
+        :gate => IdDict(T => 2, H => 8, Rx => 1, X => 2, S => 4, shift => 2),
     )
 end
 

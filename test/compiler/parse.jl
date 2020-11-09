@@ -229,7 +229,7 @@ include "qelib1.inc";
 """
 
 @testset "qasm gate codegen" begin
-    ast = @code_qasm gate=true cu3(0.1, 0.2, 0.3)
+    ast = @code_qasm gate = true cu3(0.1, 0.2, 0.3)
     @test ast isa Parse.Gate
     @test length(ast.decl.cargs) == 3
     @test length(ast.decl.qargs) == 2
@@ -254,7 +254,7 @@ include "qelib1.inc";
 end
 
 @testset "@code_qasm optimize=true passes=:julia gate=true" begin
-    ast = @code_qasm optimize=true passes=:julia gate=true cu3(0.1, 0.2, 0.3)
+    ast = @code_qasm optimize = true passes = :julia gate = true cu3(0.1, 0.2, 0.3)
     @test ast.body[1] isa Parse.Instruction
     @test ast.body[1].name == "Rz"
     @test ast.body[1].cargs[1] isa Token{:int}
@@ -289,7 +289,7 @@ end
 
     @test ast.body[6] isa Parse.Instruction
     @test ast.body[6].name == "Ry"
-    @test ast.body[6].cargs[1].str == "0"    
+    @test ast.body[6].cargs[1].str == "0"
 end
 
 end # TestParse
