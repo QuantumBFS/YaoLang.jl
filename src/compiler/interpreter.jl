@@ -10,23 +10,38 @@ end
 
 default_passes() = [:zx]
 
-YaoInterpreter(;passes::Vector{Symbol}=default_passes()) = YaoInterpreter(Core.Compiler.NativeInterpreter(), passes)
+YaoInterpreter(; passes::Vector{Symbol} = default_passes()) =
+    YaoInterpreter(Core.Compiler.NativeInterpreter(), passes)
 
 InferenceParams(interp::YaoInterpreter) = InferenceParams(interp.native_interpreter)
 OptimizationParams(interp::YaoInterpreter) = OptimizationParams(interp.native_interpreter)
-YaoOptimizationParams(interp::YaoInterpreter) = YaoOptimizationParams(OptimizationParams(interp), interp.passes)
+YaoOptimizationParams(interp::YaoInterpreter) =
+    YaoOptimizationParams(OptimizationParams(interp), interp.passes)
 Core.Compiler.get_world_counter(interp::YaoInterpreter) = get_world_counter(interp.native_interpreter)
-Core.Compiler.get_inference_cache(interp::YaoInterpreter) = get_inference_cache(interp.native_interpreter)
+Core.Compiler.get_inference_cache(interp::YaoInterpreter) =
+    get_inference_cache(interp.native_interpreter)
 Core.Compiler.code_cache(interp::YaoInterpreter) = Core.Compiler.code_cache(interp.native_interpreter)
-Core.Compiler.may_optimize(interp::YaoInterpreter) = Core.Compiler.may_optimize(interp.native_interpreter)
-Core.Compiler.may_discard_trees(interp::YaoInterpreter) = Core.Compiler.may_discard_trees(interp.native_interpreter)
-Core.Compiler.may_compress(interp::YaoInterpreter) = Core.Compiler.may_compress(interp.native_interpreter)
-Core.Compiler.unlock_mi_inference(interp::YaoInterpreter, mi::Core.MethodInstance) = Core.Compiler.unlock_mi_inference(interp.native_interpreter, mi)
-Core.Compiler.lock_mi_inference(interp::YaoInterpreter, mi::Core.MethodInstance) = Core.Compiler.lock_mi_inference(interp.native_interpreter, mi)
-Core.Compiler.add_remark!(interp::YaoInterpreter, st::Core.Compiler.InferenceState, msg::String) = nothing # println(msg)
+Core.Compiler.may_optimize(interp::YaoInterpreter) =
+    Core.Compiler.may_optimize(interp.native_interpreter)
+Core.Compiler.may_discard_trees(interp::YaoInterpreter) =
+    Core.Compiler.may_discard_trees(interp.native_interpreter)
+Core.Compiler.may_compress(interp::YaoInterpreter) =
+    Core.Compiler.may_compress(interp.native_interpreter)
+Core.Compiler.unlock_mi_inference(interp::YaoInterpreter, mi::Core.MethodInstance) =
+    Core.Compiler.unlock_mi_inference(interp.native_interpreter, mi)
+Core.Compiler.lock_mi_inference(interp::YaoInterpreter, mi::Core.MethodInstance) =
+    Core.Compiler.lock_mi_inference(interp.native_interpreter, mi)
+Core.Compiler.add_remark!(interp::YaoInterpreter, st::Core.Compiler.InferenceState, msg::String) =
+    nothing # println(msg)
 
-function Core.Compiler.abstract_eval_statement(interp::YaoInterpreter, @nospecialize(e), vtypes::VarTable, sv::InferenceState)    
-    is_quantum_statement(e) || return Core.Compiler.abstract_eval_statement(interp.native_interpreter, e, vtypes, sv)
+function Core.Compiler.abstract_eval_statement(
+    interp::YaoInterpreter,
+    @nospecialize(e),
+    vtypes::VarTable,
+    sv::InferenceState,
+)
+    is_quantum_statement(e) ||
+        return Core.Compiler.abstract_eval_statement(interp.native_interpreter, e, vtypes, sv)
     qt = quantum_stmt_type(e)
 
     if qt === :measure
@@ -35,7 +50,7 @@ function Core.Compiler.abstract_eval_statement(interp::YaoInterpreter, @nospecia
         ea = e.args
         n = length(ea)
         argtypes = Vector{Any}(undef, n)
-        @inbounds for i = 1:n
+        @inbounds for i in 1:n
             ai = Core.Compiler.abstract_eval_value(interp, ea[i], vtypes, sv)
             if ai === Core.Compiler.Bottom
                 return Core.Compiler.Bottom
@@ -83,13 +98,15 @@ function Core.Compiler.typeinf(interp::YaoInterpreter, frame::InferenceState)
         @assert !(caller.dont_work_on_me)
         caller.dont_work_on_me = true
     end
-    
+
     for caller in frames
         Core.Compiler.finish(caller, interp)
     end
     # collect results for the new expanded frame
-    results = Tuple{InferenceResult, Bool}[ ( frames[i].result,
-        frames[i].cached || frames[i].parent !== nothing ) for i in 1:length(frames) ]
+    results = Tuple{InferenceResult,Bool}[
+        (frames[i].result, frames[i].cached || frames[i].parent !== nothing)
+        for i in 1:length(frames)
+    ]
 
     valid_worlds = frame.valid_worlds
     cached = frame.cached
@@ -127,7 +144,8 @@ function Core.Compiler.typeinf(interp::YaoInterpreter, frame::InferenceState)
         end
     end
     if Core.Compiler.last(valid_worlds) == Core.Compiler.get_world_counter()
-        valid_worlds = Core.Compiler.WorldRange(Core.Compiler.first(valid_worlds), Core.Compiler.typemax(UInt))
+        valid_worlds =
+            Core.Compiler.WorldRange(Core.Compiler.first(valid_worlds), Core.Compiler.typemax(UInt))
     end
     for caller in frames
         caller.valid_worlds = valid_worlds
@@ -150,9 +168,10 @@ function Core.Compiler.typeinf(interp::YaoInterpreter, frame::InferenceState)
 end
 
 function is_semantic_fn_call(e)
-    return e isa Expr && e.head === :call &&
-        e.args[1] isa GlobalRef &&
-            e.args[1].mod === YaoLang.Compiler.Semantic
+    return e isa Expr &&
+           e.head === :call &&
+           e.args[1] isa GlobalRef &&
+           e.args[1].mod === YaoLang.Compiler.Semantic
 end
 
 function convert_to_quantum_head!(ci::CodeInfo)

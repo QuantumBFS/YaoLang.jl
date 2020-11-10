@@ -10,27 +10,38 @@ function Compiler.execute(::typeof(Compiler.Semantic.main), ::EchoReg, op::Intri
     return
 end
 
-function Compiler.execute(::typeof(Compiler.Semantic.gate), ::EchoReg, op::IntrinsicSpec, loc::Locations)
-    loc = sprint(print_locations, loc; context=:color=>true)
+function Compiler.execute(
+    ::typeof(Compiler.Semantic.gate),
+    ::EchoReg,
+    op::IntrinsicSpec,
+    loc::Locations,
+)
+    loc = sprint(print_locations, loc; context = :color => true)
     @info "executing $loc => $op"
     return
 end
 
-function Compiler.execute(::typeof(Compiler.Semantic.ctrl), ::EchoReg, op::IntrinsicSpec, loc::Locations, ctrl::CtrlLocations)
-    loc = sprint(print_locations, loc; context=:color=>true)
-    ctrl = sprint(print_locations, ctrl; context=:color=>true)
+function Compiler.execute(
+    ::typeof(Compiler.Semantic.ctrl),
+    ::EchoReg,
+    op::IntrinsicSpec,
+    loc::Locations,
+    ctrl::CtrlLocations,
+)
+    loc = sprint(print_locations, loc; context = :color => true)
+    ctrl = sprint(print_locations, ctrl; context = :color => true)
     @info "executing @ctrl $(ctrl) $loc => $op"
     return
 end
 
 function Compiler.execute(::typeof(Compiler.Semantic.measure), ::EchoReg, loc::Locations)
-    loc = sprint(print_locations, loc; context=:color=>true)
+    loc = sprint(print_locations, loc; context = :color => true)
     @info "executing @measure $loc"
     return 0
 end
 
 function Compiler.execute(::typeof(Compiler.Semantic.barrier), ::EchoReg, loc::Locations)
-    loc = sprint(print_locations, loc; context=:color=>true)
+    loc = sprint(print_locations, loc; context = :color => true)
     @info "executing @barrier $loc"
     return
 end
@@ -58,7 +69,7 @@ function Base.show(io::IO, tape::TraceTape)
     nstmt = length(tape.inst)
     for i in 1:nstmt
         stmt = tape.inst[i]
-        printstyled(io, nameof(stmt.args[1]); color=:light_blue)
+        printstyled(io, nameof(stmt.args[1]); color = :light_blue)
         print(io, "\t"^2)
 
         for (i, each) in enumerate(stmt.args[2:end])
@@ -81,12 +92,23 @@ function Compiler.execute(stub::typeof(Compiler.Semantic.main), r::TraceTape, op
     return
 end
 
-function Compiler.execute(stub::typeof(Compiler.Semantic.gate), r::TraceTape, op::IntrinsicSpec, loc::Locations)
+function Compiler.execute(
+    stub::typeof(Compiler.Semantic.gate),
+    r::TraceTape,
+    op::IntrinsicSpec,
+    loc::Locations,
+)
     push!(r.inst, Expr(:call, stub, op, loc))
     return
 end
 
-function Compiler.execute(stub::typeof(Compiler.Semantic.ctrl), r::TraceTape, op::IntrinsicSpec, loc::Locations, ctrl::CtrlLocations)
+function Compiler.execute(
+    stub::typeof(Compiler.Semantic.ctrl),
+    r::TraceTape,
+    op::IntrinsicSpec,
+    loc::Locations,
+    ctrl::CtrlLocations,
+)
     push!(r.inst, Expr(:call, stub, op, loc, ctrl))
     return
 end
@@ -107,7 +129,13 @@ function trace_m(ex)
         # execute(gate/ctrl, tape, spec, loc[, ctrl])
         return quote
             $tape = $TraceTape()
-            $(Expr(:call, Compiler.execute, GlobalRef(Compiler.Semantic, ex.args[1]), tape, ex.args[2:end]...))
+            $(Expr(
+                :call,
+                Compiler.execute,
+                GlobalRef(Compiler.Semantic, ex.args[1]),
+                tape,
+                ex.args[2:end]...,
+            ))
             $tape
         end
     else
@@ -124,7 +152,13 @@ function echo_m(ex)
     ex isa Expr && ex.head === :call || error("expect a function call")
     tape = gensym(:tape)
     if ex.args[1] in (:gate, :ctrl)
-        return Expr(:call, Compiler.execute, GlobalRef(Compiler.Semantic, ex.args[1]), EchoReg(), ex.args[2:end]...)
+        return Expr(
+            :call,
+            Compiler.execute,
+            GlobalRef(Compiler.Semantic, ex.args[1]),
+            EchoReg(),
+            ex.args[2:end]...,
+        )
     else
         return Expr(:call, Compiler.execute, GlobalRef(Compiler.Semantic, :main), EchoReg(), ex)
     end

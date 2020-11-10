@@ -33,7 +33,7 @@ Base.convert(::Type{String}, t::Token{:str}) = String(t.str[2:end-1])
 # NOTE: U(sin(pi/4), sin(pi/8))
 # is not corrently parsed
 
-print_kw(io::IO, xs...) = printstyled(io, xs...; color=:light_blue)
+print_kw(io::IO, xs...) = printstyled(io, xs...; color = :light_blue)
 
 function print_list(io::IO, list::Vector)
     for k in eachindex(list)
@@ -48,7 +48,7 @@ end
 print_list(io::IO, x) = print_qasm(io, x)
 
 print_qasm(ast) = print_qasm(stdout, ast)
-print_qasm(io::IO) = x->print_qasm(io, x)
+print_qasm(io::IO) = x -> print_qasm(io, x)
 print_qasm(io::IO, ::Nothing) = nothing
 
 print_qasm(io::IO, t::Token) = print(io, t.str)
@@ -58,15 +58,15 @@ function print_qasm(io::IO, t::Token{:reserved})
 end
 
 function print_qasm(io::IO, stmt::RBNF.Token{:id})
-    printstyled(io, stmt.str; color=:light_cyan)
+    printstyled(io, stmt.str; color = :light_cyan)
 end
 
 function print_qasm(io::IO, stmt::RBNF.Token{:float64})
-    printstyled(io, stmt.str; color=:green)
+    printstyled(io, stmt.str; color = :green)
 end
 
 function print_qasm(io::IO, stmt::RBNF.Token{:int})
-    printstyled(io, stmt.str; color=:green)
+    printstyled(io, stmt.str; color = :green)
 end
 
 # NOTE:
@@ -92,20 +92,20 @@ end
 Base.show(io::IO, x::MainProgram) = print_qasm(io, x)
 
 function print_qasm(io::IO, x::MainProgram)
-    printstyled(io, "OPENQASM "; bold=true)
-    printstyled(io, x.version.major, ".", x.version.minor; color=:yellow)
+    printstyled(io, "OPENQASM "; bold = true)
+    printstyled(io, x.version.major, ".", x.version.minor; color = :yellow)
     println(io)
 
     for k in 1:length(x.prog)
         stmt = x.prog[k]
         print_qasm(io, stmt)
-        
+
         # print extra line
         # when there is a gate decl
         if stmt isa Gate
             println(io)
         end
-        
+
         if k != length(x.prog)
             println(io)
         end
@@ -113,9 +113,9 @@ function print_qasm(io::IO, x::MainProgram)
 end
 
 struct IfStmt
-    left
-    right
-    body
+    left::Any
+    right::Any
+    body::Any
 end
 
 function print_qasm(io::IO, stmt::IfStmt)
@@ -130,7 +130,7 @@ end
 
 
 struct Opaque
-    name
+    name::Any
     cargs::Vector{Any}
     qargs::Vector{Any}
 
@@ -165,9 +165,9 @@ function print_qasm(io::IO, stmt::Barrier)
 end
 
 struct RegDecl
-    type
-    name
-    size
+    type::Any
+    name::Any
+    size::Any
 end
 
 function print_qasm(io::IO, stmt::RegDecl)
@@ -180,7 +180,7 @@ function print_qasm(io::IO, stmt::RegDecl)
 end
 
 struct Include
-    file
+    file::Any
 end
 
 function print_qasm(io::IO, stmt::Include)
@@ -190,12 +190,12 @@ function print_qasm(io::IO, stmt::Include)
 end
 
 struct GateDecl
-    name
+    name::Any
     # we remove type annotations for now
     # due to JuliaLang/julia/issues/38091
     cargs::Vector{Any}
     qargs::Vector{Any}
-    
+
     function GateDecl(name, cargs, qargs)
         new(name, _force_any(cargs), _force_any(qargs))
     end
@@ -235,7 +235,7 @@ end
 Base.show(io::IO, x::Gate) = print_qasm(io, x)
 
 struct Reset
-    qarg
+    qarg::Any
 end
 
 function print_qasm(io::IO, stmt::Reset)
@@ -244,8 +244,8 @@ function print_qasm(io::IO, stmt::Reset)
 end
 
 struct Measure
-    qarg
-    carg
+    qarg::Any
+    carg::Any
 end
 
 function print_qasm(io::IO, stmt::Measure)
@@ -267,7 +267,7 @@ struct Instruction
 end
 
 function print_qasm(io::IO, stmt::Instruction)
-    printstyled(io, stmt.name; color=:light_magenta)
+    printstyled(io, stmt.name; color = :light_magenta)
 
     if !isempty(stmt.cargs)
         print(io, "(")
@@ -280,10 +280,10 @@ function print_qasm(io::IO, stmt::Instruction)
 end
 
 struct UGate
-    z1
-    y
-    z2
-    qarg
+    z1::Any
+    y::Any
+    z2::Any
+    qarg::Any
 end
 
 function print_qasm(io::IO, stmt::UGate)
@@ -300,8 +300,8 @@ function print_qasm(io::IO, stmt::UGate)
 end
 
 struct CXGate
-    ctrl
-    qarg
+    ctrl::Any
+    qarg::Any
 end
 
 function print_qasm(io::IO, stmt::CXGate)
@@ -313,8 +313,8 @@ function print_qasm(io::IO, stmt::CXGate)
 end
 
 struct Bit
-    name
-    address
+    name::Any
+    address::Any
 end
 
 function Bit(name::String, address::Int)
@@ -334,7 +334,7 @@ end
 
 struct FnExp
     fn::Symbol
-    arg
+    arg::Any
 end
 
 function print_qasm(io::IO, stmt::FnExp)
@@ -345,7 +345,7 @@ function print_qasm(io::IO, stmt::FnExp)
 end
 
 struct Negative
-    value
+    value::Any
 end
 
 function print_qasm(io::IO, stmt::Negative)
@@ -359,8 +359,8 @@ function print_qasm(io::IO, stmt::Tuple)
         print(io, "(")
     end
 
-    foreach(print_qasm(IOContext(io, :parathesis=>true)), stmt)
-    
+    foreach(print_qasm(IOContext(io, :parathesis => true)), stmt)
+
     if get(io, :parathesis, false)
         print(io, ")")
     end
@@ -370,7 +370,7 @@ RBNF.typename(::Type{QASMLang}, name::Symbol) = Symbol(:S_, name)
 
 RBNF.@parser QASMLang begin
     # define ignorances
-    ignore{space, comment}
+    ignore{space,comment}
 
     @grammar
     # define grammars
@@ -448,7 +448,7 @@ mutable struct VirtualRegister
 end
 
 mutable struct RegisterRecord
-    map::Dict{String, VirtualRegister}
+    map::Dict{String,VirtualRegister}
     nqubits::Int
     ncbits::Int
 end
@@ -461,13 +461,13 @@ end
 Base.getindex(x::RegisterRecord, key) = x.map[key]
 Base.getindex(x::VirtualRegister, xs...) = x.address[xs...]
 
-RegisterRecord() = RegisterRecord(Dict{String, UnitRange{Int}}(), 0, 0)
+RegisterRecord() = RegisterRecord(Dict{String,UnitRange{Int}}(), 0, 0)
 GateRegisterRecord() = GateRegisterRecord(Dict(), 0)
 
 struct Ctx
     m::Module
     source::LineNumberNode
-    record
+    record::Any
 end
 
 parse(m::Module, source::String) = parse(m::Module, LineNumberNode(0), source)
@@ -562,10 +562,7 @@ function parse(m::Module, l::LineNumberNode, ast::Parse.MainProgram)
     # create an anoymous routine
     # if there are global statements
     if !isempty(body.args)
-        def = Dict{Symbol, Any}(
-            :name => gensym(:qasm),
-            :body => body,
-        )
+        def = Dict{Symbol,Any}(:name => gensym(:qasm), :body => body)
         push!(code.args, YaoLang.Compiler.device_def(def))
     end
     return code
@@ -582,7 +579,7 @@ function parse(ctx::Ctx, stmt::Parse.Gate)
         push!(body.args, parse(new_ctx, each))
     end
 
-    def = Dict(:name=>name, :args=>args, :body=>body)
+    def = Dict(:name => name, :args => args, :body => body)
     return YaoLang.Compiler.device_def(def)
 end
 
@@ -597,22 +594,24 @@ function parse_gate_registers(stmt::Vector)
 end
 
 semantic_gate(gate, locs) = Expr(:call, GlobalRef(YaoLang.Compiler.Semantic, :gate), gate, locs)
-semantic_ctrl(gate, locs, ctrl) = Expr(:call, GlobalRef(YaoLang.Compiler.Semantic, :ctrl), gate, locs, ctrl)
+semantic_ctrl(gate, locs, ctrl) =
+    Expr(:call, GlobalRef(YaoLang.Compiler.Semantic, :ctrl), gate, locs, ctrl)
 
 function parse(ctx::Ctx, stmt::Parse.UGate)
     code = Expr(:block)
     locs = parse(ctx, stmt.qarg)
-    push!(code.args,
-        semantic_gate(Expr(:call, GlobalRef(Gate, :Rz), parse(ctx, stmt.z1)), locs))
-    push!(code.args,
-        semantic_gate(Expr(:call, GlobalRef(Gate, :Ry), parse(ctx, stmt.y)), locs))
-    push!(code.args,
-        semantic_gate(Expr(:call, GlobalRef(Gate, :Rz), parse(ctx, stmt.z2)), locs))
+    push!(code.args, semantic_gate(Expr(:call, GlobalRef(Gate, :Rz), parse(ctx, stmt.z1)), locs))
+    push!(code.args, semantic_gate(Expr(:call, GlobalRef(Gate, :Ry), parse(ctx, stmt.y)), locs))
+    push!(code.args, semantic_gate(Expr(:call, GlobalRef(Gate, :Rz), parse(ctx, stmt.z2)), locs))
     return code
 end
 
 function parse(ctx::Ctx, stmt::Parse.CXGate)
-    return semantic_ctrl(GlobalRef(Gate, :X), parse(ctx, stmt.qarg), CtrlLocations(parse(ctx, stmt.ctrl)))
+    return semantic_ctrl(
+        GlobalRef(Gate, :X),
+        parse(ctx, stmt.qarg),
+        CtrlLocations(parse(ctx, stmt.ctrl)),
+    )
 end
 
 function parse(ctx::Ctx, stmt::Parse.IfStmt)
@@ -630,9 +629,10 @@ function parse(ctx::Ctx, stmt::Parse.Measure)
 end
 
 function parse(ctx::Ctx, stmt::Parse.Barrier)
-    return Expr(:call,
+    return Expr(
+        :call,
         GlobalRef(YaoLang.Compiler.Semantic, :barrier),
-        parse_locations(ctx, stmt.qargs)
+        parse_locations(ctx, stmt.qargs),
     )
 end
 
@@ -686,7 +686,7 @@ function parse(ctx::Ctx, stmt::Parse.Bit)
             return Locations(r[:])
         else
             address = parse(stmt.address)
-            return Locations(r[address + 1])
+            return Locations(r[address+1])
         end
     else
         return Locations(record.map[stmt.name.str])
@@ -698,7 +698,7 @@ parse(ctx::Ctx, stmt::Parse.Negative) = Expr(:call, -, parse(ctx, stmt.value))
 function parse(ctx::Ctx, stmt::Tuple)
     length(stmt) == 3 || throw(Meta.ParseError("unrecognized expression: $stmt"))
     stmt[2]::RBNF.Token
-    if stmt[2].str in ("+" , "-" , "*" , "/")
+    if stmt[2].str in ("+", "-", "*", "/")
         return Expr(:call, Symbol(stmt[2].str), parse(ctx, stmt[1]), parse(ctx, stmt[3]))
     else
         throw(Meta.ParseError("unrecognized expression: $stmt"))

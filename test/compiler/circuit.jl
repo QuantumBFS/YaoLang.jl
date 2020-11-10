@@ -38,7 +38,7 @@ end
 @testset "tracing" begin
     tape1 = YaoLang.@trace qft(4)
     tape2 = YaoLang.@trace qft4()
-    @test tape1 == tape2    
+    @test tape1 == tape2
 end
 
 struct Foo
@@ -55,7 +55,8 @@ end
     m = Foo(1, 2)
     tape = YaoLang.@trace m(0.1)
     @test length(tape) == 1
-    @test tape[1] == Expr(:call, YaoLang.Compiler.Semantic.ctrl, Gate.shift(0.1), Locations(2), CtrlLocations(1))
+    @test tape[1] ==
+          Expr(:call, YaoLang.Compiler.Semantic.ctrl, Gate.shift(0.1), Locations(2), CtrlLocations(1))
 end
 
 end
