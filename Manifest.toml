@@ -1,5 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
+[[ArgTools]]
+uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
+
 [[ArnoldiMethod]]
 deps = ["DelimitedFiles", "LinearAlgebra", "Random", "SparseArrays", "StaticArrays", "Test"]
 git-tree-sha1 = "2b6845cea546604fb4dca4e31414a6a59d39ddcd"
@@ -42,19 +45,62 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
+[[Downloads]]
+deps = ["ArgTools", "LibCURL", "NetworkOptions"]
+uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
+
 [[ExprTools]]
 git-tree-sha1 = "7fce513fcda766962ff67c5596cb16c463dfd371"
 uuid = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
 version = "0.1.2"
+
+[[HTTP]]
+deps = ["Base64", "Dates", "IniFile", "MbedTLS", "Sockets", "URIs"]
+git-tree-sha1 = "9634200f8e16554cb1620dfb20501483b873df86"
+uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+version = "0.9.0"
+
+[[IBMQClient]]
+deps = ["HTTP", "JSON", "OpenQASM", "URIs", "UUIDs"]
+git-tree-sha1 = "165d0069e07fdc5fcc7419c217065c980efd5bfe"
+repo-rev = "master"
+repo-url = "https://github.com/QuantumBFS/IBMQClient.jl.git"
+uuid = "02860bad-daa6-4506-8736-4a3616c18085"
+version = "0.1.0"
 
 [[Inflate]]
 git-tree-sha1 = "f5fc07d4e706b84f72d54eedcc1c13d92fb0871c"
 uuid = "d25df0c9-e2be-5dd7-82c8-3ad0b3e990b9"
 version = "0.1.2"
 
+[[IniFile]]
+deps = ["Test"]
+git-tree-sha1 = "098e4d2c533924c921f9f9847274f2ad89e018b8"
+uuid = "83e8ac13-25f8-5344-8a64-a9f2b223428f"
+version = "0.5.0"
+
 [[InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+
+[[JLLWrappers]]
+git-tree-sha1 = "c70593677bbf2c3ccab4f7500d0f4dacfff7b75c"
+uuid = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
+version = "1.1.3"
+
+[[JSON]]
+deps = ["Dates", "Mmap", "Parsers", "Unicode"]
+git-tree-sha1 = "81690084b6198a2e1da36fcfda16eeca9f9f24e4"
+uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+version = "0.21.1"
+
+[[LibCURL]]
+deps = ["LibCURL_jll", "MozillaCACerts_jll"]
+uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
+
+[[LibCURL_jll]]
+deps = ["Libdl"]
+uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
 
 [[LibGit2]]
 deps = ["Printf"]
@@ -97,8 +143,23 @@ version = "0.5.5"
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
+[[MbedTLS]]
+deps = ["Dates", "MbedTLS_jll", "Random", "Sockets"]
+git-tree-sha1 = "1c38e51c3d08ef2278062ebceade0e46cefc96fe"
+uuid = "739be429-bea8-5141-9913-cc70e7f3736d"
+version = "1.0.3"
+
+[[MbedTLS_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "47e19f64fc939b86dea2b9b5e38c29c787f0d581"
+uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
+version = "2.24.0+1"
+
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
+
+[[MozillaCACerts_jll]]
+uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 
 [[Multigraphs]]
 deps = ["LightGraphs", "LinearAlgebra", "SparseArrays"]
@@ -106,13 +167,28 @@ git-tree-sha1 = "2c2f502f5389879411e3399763388bfc848e9ef4"
 uuid = "7ebac608-6c66-46e6-9856-b5f43e107bac"
 version = "0.2.0"
 
+[[NetworkOptions]]
+uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
+
+[[OpenQASM]]
+deps = ["RBNF"]
+git-tree-sha1 = "4ac1d86bc8159382d2c0f663cceabbe9f2d730e5"
+uuid = "a8821629-a4c0-4df7-9e00-12969ff383a7"
+version = "1.0.0"
+
 [[OrderedCollections]]
 git-tree-sha1 = "16c08bf5dba06609fe45e30860092d6fa41fde7b"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 version = "1.3.1"
 
+[[Parsers]]
+deps = ["Dates"]
+git-tree-sha1 = "b417be52e8be24e916e34b3d70ec2da7bdf56a68"
+uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
+version = "1.0.12"
+
 [[Pkg]]
-deps = ["Artifacts", "Dates", "LibGit2", "Libdl", "Markdown", "Printf", "REPL", "Random", "SHA", "TOML", "UUIDs"]
+deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [[PrettyPrint]]
@@ -177,6 +253,10 @@ uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 deps = ["Dates"]
 uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 
+[[Tar]]
+deps = ["ArgTools", "SHA"]
+uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
+
 [[Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
@@ -186,6 +266,13 @@ deps = ["Printf"]
 git-tree-sha1 = "f458ca23ff80e46a630922c555d838303e4b9603"
 uuid = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 version = "0.5.6"
+
+[[URIs]]
+git-tree-sha1 = "0ee784c1bb4f652c187d67519123b9b928475cad"
+repo-rev = "joinpath"
+repo-url = "https://github.com/Roger-luo/URIs.jl.git"
+uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
+version = "1.0.1"
 
 [[UUIDs]]
 deps = ["Random", "SHA"]
@@ -197,6 +284,14 @@ uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 [[YaoAPI]]
 git-tree-sha1 = "dc4edfcda2e59fd2624f84941da040a4e30220e3"
 uuid = "0843a435-28de-4971-9e8b-a9641b2983a8"
+version = "0.1.0"
+
+[[YaoCompiler]]
+deps = ["BitBasis", "ExprTools", "LinearAlgebra", "LuxurySparse", "MLStyle", "OpenQASM", "RBNF", "TimerOutputs", "YaoAPI", "ZXCalculus"]
+git-tree-sha1 = "96aef6f080ec4e75a813818906416b6f1415b038"
+repo-rev = "master"
+repo-url = "https://github.com/QuantumBFS/YaoCompiler.jl.git"
+uuid = "b3514fdc-7bcc-425b-920a-42c43c8eb4b4"
 version = "0.1.0"
 
 [[ZXCalculus]]
