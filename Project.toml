@@ -5,6 +5,7 @@ version = "0.3.0"
 
 [deps]
 BitBasis = "50ba71b6-fa0f-514d-ae9a-0916efc90dcf"
+Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 IBMQClient = "02860bad-daa6-4506-8736-4a3616c18085"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 REPL = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
