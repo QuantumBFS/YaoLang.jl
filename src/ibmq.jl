@@ -1,11 +1,13 @@
 module IBMQ
 
+export @ibmq
+
 using YaoCompiler
 using IBMQClient
 using YaoAPI
 using REPL.TerminalMenus
 using Crayons.Box
-using IBMQClient: AccountInfo, IBMQDevice, DeviceMenu
+using IBMQClient: AccountInfo, JobInfo, DataInfo, IBMQDevice, DeviceMenu
 
 # RL: qiskit stores it on disk anyway, so I think it's fine for us to
 # store it temporarily in a Julia instance just for convenience
@@ -28,7 +30,7 @@ struct IBMQReg <: AbstractRegister{1}
 
     options::NamedTuple
     # max_credits::Int
-    # seed::Int 
+    # seed::Int
     # schema_version::String
     # type::String
     # memory::Bool
@@ -120,15 +122,23 @@ end
 
 function submit(r::IBMQReg, specs::RoutineSpec...)
     qobj = create_main_qobj(r, specs...)
-    IBMQClient.submit(r.account, r.device, qobj)
+    return IBMQClient.submit(r.account, r.device, qobj)
 end
 
+# syntax sugar
+# TODO: spawn a task in background to check status
+#       so we don't need to do that manually
+# function (spec::RoutineSpec)(r::IBMQReg)
+#     return submit(r, spec)
+# end
+
+# disable YaoLang entry
 function YaoCompiler.execute(::typeof(YaoCompiler.Semantic.main), ::IBMQReg, ::RoutineSpec)
     error("IBM Q devices is not fully compatible with YaoLang, please use @ibmq to define and submit jobs with a subset of YaoLang")
 end
 
 macro ibmq(ex...)
-    return ibmq_m(ex...)
+    return esc(ibmq_m(ex...))
 end
 
 function ibmq_m(ex...)
@@ -146,10 +156,9 @@ function ibmq_m(ex...)
     seq = gensym(:seq)
     return quote
         $seq = Any[]
-        $(esc(collect_experiments(seq, experiment)))
+        $(collect_experiments(seq, experiment))
         r = $IBMQReg(;$(kwargs...))
         $submit(r, $seq...)
-        r
     end
 end
 
