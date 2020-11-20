@@ -66,10 +66,8 @@ uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 version = "0.9.0"
 
 [[IBMQClient]]
-deps = ["Crayons", "HTTP", "JSON", "OpenQASM", "REPL", "URIs", "UUIDs"]
-git-tree-sha1 = "2fcdd5dd9bb26f2672ff6e7ca4df175a8e30c1f4"
-repo-rev = "master"
-repo-url = "https://github.com/QuantumBFS/IBMQClient.jl.git"
+deps = ["Crayons", "HTTP", "JSON", "OpenQASM", "REPL", "Serialization", "URIs", "UUIDs"]
+path = "../IBMQClient"
 uuid = "02860bad-daa6-4506-8736-4a3616c18085"
 version = "0.1.0"
 
@@ -291,9 +289,7 @@ version = "0.1.0"
 
 [[YaoCompiler]]
 deps = ["BitBasis", "ExprTools", "LinearAlgebra", "LuxurySparse", "MLStyle", "OpenQASM", "RBNF", "TimerOutputs", "YaoAPI", "ZXCalculus"]
-git-tree-sha1 = "96aef6f080ec4e75a813818906416b6f1415b038"
-repo-rev = "master"
-repo-url = "https://github.com/QuantumBFS/YaoCompiler.jl.git"
+path = "../YaoCompiler"
 uuid = "b3514fdc-7bcc-425b-920a-42c43c8eb4b4"
 version = "0.1.0"
 

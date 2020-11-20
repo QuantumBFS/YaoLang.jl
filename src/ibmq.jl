@@ -92,14 +92,18 @@ function IBMQReg(;
         dev = findfirst(x->x.name == device, devices)
         dev === nothing || error("device \"$device\" is not available.")
     end
+
     return IBMQReg(
         account, devices[choice], nshots,
-        memory_slots, nqubits, kw,
+        memory_slots, nqubits, NamedTuple(kw),
     )
 end
 
 function create_main_qobj(r::IBMQReg, specs::RoutineSpec...)
-    target = YaoCompiler.TargetQobjQASM(r.nshots, r.seed, r.max_credits)
+    target = YaoCompiler.TargetQobjQASM(;
+        nshots=r.nshots, max_credits = get(r.options, :max_credits, 3),
+        seed=get(r.options, :seed, 1)
+    )
 
     experiments = map(specs) do spec
         # TODO: support parametric routine spec, mark parameters as Const in typeinf
@@ -116,7 +120,7 @@ end
 
 function submit(r::IBMQReg, specs::RoutineSpec...)
     qobj = create_main_qobj(r, specs...)
-    IBMQClient.submit(r.account.project, r.device, qobj, r.account.access_token)
+    IBMQClient.submit(r.account, r.device, qobj)
 end
 
 function YaoCompiler.execute(::typeof(YaoCompiler.Semantic.main), ::IBMQReg, ::RoutineSpec)
