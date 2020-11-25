@@ -1,0 +1,281 @@
+# The configurations that used for the recording, feel free to edit them
+config:
+
+  # Specify a command to be executed
+  # like `/bin/bash -l`, `ls`, or any other commands
+  # the default is bash for Linux
+  # or powershell.exe for Windows
+  command: julia --project -i
+  
+  # Specify the current working directory path
+  # the default is the current working directory path
+  cwd: /Users/roger/julia_code/YaoLang
+  
+  # Export additional ENV variables
+  env:
+    recording: true
+  
+  # Explicitly set the number of columns
+  # or use `auto` to take the current
+  # number of columns of your shell
+  cols: 140
+  
+  # Explicitly set the number of rows
+  # or use `auto` to take the current
+  # number of rows of your shell
+  rows: 30
+  
+  # Amount of times to repeat GIF
+  # If value is -1, play once
+  # If value is 0, loop indefinitely
+  # If value is a positive number, loop n times
+  repeat: 0
+  
+  # Quality
+  # 1 - 100
+  quality: 100
+  
+  # Delay between frames in ms
+  # If the value is `auto` use the actual recording delays
+  frameDelay: auto
+  
+  # Maximum delay between frames in ms
+  # Ignored if the `frameDelay` isn't set to `auto`
+  # Set to `auto` to prevent limiting the max idle time
+  maxIdleTime: 2000
+  
+  # The surrounding frame box
+  # The `type` can be null, window, floating, or solid`
+  # To hide the title use the value null
+  # Don't forget to add a backgroundColor style with a null as type
+  frameBox:
+    type: floating
+    title: Terminalizer
+    style:
+      border: 0px black solid
+      # boxShadow: none
+      # margin: 0px
+  
+  # Add a watermark image to the rendered gif
+  # You need to specify an absolute path for
+  # the image on your machine or a URL, and you can also
+  # add your own CSS styles
+  watermark:
+    imagePath: null
+    style:
+      position: absolute
+      right: 15px
+      bottom: 15px
+      width: 100px
+      opacity: 0.9
+  
+  # Cursor style can be one of
+  # `block`, `underline`, or `bar`
+  cursorStyle: block
+  
+  # Font family
+  # You can use any font that is installed on your machine
+  # in CSS-like syntax
+  fontFamily: "Monaco, Lucida Console, Ubuntu Mono, Monospace"
+  
+  # The size of the font
+  fontSize: 12
+  
+  # The height of lines
+  lineHeight: 1
+  
+  # The spacing between letters
+  letterSpacing: 0
+  
+  # Theme
+  theme:
+    background: "transparent"
+    foreground: "#afafaf"
+    cursor: "#c7c7c7"
+    black: "#232628"
+    red: "#fc4384"
+    green: "#b3e33b"
+    yellow: "#ffa727"
+    blue: "#75dff2"
+    magenta: "#ae89fe"
+    cyan: "#708387"
+    white: "#d5d5d0"
+    brightBlack: "#626566"
+    brightRed: "#ff7fac"
+    brightGreen: "#c8ed71"
+    brightYellow: "#ebdf86"
+    brightBlue: "#75dff2"
+    brightMagenta: "#ae89fe"
+    brightCyan: "#b1c6ca"
+    brightWhite: "#f9f9f4"
+  
+# Records, feel free to edit them
+records:
+  - delay: 624
+    content: "               \e[1m\e[32m_\e[0m\r\n   \e[1m\e[34m_\e[0m       \e[0m_\e[0m \e[1m\e[31m_\e[1m\e[32m(_)\e[1m\e[35m_\e[0m     |  Documentation: https://docs.julialang.org\r\n  \e[1m\e[34m(_)\e[0m     | \e[1m\e[31m(_)\e[0m \e[1m\e[35m(_)\e[0m    |\r\n   \e[0m_ _   _| |_  __ _\e[0m   |  Type \"?\" for help, \"]?\" for Pkg help.\r\n  \e[0m| | | | | | |/ _` |\e[0m  |\r\n  \e[0m| | |_| | | | (_| |\e[0m  |  Version 1.6.0-DEV.1490 (2020-11-13)\r\n \e[0m_/ |\\__'_|_|_|\\__'_|\e[0m  |  Commit 9ecc1f2f7d (6 days old master)\r\n\e[0m|__/\e[0m                   |\r\n\r\n"
+  - delay: 10
+    content: "\e[?2004h"
+  - delay: 11
+    content: "\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C"
+  - delay: 1601
+    content: u
+  - delay: 95
+    content: s
+  - delay: 105
+    content: i
+  - delay: 51
+    content: 'n'
+  - delay: 64
+    content: g
+  - delay: 44
+    content: ' '
+  - delay: 307
+    content: O
+  - delay: 242
+    content: h
+  - delay: 224
+    content: M
+  - delay: 265
+    content: 'y'
+  - delay: 280
+    content: R
+  - delay: 51
+    content: E
+  - delay: 90
+    content: P
+  - delay: 205
+    content: L
+  - delay: 300
+    content: "\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7Cusing OhMyREPL\r\e[21C\r\n\e[?2004l\e[0m"
+  - delay: 263
+    content: "\r\n\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\e[?2004h\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C"
+  - delay: 6647
+    content: "\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[38;5;197musing\e[0m \e[0m\e[39mYaoLang\e[0m\e[39m\e[0m\r\e[7C\r\e[20C\e[?25h\r\n\e[?2004l\e[0m"
+  - delay: 1812
+    content: "\r\n\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\e[?2004h"
+  - delay: 10
+    content: "\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[38;5;197musing\e[0m \e[0m\e[39mYaoLang\e[0m\e[38;5;197m.\e[0m\e[39mIBMQ\e[0m\e[39m\e[0m\r\e[7C\r\e[25C\e[?25h\r\n\e[?2004l\e[0m\r\n\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\e[?2004h\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[38;5;197musing\e[0m \e[0m\e[39mIBMQClient\e[0m\e[39m\e[0m\r\e[7C\r\e[23C\e[?25h\r\n\e[?2004l\e[0m\r\n\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\e[?2004h\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[38;5;197musing\e[0m \e[0m\e[39mYaoCompiler\e[0m\e[39m\e[0m\r\e[7C\r\e[24C\e[?25h\r\n\e[?2004l\e[0m\r\n\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\e[?2004h\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[38;5;197musing\e[0m \e[0m\e[39mYaoCompiler\e[0m\e[38;5;197m.\e[0m\e[39mIntrinsics\e[0m\e[39m\e[0m\r\e[7C\r\e[35C\e[?25h\r\n\e[?2004l\e[0m\r\n\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\e[?2004h"
+  - delay: 44
+    content: "\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[38;5;208m@\e[0m\e[38;5;208mdevice\e[0m \e[0m\e[38;5;197mfunction\e[0m \e[0m\e[38;5;148mtest\e[0m\e[38;5;178m(\e[0m\e[38;5;178m)\e[0m\r\n           \e[0m\e[38;5;141m1\e[0m \e[0m\e[38;5;197m=>\e[0m \e[0m\e[39mX\e[0m\r\n           \e[0m\e[38;5;141m2\e[0m \e[0m\e[38;5;197m=>\e[0m \e[0m\e[39mX\e[0m\r\n           \e[0m\e[38;5;208m@\e[0m\e[38;5;208mctrl\e[0m \e[0m\e[38;5;178m(\e[0m\e[38;5;141m1\e[0m\e[39m,\e[0m \e[0m\e[38;5;141m2\e[0m\e[38;5;178m)\e[0m \e[0m\e[38;5;141m3\e[0m\e[38;5;197m=>\e[0m\e[39mX\e[0m\r\n           \e[0m\e[38;5;208m@\e[0m\e[38;5;208mctrl\e[0m \e[0m\e[38;5;141m1\e[0m \e[0m\e[38;5;141m2\e[0m\e[38;5;197m=>\e[0m\e[39mX\e[0m\r\n           \e[0m\e[39mc\e[0m \e[0m\e[38;5;197m=\e[0m \e[0m\e[38;5;208m@\e[0m\e[38;5;208mmeasure\e[0m \e[0m\e[38;5;141m1\e[0m\e[38;5;197m:\e[0m\e[38;5;141m3\e[0m\r\n           \e[0m\e[38;5;197mreturn\e[0m \e[0m\e[39mc\e[0m\r\n       \e[0m\e[38;5;197mend\e[0m\e[39m\e[0m\r\e[7C\r\e[7C\r\e[7C\r\e[7C\r\e[7C\r\e[7C\r\e[7C\r\e[7C\r\e[10C\e[?25h"
+  - delay: 4482
+    content: "\e[?25l\r\e[0K\e[1A\r\e[0K\e[1A\r\e[0K\e[1A\r\e[0K\e[1A\r\e[0K\e[1A\r\e[0K\e[1A\r\e[0K\e[1A\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[38;5;208m@\e[0m\e[38;5;208mdevice\e[0m \e[0m\e[38;5;197mfunction\e[0m \e[0m\e[38;5;148mtest\e[0m\e[38;5;178m(\e[0m\e[38;5;178m)\e[0m\r\n           \e[0m\e[38;5;141m1\e[0m \e[0m\e[38;5;197m=>\e[0m \e[0m\e[39mX\e[0m\r\n           \e[0m\e[38;5;141m2\e[0m \e[0m\e[38;5;197m=>\e[0m \e[0m\e[39mX\e[0m\r\n           \e[0m\e[38;5;208m@\e[0m\e[38;5;208mctrl\e[0m \e[0m\e[38;5;178m(\e[0m\e[38;5;141m1\e[0m\e[39m,\e[0m \e[0m\e[38;5;141m2\e[0m\e[38;5;178m)\e[0m \e[0m\e[38;5;141m3\e[0m\e[38;5;197m=>\e[0m\e[39mX\e[0m\r\n           \e[0m\e[38;5;208m@\e[0m\e[38;5;208mctrl\e[0m \e[0m\e[38;5;141m1\e[0m \e[0m\e[38;5;141m2\e[0m\e[38;5;197m=>\e[0m\e[39mX\e[0m\r\n           \e[0m\e[39mc\e[0m \e[0m\e[38;5;197m=\e[0m \e[0m\e[38;5;208m@\e[0m\e[38;5;208mmeasure\e[0m \e[0m\e[38;5;141m1\e[0m\e[38;5;197m:\e[0m\e[38;5;141m3\e[0m\r\n           \e[0m\e[38;5;197mreturn\e[0m \e[0m\e[39mc\e[0m\r\n       \e[0m\e[38;5;197mend\e[0m\e[39m\e[0m\r\e[7C\r\e[7C\r\e[7C\r\e[7C\r\e[7C\r\e[7C\r\e[7C\r\e[7C\r\e[10C\e[?25h\r\n\e[?2004l\e[0m"
+  - delay: 847
+    content: "\e[0m\e[0m"
+  - delay: 35
+    content: test
+  - delay: 46
+    content: "\e[90m (generic routine with 1 methods)\e[39m\r\n\r\n"
+  - delay: 72
+    content: "\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\e[?2004h\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C"
+  - delay: 999
+    content: "\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39mreg\e[0m \e[0m\e[38;5;197m=\e[0m \e[0m\e[39mIBMQ\e[0m\e[38;5;197m.\e[0m\e[38;5;81mIBMQReg\e[0m\e[38;5;178m(\e[0m\e[38;5;178m)\e[0m\e[39m\e[0m\r\e[7C\r\e[27C\e[?25h"
+  - delay: 432
+    content: "\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39mreg\e[0m \e[0m\e[38;5;197m=\e[0m \e[0m\e[39mIBMQ\e[0m\e[38;5;197m.\e[0m\e[38;5;81mIBMQReg\e[0m\e[38;5;178m(\e[0m\e[38;5;178m)\e[0m\e[39m\e[0m\r\e[7C\r\e[27C\e[?25h\r\n\e[?2004l\e[0m"
+  - delay: 2043
+    content: 'IBM API token (https://quantum-computing.ibm.com/account): '
+  - delay: 4728
+    content: "\r\n"
+  - delay: 8961
+    content: "choose a device:\r\n"
+  - delay: 219
+    content: "\e[2K → \e[32mibmq_qasm_simulator\e[39m  \e[94mnqubits: \e[39m\e[32m32\e[39m\r\r\n\e[2K   \e[32mibmqx2\e[39m               \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_16_melbourne\e[39m    \e[94mcredits_required:: \e[39m\e[32mfalse\e[39m\r\r\n\e[2K   \e[32mibmq_vigo\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m\r\r\n\e[2Kv  \e[32mibmq_valencia\e[39m\e[?25l"
+  - delay: 2661
+    content: "\e[999D\e[5A\e[2K   \e[32mibmq_qasm_simulator\e[39m  \e[94mnqubits: \e[39m\e[32m5\e[39m\r\r\n\e[2K → \e[32mibmqx2\e[39m               \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_16_melbourne\e[39m    \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_vigo\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m\r\r\n\e[2Kv  \e[32mibmq_valencia\e[39m"
+  - delay: 869
+    content: "\e[999D\e[5A\e[2K   \e[32mibmq_qasm_simulator\e[39m  \e[94mnqubits: \e[39m\e[32m15\e[39m\r\r\n\e[2K   \e[32mibmqx2\e[39m               \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K → \e[32mibmq_16_melbourne\e[39m    \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_vigo\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m\r\r\n\e[2Kv  \e[32mibmq_valencia\e[39m"
+  - delay: 1160
+    content: "\e[999D\e[5A\e[2K   \e[32mibmq_qasm_simulator\e[39m  \e[94mnqubits: \e[39m\e[32m5\e[39m\r\r\n\e[2K   \e[32mibmqx2\e[39m               \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_16_melbourne\e[39m    \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K → \e[32mibmq_vigo\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m\r\r\n\e[2Kv  \e[32mibmq_valencia\e[39m"
+  - delay: 1286
+    content: "\e[999D\e[5A\e[2K   \e[32mibmq_qasm_simulator\e[39m  \e[94mnqubits: \e[39m\e[32m5\e[39m\r\r\n\e[2K   \e[32mibmqx2\e[39m               \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_16_melbourne\e[39m    \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_vigo\e[39m\r\r\n\e[2K → \e[32mibmq_ourense\e[39m\r\r\n\e[2Kv  \e[32mibmq_valencia\e[39m"
+  - delay: 1409
+    content: "\e[999D\e[5A\e[2K^  \e[32mibmqx2\e[39m               \e[94mnqubits: \e[39m\e[32m5\e[39m\r\r\n\e[2K   \e[32mibmq_16_melbourne\e[39m    \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_vigo\e[39m            \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m\r\r\n\e[2K → \e[32mibmq_valencia\e[39m\r\r\n\e[2Kv  \e[32mibmq_armonk\e[39m"
+  - delay: 1446
+    content: "\e[999D\e[5A\e[2K^  \e[32mibmq_16_melbourne\e[39m    \e[94mnqubits: \e[39m\e[32m1\e[39m\r\r\n\e[2K   \e[32mibmq_vigo\e[39m            \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m         \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_valencia\e[39m\r\r\n\e[2K → \e[32mibmq_armonk\e[39m\r\r\n\e[2Kv  \e[32mibmq_athens\e[39m"
+  - delay: 1323
+    content: "\e[999D\e[5A\e[2K^  \e[32mibmq_vigo\e[39m            \e[94mnqubits: \e[39m\e[32m5\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m         \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_valencia\e[39m        \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_armonk\e[39m\r\r\n\e[2K → \e[32mibmq_athens\e[39m\r\r\n\e[2K   \e[32mibmq_santiago\e[39m"
+  - delay: 1194
+    content: "\e[999D\e[5A\e[2K^  \e[32mibmq_vigo\e[39m            \e[94mnqubits: \e[39m\e[32m5\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m         \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_valencia\e[39m        \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_armonk\e[39m\r\r\n\e[2K   \e[32mibmq_athens\e[39m\r\r\n\e[2K → \e[32mibmq_santiago\e[39m"
+  - delay: 1374
+    content: "\e[999D\e[5A\e[2K^  \e[32mibmq_vigo\e[39m            \e[94mnqubits: \e[39m\e[32m5\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m         \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_valencia\e[39m        \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_armonk\e[39m\r\r\n\e[2K   \e[32mibmq_athens\e[39m\r\r\n\e[2K → \e[32mibmq_santiago\e[39m"
+  - delay: 633
+    content: "\e[999D\e[5A\e[2K^  \e[32mibmq_vigo\e[39m            \e[94mnqubits: \e[39m\e[32m5\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m         \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_valencia\e[39m        \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_armonk\e[39m\r\r\n\e[2K → \e[32mibmq_athens\e[39m\r\r\n\e[2K   \e[32mibmq_santiago\e[39m"
+  - delay: 624
+    content: "\e[999D\e[5A\e[2K^  \e[32mibmq_vigo\e[39m            \e[94mnqubits: \e[39m\e[32m1\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m         \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_valencia\e[39m        \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K → \e[32mibmq_armonk\e[39m\r\r\n\e[2K   \e[32mibmq_athens\e[39m\r\r\n\e[2K   \e[32mibmq_santiago\e[39m"
+  - delay: 1053
+    content: "\e[999D\e[5A\e[2K^  \e[32mibmq_vigo\e[39m            \e[94mnqubits: \e[39m\e[32m5\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m         \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K → \e[32mibmq_valencia\e[39m        \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_armonk\e[39m\r\r\n\e[2K   \e[32mibmq_athens\e[39m\r\r\n\e[2K   \e[32mibmq_santiago\e[39m"
+  - delay: 654
+    content: "\e[999D\e[5A\e[2K^  \e[32mibmq_vigo\e[39m            \e[94mnqubits: \e[39m\e[32m5\e[39m\r\r\n\e[2K → \e[32mibmq_ourense\e[39m         \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_valencia\e[39m        \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_armonk\e[39m\r\r\n\e[2K   \e[32mibmq_athens\e[39m\r\r\n\e[2K   \e[32mibmq_santiago\e[39m"
+  - delay: 632
+    content: "\e[999D\e[5A\e[2K^  \e[32mibmq_16_melbourne\e[39m    \e[94mnqubits: \e[39m\e[32m5\e[39m\r\r\n\e[2K → \e[32mibmq_vigo\e[39m            \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m         \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_valencia\e[39m\r\r\n\e[2K   \e[32mibmq_armonk\e[39m\r\r\n\e[2Kv  \e[32mibmq_athens\e[39m"
+  - delay: 1587
+    content: "\e[999D\e[5A\e[2K^  \e[32mibmqx2\e[39m               \e[94mnqubits: \e[39m\e[32m15\e[39m\r\r\n\e[2K → \e[32mibmq_16_melbourne\e[39m    \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_vigo\e[39m            \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m\r\r\n\e[2K   \e[32mibmq_valencia\e[39m\r\r\n\e[2Kv  \e[32mibmq_armonk\e[39m"
+  - delay: 898
+    content: "\e[999D\e[5A\e[2K   \e[32mibmq_qasm_simulator\e[39m  \e[94mnqubits: \e[39m\e[32m5\e[39m\r\r\n\e[2K → \e[32mibmqx2\e[39m               \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_16_melbourne\e[39m    \e[94mcredits_required:: \e[39m\e[32mtrue\e[39m\r\r\n\e[2K   \e[32mibmq_vigo\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m\r\r\n\e[2Kv  \e[32mibmq_valencia\e[39m"
+  - delay: 859
+    content: "\e[999D\e[5A\e[2K → \e[32mibmq_qasm_simulator\e[39m  \e[94mnqubits: \e[39m\e[32m32\e[39m\r\r\n\e[2K   \e[32mibmqx2\e[39m               \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\r\n\e[2K   \e[32mibmq_16_melbourne\e[39m    \e[94mcredits_required:: \e[39m\e[32mfalse\e[39m\r\r\n\e[2K   \e[32mibmq_vigo\e[39m\r\r\n\e[2K   \e[32mibmq_ourense\e[39m\r\r\n\e[2Kv  \e[32mibmq_valencia\e[39m"
+  - delay: 1736
+    content: "\e[?25h\r\n"
+  - delay: 84
+    content: "\e[0m\e[0m"
+  - delay: 140
+    content: "IBM Q (virtual) register:\r\n"
+  - delay: 16
+    content: "  AccountInfo:\r\n"
+  - delay: 17
+    content: '  '
+  - delay: 123
+    content: "\e[94m  email:        \e[39mrogerluo.rl18@gmail.com\r\n  \e[94m  institution:  \e[39mPerimeter Quantum Intelligence Lab\r\n\r\n  IBMQDevice:\r\n    "
+  - delay: 49
+    content: "\e[94mname: \e[39m\e[32mibmq_qasm_simulator\e[39m\r\n    \e[94mnqubits: \e[39m"
+  - delay: 51
+    content: "\e[32m32\e[39m\r\n    \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\n    \e[94mcredits_required: \e[39m"
+  - delay: 66
+    content: "\e[32mfalse\e[39m\r\n    \e[94mversion: \e[39m\e[32m0.1.547\e[39m\r\n\r\n\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\e[?2004h\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C"
+  - delay: 4422
+    content: "\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39mjob\e[0m \e[0m\e[38;5;197m=\e[0m \e[0m\e[39mIBMQ\e[0m\e[38;5;197m.\e[0m\e[38;5;81msubmit\e[0m\e[38;5;178m(\e[0m\e[39mreg\e[0m\e[39m,\e[0m \e[0m\e[38;5;81mtest\e[0m\e[38;5;161m(\e[0m\e[38;5;161m)\e[0m\e[38;5;178m)\e[0m\e[39m\e[0m\r\e[7C\r\e[37C\e[?25h\r\n\e[?2004l\e[0m"
+  - delay: 15496
+    content: "\e[0m\e[0m"
+  - delay: 75
+    content: "JobInfo:\r\n\e[94mid: \e[39m\e[32m5fb759dc1eb98900190e2411\e[39m\r\n"
+  - delay: 235
+    content: "\e[94mstatus: \e[39m\e[32mVALIDATING\e[39m\r\n"
+  - delay: 18
+    content: "\e[94mprovider: \e[39m\e[32mibm-q/open/main\e[39m\r\n\e[94mdevice: \e[39m\r\n\r\n  IBMQDevice:\r\n    \e[94mname: \e[39m\e[32mibmq_qasm_simulator\e[39m\r\n    \e[94mnqubits: \e[39m\e[32m32\e[39m\r\n    \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\n    \e[94mcredits_required: \e[39m\e[32mfalse\e[39m\r\n    \e[94mversion: \e[39m\e[32m0.1.547\e[39m\r\n\r\n\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\e[?2004h\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39mresult\e[0m \e[0m\e[38;5;197m=\e[0m \e[0m\e[39mIBMQClient\e[0m\e[38;5;197m.\e[0m\e[38;5;81mresult\e[0m\e[38;5;178m(\e[0m\e[39mjob\e[0m\e[38;5;178m)\e[0m\e[39m\e[0m\r\e[7C\r\e[38C\e[?25h\r\n\e[?2004l\e[0m"
+  - delay: 260
+    content: "\r\n\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\e[?2004h"
+  - delay: 1824
+    content: "\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39mr\e[0m\e[39m\e[0m\r\e[7C\r\e[8C\e[?25h"
+  - delay: 78
+    content: "\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39mre\e[0m\e[39m\e[0m\r\e[7C\r\e[9C\e[?25h"
+  - delay: 757
+    content: "\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7Cr\r\e[8C\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39mr\e[0m\e[39m\e[0m\r\e[7C\r\e[8C\e[?25h"
+  - delay: 71
+    content: "\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39m\e[0m\r\e[7C\r\e[7C\e[?25h"
+  - delay: 263
+    content: "\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39mj\e[0m\e[39m\e[0m\r\e[7C\r\e[8C\e[?25h"
+  - delay: 110
+    content: "\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39mjo\e[0m\e[39m\e[0m\r\e[7C\r\e[9C\e[?25h"
+  - delay: 269
+    content: "\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39mjob\e[0m\e[39m\e[0m\r\e[7C\r\e[10C\e[?25h"
+  - delay: 247
+    content: "\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39mjob\e[0m\e[39m\e[0m\r\e[7C\r\e[10C\e[?25h\r\n\e[?2004l\e[0m\e[0m\e[0mJobInfo:\r\n\e[94mid: \e[39m\e[32m5fb759dc1eb98900190e2411\e[39m\r\n"
+  - delay: 243
+    content: "\e[94mstatus: \e[39m\e[32mCOMPLETED\e[39m\r\n\e[94mprovider: \e[39m\e[32mibm-q/open/main\e[39m\r\n\e[94mdevice: \e[39m\r\n\r\n  IBMQDevice:\r\n    \e[94mname: \e[39m\e[32mibmq_qasm_simulator\e[39m\r\n    \e[94mnqubits: \e[39m\e[32m32\e[39m\r\n    \e[94mmax_shots: \e[39m\e[32m8192\e[39m\r\n    \e[94mcredits_required: \e[39m\e[32mfalse\e[39m\r\n    \e[94mversion: \e[39m\e[32m0.1.547\e[39m\r\n\r\n\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\e[?2004h\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C"
+  - delay: 1813
+    content: "\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C"
+  - delay: 23
+    content: "\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7Cjob\r\e[10C\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7Cjob\r\e[10C\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39mjob\e[0m\e[39m\e[0m\r\e[7C\r\e[10C\e[?25h"
+  - delay: 300
+    content: "\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7Cresult = IBMQClient.result(job)\r\e[38C\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7Cresult = IBMQClient.result(job)\r\e[38C"
+  - delay: 612
+    content: "\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7Cresult = IBMQClient.result(job)\r\e[38C\e[?25l\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\e[0m\e[0m\e[39mresult\e[0m \e[0m\e[38;5;197m=\e[0m \e[0m\e[39mIBMQClient\e[0m\e[38;5;197m.\e[0m\e[38;5;81mresult\e[0m\e[38;5;178m(\e[0m\e[39mjob\e[0m\e[38;5;178m)\e[0m\e[39m\e[0m\r\e[7C\r\e[38C\e[?25h\r\n\e[?2004l\e[0m"
+  - delay: 1600
+    content: "\e[0m\e[0m"
+  - delay: 116
+    content: "ResultInfo:\r\n  job_id: \e[32m5fb759dc1eb98900190e2411\e[39m\r\n  data:\r\n   \e[94m1: name: \e[39mtest\r\n      \e[94mtime_taken: \e[39m"
+  - delay: 22
+    content: "0.0031653080000000004\r\n      \e[94mcounts: \e[39m\r\n        \e[32m101\e[39m=>1024\r\n\r\n\r\e[0K\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C\e[?2004h\r\e[0K\e[32m\e[1mjulia> \e[0m\e[0m\r\e[7C\r\e[7C"
+  - delay: 1007
+    content: "\r\n\e[?2004l"
+  - delay: 16
+    content: "\e[0m"
