@@ -14,10 +14,10 @@ YaoTargetQobj = "be2ed200-ac97-4d62-828c-ed82e987dbf4"
 
 [compat]
 IBMQClient = "0.3"
+YaoAPI = "0.1"
 YaoCompiler = "0.1"
 YaoTargetQASM = "0.1"
 YaoTargetQobj = "0.2"
-YaoAPI = "0.1"
 julia = "1.6"
 
 [extras]
