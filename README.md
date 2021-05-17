@@ -1,7 +1,7 @@
 # YaoLang
 
-[![Build Status](https://travis-ci.com/QuantumBFS/YaoLang.jl.svg?branch=master)](https://travis-ci.com/QuantumBFS/YaoLang.jl)
-[![Coveralls](https://coveralls.io/repos/github/QuantumBFS/YaoLang.jl/badge.svg?branch=master)](https://coveralls.io/github/QuantumBFS/YaoLang.jl?branch=master)
+[![Build Status](https://github.com/QuantumBFS/YaoLang.jl/workflows/CI/badge.svg)](https://github.com/QuantumBFS/YaoLang.jl/actions)
+[![Codecov](https://codecov.io/gh/QuantumBFS/YaoLang.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/QuantumBFS/YaoLang.jl)
 
 The next DSL for Yao and quantum programs.
 
