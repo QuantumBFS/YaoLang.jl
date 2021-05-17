@@ -13,7 +13,7 @@ using IBMQClient: AccountInfo, JobInfo, DataInfo, IBMQDevice, DeviceMenu
 # store it temporarily in a Julia instance just for convenience
 
 "account cache to speed up register creation and queries"
-const account_cache = Dict{String, AccountInfo}()
+const account_cache = Dict{String,AccountInfo}()
 
 """
     IBMQReg <: AbstractRegister{1}
@@ -41,28 +41,28 @@ end
 
 function Base.show(io::IO, m::MIME"text/plain", r::IBMQReg)
     println(io, "IBM Q (virtual) register:")
-    show(IOContext(io, :indent=>2), m, r.account)
+    show(IOContext(io, :indent => 2), m, r.account)
     println(io)
     println(io)
-    show(IOContext(io, :indent=>2), m, r.device)
+    show(IOContext(io, :indent => 2), m, r.device)
 end
 
 function IBMQReg(;
-        token::Union{Nothing, String}=nothing,
-        device::Union{Nothing, String}=nothing,
-        nshots::Int = 1024,
-        memory_slots::Int=-1,
-        nqubits::Int=-1, # NOTE: we use nqubits here for consistency
-        kw...
-        # max_credits::Int = 3,
-        # seed::Int = 1,
-        # schema_version::String="1.3.0",
-        # type::String="QASM",
-        # memory::Bool=false,
-        # init_qubits::Bool=true,
-        # parameter_binds::Vector=[],
-        # parametric_pulses=[],
-    )
+    token::Union{Nothing,String} = nothing,
+    device::Union{Nothing,String} = nothing,
+    nshots::Int = 1024,
+    memory_slots::Int = -1,
+    nqubits::Int = -1, # NOTE: we use nqubits here for consistency
+    kw...,
+    # max_credits::Int = 3,
+    # seed::Int = 1,
+    # schema_version::String="1.3.0",
+    # type::String="QASM",
+    # memory::Bool=false,
+    # init_qubits::Bool=true,
+    # parameter_binds::Vector=[],
+    # parametric_pulses=[],
+)
 
     if token === nothing
         if haskey(ENV, "IBMQ_TOKEN")
@@ -85,37 +85,40 @@ function IBMQReg(;
     devices = IBMQClient.devices(account)
 
     if device === nothing
-        menu = DeviceMenu(devices, pagesize=6)
+        menu = DeviceMenu(devices, pagesize = 6)
         choice = request("choose a device:", menu)
         if choice < 0
             return
         end
     else
-        dev = findfirst(x->x.name == device, devices)
+        dev = findfirst(x -> x.name == device, devices)
         dev === nothing || error("device \"$device\" is not available.")
     end
 
-    return IBMQReg(
-        account, devices[choice], nshots,
-        memory_slots, nqubits, NamedTuple(kw),
-    )
+    return IBMQReg(account, devices[choice], nshots, memory_slots, nqubits, NamedTuple(kw))
 end
 
 function create_main_qobj(r::IBMQReg, specs::RoutineSpec...)
     target = YaoCompiler.TargetQobjQASM(;
-        nshots=r.nshots, max_credits = get(r.options, :max_credits, 3),
-        seed=get(r.options, :seed, 1)
+        nshots = r.nshots,
+        max_credits = get(r.options, :max_credits, 3),
+        seed = get(r.options, :seed, 1),
     )
 
     experiments = map(specs) do spec
         # TODO: support parametric routine spec, mark parameters as Const in typeinf
-        ci, _ = YaoCompiler.code_yao(YaoCompiler.Semantic.main, spec; optimize=true, passes=[:julia])
+        ci, _ = YaoCompiler.code_yao(YaoCompiler.Semantic.main, spec; optimize = true, passes = [:julia])
         return YaoCompiler.codegen(target, ci)
     end
 
-    qobj = IBMQClient.create_qobj(r.device, experiments...;
-        memory_slots=r.memory_slots, shots=r.nshots,
-            n_qubits=r.nqubits, r.options...)
+    qobj = IBMQClient.create_qobj(
+        r.device,
+        experiments...;
+        memory_slots = r.memory_slots,
+        shots = r.nshots,
+        n_qubits = r.nqubits,
+        r.options...,
+    )
 
     return qobj
 end
@@ -134,7 +137,9 @@ end
 
 # disable YaoLang entry
 function YaoCompiler.execute(::typeof(YaoCompiler.Semantic.main), ::IBMQReg, ::RoutineSpec)
-    error("IBM Q devices is not fully compatible with YaoLang, please use @ibmq to define and submit jobs with a subset of YaoLang")
+    error(
+        "IBM Q devices is not fully compatible with YaoLang, please use @ibmq to define and submit jobs with a subset of YaoLang",
+    )
 end
 
 macro ibmq(ex...)
@@ -146,7 +151,8 @@ function ibmq_m(ex...)
     kwargs = []
     for opt in options
         opt isa Expr && opt.head === :(=) || error("invalid syntax $opt")
-        opt.args[1] in [:nshots, :max_credits, :seed, :schema_version] || error("invalid option: $opt")
+        opt.args[1] in [:nshots, :max_credits, :seed, :schema_version] ||
+            error("invalid option: $opt")
         push!(kwargs, Expr(:kw, opt.args[1], opt.args[2]))
     end
 
@@ -157,7 +163,7 @@ function ibmq_m(ex...)
     return quote
         $seq = Any[]
         $(collect_experiments(seq, experiment))
-        r = $IBMQReg(;$(kwargs...))
+        r = $IBMQReg(; $(kwargs...))
         $submit(r, $seq...)
     end
 end
@@ -167,7 +173,7 @@ function collect_experiments(seq::Symbol, @nospecialize(ex))
     ex.head == :call && return :(push!($seq, $ex))
 
     if ex.head === :block
-        return Expr(:block, map(x->collect_experiments(seq, x), ex.args)...)
+        return Expr(:block, map(x -> collect_experiments(seq, x), ex.args)...)
     elseif ex.head === :for
         return Expr(:for, ex.args[1], collect_experiments(seq, ex.args[2]))
     else
